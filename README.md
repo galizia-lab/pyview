@@ -20,4 +20,4 @@ Dimension two - data analysis process: the user has interactive access to the da
 VIEW is based on a previous version written in IDL, mostly by Giovanni (1996-2015) with the help of many people, and is now written in Python, mostly by Ajay (2019), again with the help of many people, and including modules from various sources.
 
 
-For more information about installing and using VIEW, consult the [wiki](https://git.uni-konstanz.de/galizia/idl_python_translate/wikis/home)
+For more information about installing and using VIEW, consult the [wiki](https://github.com/galizia-lab/pyview/wiki)
