@@ -1,0 +1,29 @@
+row1:
+  animal: A_5803a
+  flags:
+    SO_MV_scalemax: '23.1'
+    SO_MV_scalemin: '-3.0'
+    SO_individualScale: 0
+  measus:
+  - 3
+  - 5
+row2:
+  measus:
+  - 7
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+row3:
+  measus:
+  - 19
+  - 21
+  - 22
+  - 23
+  - 24
+  - 25
+  - 26
+  - 27

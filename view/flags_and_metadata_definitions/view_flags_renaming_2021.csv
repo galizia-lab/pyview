@@ -1,0 +1,236 @@
+Flag Name,Flag Subgroup,Old Flag Name,Old Flag Subgroup,Flag Description,Selectable Options,Flag Value Type,Flag Default Value,Flag Checks,Error Message
+Data_Median_Filter,Filters,CSM_Median,ARCO-artifacts,integer indicating the way in which the raw data should be filtered with a rolling window MEDIAN filter. Used in view/python_core/p1_class/filters.py,"0: no filter
+1: filter in space with size 3, no time filter
+2: filter in time with size 3, no space filter
+3: filter in space and time, using flag values (CSM_Median_space)(CSM_Median_time)",int,0,"{flag} in (0, 1, 2, 3)","Invalid value {flag} for {flag_name}, valid values are:\n0 (no median filtering)\n1 (median filtering only in space, with fixed window size)\n2 (median filtering only in time, with fixed window size)\n3 (median filtering in both space and time, with window sizes specified in the flags “CSM_Median_space” and “CSM_Median_time” respectively)"
+Data_Median_Space,Filters,CSM_Median_space,ARCO-artifacts,integer indicating width of the median filter used for filtering values over SPACE. Only used if CSM_Median is set to 3.,,int,3,0 <= {flag} <= 3,"Invalid value {flag} for {flag_name}, valid values are 0, 1, 2 and 3"
+Data_Median_Time,Filters,CSM_Median_time,ARCO-artifacts,integer indicating width of the median filter used for filtering values over TIME. Only used if CSM_Median is set to 3.,,int,3,0 <= {flag} <= 3,"Invalid value {flag} for {flag_name}, valid values are 0, 1, 2 and 3"
+Data_Mean_Filter,Filters,CSM_Mean,ARCO-artifacts,integer indicating whether the raw data should be filtered with a rolling window MEAN filter. Used in view/python_core/p1_class/filters.py,"0: no filter
+1: filter in space with size 3, no time filter
+2: filter in time with size 3, no space filter
+3: filter in space and time, using flag values (CSM_Mean_space)(CSM_Mean_time)",int,0,"{flag} in (0, 1, 2, 3)","Invalid value {flag} for {flag_name}, valid values are:\n0 (no median filtering)\n1 (median filtering only in space, with fixed window size)\n2 (median filtering only in time, with fixed window size)\n3 (median filtering in both space and time, with window sizes specified in the flags “CSM_Median_space” and “CSM_Median_time” respectively)"
+Data_Mean_Space,Filters,CSM_Mean_space,ARCO-artifacts,integer indicating width of the mean filter used for filtering values over SPACE. Only used if CSM_Mean is set to 3.,,int,3,{flag} >= 0,"Invalid value {flag} for {flag_name}, only non-negative integers are valid."
+Data_Mean_Time,Filters,CSM_Mean_time,ARCO-artifacts,integer indicating width of the mean filter used for filtering values over TIME. Only used if CSM_Mean is set to 3.,,int,3,{flag} >= 0,"Invalid value {flag} for {flag_name}, only non-negative integers are valid."
+LE_BleachCorrMethod,LoadData,LE_BleachCorrMethod,ARCO-artifacts,indicates the method for correcting bleaching artifacts.,"None: bleaching artifacts are not corrected
+log_uniform: fluorescence relative to background is assumed to follow the same exponential function for all pixels.
+log_pixelwise: fluorescence relative to background is assumed to follow different exponential functions for different pixels",str,None,,
+LE_BleachCutBorder,LoadData,LE_BleachCutBorder,ARCO-artifacts,indicates the percentage of pixels to exclude along the border when not using AREA file,,float,20,,
+LE_BleachExcludeArea,LoadData,LE_BleachExcludeArea,ARCO-artifacts,"if True, function fitting for bleach correction will exclude pixels outside AREA mask, if an appropriate AREA file is found",,bool,True,,
+LE_BleachExcludeStimulus,LoadData,LE_BleachExcludeStimulus,ARCO-artifacts,"if True, function fitting for bleach correction will exclude stimulus frames. Stimulus frames are defined to begin at the end of background and they end based on LE_LogExcludeSeconds. Note that the end of the background depends on background flags",,bool,True,,
+LE_BleachStartFrame,LoadData,LE_BleachStartFrame,ARCO-artifacts,"integer, for logarithmic bleach correction, all frames smaller are excluded in the fit function (frames are numbered 0, 1, 2...); used in CalcSigAll3000; default 2",,int,2,,
+LELog_ExcludeSeconds,LoadData,LE_LogExcludeSeconds,ARCO-artifacts,"for logarithmic bleach correction, how many seconds after end of background to exclude",,int,0,,
+LELog_InitialFactor,LoadData,LE_LogInitialFactor,ARCO-artifacts,"for logarithmic bleach correction, all frames before stimulus onset are more important by this factor",,int,1,,
+LE_ScatteredLightFactor,LoadData,LE_ScatteredLightFactor,ARCO-artifacts,strength of the scattered light correction to be applied. 0 turns off correction. 1 applied full strength correction,,float,0,0 <= {flag} <= 1,"Invalid value {flag} for {flag_name},valid values are in [0, 1]."
+LE_ScatteredLightRadius,LoadData,LE_ScatteredLightRadius,ARCO-artifacts,radius of the scattered light correction to be applied in micrometers,,float,50,,
+LE_DefaultBackgroundRange,CalcSignals,LE_DefaultBackgroundRange,BG-background,specifies the default range of frame for background when stimulus information is not available or when LE_StimulusBasedBackground is set to False,,tuple,"(3,5)",,
+LE_PrestimEndBackground,CalcSignals,LE_PrestimEndBackground,BG-background,"integer, indicating the number of frames to exclude before stimulus onset when calculating background. Default: 2. background is calculated from LE_StartBackground to StimulusOn – LE_PrestimEndBackground - 1",,int,2,,
+LE_StartBackground,CalcSignals,LE_StartBackground,BG-background,"integer, indicating the number of frames to exclude from the beginning of a measurement when calculating background F for deltaF/F;set to -1 not to subtract background in data calculation, to frame for background start. Default: 4",,int,4,,
+LE_StimulusBasedBackground,CalcSignals,LE_StimulusBasedBackground,BG-background,"bool, specifies whether stimulus info must be used to calculate background frames",,bool,True,,
+VIEW_CorrSignals,Xtra,CorrectFlag,CORR-correction,set to access corrected buffer,,bool,0,,
+VIEW_InitCorr,Xtra,VIEW_InitCorr,CORR-correction,For corrected data (e.g. “subtract air”).,,int,0,,
+GDM_withinArea,Output,gdm_withinArea,GDM-gdm export,whether to constrain and revise ROI masks to be within area when exporting GDM files,,bool,0,,
+LE_labelColumns,LoadData,view_labelColumns,LE-loading data,"columns of the measurement list that will be concatenated to the internal label of measurements in VIEW.
+For possible column names, see the entries of the column 'LST Name' in the file `view/flags_and_metadata_definitions/metadata_definition.csv` of the repository",,tuple,"('Measu',)",,
+LE_loadExp,LoadData,view_loadExp,LE-loading data,integer indicating the setup used for acquiring data.,"0 : old setup
+1: Visicam
+2: confocal
+3: TILL photonics single wavelength
+4: TILL photonics dual wavelength (FURA)
+20: ZEISS multiphoton data
+33: Generic single wavelength TIF (TYX formatted data)
+34: Dual wavelength TIF in two separate files (TYX formatted data)
+35: Dual wavelength TIF in two separate files (TWYX formatted data; W=wavelength)
+665: generate test data(1)
+666: generate test data(2)
+667: generate test data(3)",int,3,,
+mv_bgColor,Movie,mv_bgColor,MV-movie,string indicating the color of border of the output movie. Valid values are those which can be interpreted as matplotlib colors,,str,k,,
+mv_bitrate,Movie,mv_bitrate,MV-movie,"string indicating the bitrate for exporting movies. E.g.: 100k is 100 kilobits/s, 1M is 1 megabits/s",,str,1024k,,
+mv_correctStimulusOnset,Movie,mv_correctStimulusOnset,MV-movie,"time delay between stimulus time and imaging time. If more than 1000 interpreted as ms, else as frames",,int,0,,
+mv_cutborder,Movie,mv_cutborder,MV-movie,specifies the number of pixels to exclude on all sides of of the movie. Default value=0,,int,0,{flag} >= 0,"{flag_name} has to be >= 0, value specified = {flag}"
+mv_displayTime,Movie,mv_displayTime,MV-movie,"float controlling the font size of the time string in movie output. NOTE: Since all other fonts try to scale with the time string, this could be used to control the font size of all text in movie output.","0: no time string is drawn.
+1: time string is drawn, with an internally calculated appropriate font.
+(0, 1): try to make the font smaller than the internally calculated appropriate font. May not work if font size<8
+>1: try to make the font larger than internally calculated appropriate font.",float,0.8,{flag} >= 0,"{flag_name} has to be >=0, value specified={flag}"
+mv_exportFormat,Movie,mv_exportFormat,MV-movie,specifies the format for saving movie,"single_tif: exports to single layer tif file
+stack_tif: exports to multi layer tif file
+libx264: exports to a compressed MP4 file with H264 encoding (very little loss of quality).
+ayuv: export to an uncompressed AVI file with AYUV encoding",str,libx264,,
+mv_fgColor,Movie,mv_fgColor,MV-movie,string indicating the color of annotations to be added onto the border of the output movie. Valid values are those which can be interpreted as matplotlib colors,,str,w,,
+mv_FirstFrame,Movie,mv_FirstFrame,MV-movie,"integer>=0 indicating a frame number, all frames before this frame will be excluded in movie output. First frame has number 0. Negative values will result in exclusion of no frames at the beginning.",,int,0,,
+mv_fontName,Movie,mv_fontName,MV-movie,string indicating the name of the system font to use for annotating movies. E.g.: 'DejeVu Sans'. Use 'None' for default font,"OpenSans-Regular: a font included with VIEW
+PixelOperator8: a font included with VIEW",str,None,,
+mv_indiScale3factor,Movie,mv_indiScale3factor,MV-movie,"float, Defines the central area to use when mv_individualScale=3. If it is set to 0.2, the central area is the part of the frame that remains after excluding 20% of frame width on left and right; and 20% of frame height on the top and bottom.",,float,0.2,0 <= {flag} <= 0.5,"{flag_name} has to be in [0, 0.5], value specified = {flag}"
+mv_individualScale,Movie,mv_individualScale,MV-movie,"Specifies the method for choosing the dynamic range within which data is restricted before creating movie output. In other words, specifies the data values that are to correspond to the bottom-most and top-most color of the colormap. Valid values are `x` and `yx` (0-6, 10-16, 20-26)","0 lower end is set to the value of the flag 'scalemin' and the upper end to the value of the flag 'scalemax'
+1: same as 0
+2: lower end is set to the minimum value of the entire movie, where 'minimum' is interpreted based on the the flag 'mv_percentileScale'. Similarly, the upper end is set to the maximum value of the entire movie.
+3: Similar to when 2, but the minimum and maximum values are calculated using a central region of the movie defined by the flag 'mv_indiScale3factor'
+4: lower end is set to the flag 'scalemin', upper end is set as when 2.
+5: lower end is set to the minimum of the region defined by the mask contained in the associated '.Area' or '.area.tif' file in the folder 'Coor'. Similarly the upper end is set to the maximum of the region.
+6: lower end is set to the value of the flag 'scalemin', the upper end is set as in when 5.
+11: Same as 1 above, but with the ranges minimum to 0 and 0 to maximum separately being mapped into lower and upper half range. Similarly 12, 13...
+21: Same as 1 above, but with center scaling at 0, adapt minimum or maximum accordingly. Similarly 22, 23..",int,0,,
+mv_LastFrame,Movie,mv_LastFrame,MV-movie,integer>0 indicating a frame number. All frames after this frame will be excluded in movie output. First frame has number 0. Negative value or 0 will result in exclusion of no frames at the end.,,int,-1,,
+mv_lowerThreshPositiveResps,Movie,mv_lowerThreshPositiveResps,MV-movie,"string indicating a lower threshold, which is applied to the data indicated in 'mv_thresholdOn'. Pixels with values higher than this threshold will be colorized.
+Absolute and relative thresholds can be specified for this flag.
+For absolute thresholds use the format 'axxxx'. E.g.: 'a956.56', in which case all pixels with value higher than 956.56 will be colorized.
+For relative threholds use the format 'ryyyy'. E.g.: 'r34.56', in which case all pixels with values in the range 34.56%-100% of the data range will be colorized.
+Ignored if 'mv_thresholdOn' is 'none'",,str,a0,{flag}.startswith('a') or {flag}.startswith('r'),Invalid value {flag} specified for {flag_name}! Use the format 'rxxxx' for relative values and 'ayyyy' for absolute values
+mv_markStimulus,Movie,mv_markStimulus,MV-movie,integer specifying the kind of stimulus marking to include.,"0: no marking
+1: for a square filled with foreground color (mv_fgColor)
+2: for a text containing odor and concentration information, as specified in measurement list
+3: for a red square
+21: for a text containing only odor information, as specified in measurement list",int,0,,
+mv_percentileScale,Movie,mv_percentileScale,MV-movie,indicates if percentile values based on mv_percentileValue should be used instead on minimum and maximum while scaling data for movie export,,bool,False,,
+mv_percentileValue,Movie,mv_percentileValue,MV-movie,"float, indicating a percentile value. Only used if mv_percentileScale is True. Data will be scaled to map the value at 'mv_percentileScale'th percentile to 0 and '100-mv_percentileScale'th percentile to 1",,float,0,0 <= {flag} <= 100,Invalid value {flag} for {flag_name}. Valid values are floats from b0 to 100
+mv_reverseIt,Movie,mv_reverseIt,MV-movie,Specifies whether to flip vertically (i.e. left-right) each movie frame. Is identical to mv_rotateImage eq 7.,,bool,False,,
+mv_rotateImage,Movie,mv_rotateImage,MV-movie,"Specifies the rotation to be applied to each movie frame. When set to 0, no rotation is applied. This flag emulates the IDL command 'rotate'.","0: no rotation
+1: 90cw
+2: 180cw
+3: 270cw
+4: flip and 90ccw
+5: flip and 180ccw
+6: flip and 270ccw
+7: flip with horizontal axis symmetry (i.e. up-down)",int,0,,
+mv_scaleLegendFactor,Movie,mv_scaleLegendFactor,MV-movie,factor by which the upper and lower limits of the data are multiplied before being printed above and below the colorbar,,float,1,,
+mv_showROIs,Movie,mv_showROIs,MV-movie,Overlay other information to movie output. Valid values are 0 or integers greater than 10.,"0: do nothing
+10: puts unfilled squares/circles/polygons with the foreground color specified in the flag 'mv_fgColor'. ROI information sourced from a .COOR file.
+11: similar to 10, but ROI information is sourced from a .TIF file (IDL format). Similarly 12, 13.... See documentation of RM_ROITrace
+20: ROI information sourced as in 10, but the squares/circles/polygons have different colors and the overview frame underneath is replaced by all background.
+21: ROI information sourced as in 11, but ROIs drawn as in 20",int,0,,
+mv_SpeedFactor,Movie,mv_SpeedFactor,MV-movie,"Specifies the factor by which the output movie is to be spedup. When set to 1, the frame rate of the output movie will be the same as during camera acquisition. When set to 2, twice as fast and when set to 0.5, half as fast.",,float,1,{flag} > 0,"{flag_name} has to be > 0, value specified = {flag}"
+mv_suppressMilliseconds,Movie,mv_suppressMilliseconds,MV-movie,"if true, milliseconds will be excluded when printing time on movie frames",,bool,False,,
+mv_thresholdOn,Movie,mv_thresholdOn,MV-movie,string indicating the variable that is thresholded to decide the region of each frame that is colorized.,"none: all pixels will be colorized, subject to the flag 'mv_withinArea'. This is the default setting.
+raw1: raw data will be used
+sig1: signal data calculated from raw data will be used
+foto1: foto data calculated from raw data will be used",str,none,,
+mv_thresholdScale,Movie,mv_thresholdScale,MV-movie,string indicating how data outside the region of focus is to be scaled and mapped to gray values,"full: Black and white are respectively mapped onto the minimum and maximum of the movie data indicated by 'mv_thresholdShowImage'
+onlyShown: same as 'full', but min and max calculated restricted to the region outside the region of focus",str,full,,
+mv_thresholdShowImage,Movie,mv_thresholdShowImage,MV-movie,"string indicating the data to be shown outside the region of focus defined by 'mv_thresholdOn', 'mv_lowerThreshNegativeResps', 'mv_upperThreshNegativeResps' and 'mv_withinArea'.","foto1: foto data calculated from raw data will be used. This is the default setting. Since foto data is a frame, the region outside the region of focus will be the same for all frames
+raw1: raw data will be used.
+bgColor: all pixels outside the region of focus will be filled with the color indicated by the flag 'mv_bgColor'",str,foto1,,
+mv_upperThreshNegativeResps,Movie,mv_upperThreshNegativeResps,MV-movie,"string indicating an upper threshold, which is applied to the data indicated in 'mv_thresholdOn'.
+Pixels with values lower than this threshold will be colorized.
+Absolute and relative thresholds can be specified for this flag.
+For absolute thresholds use the format 'axxxx'. E.g.: 'a956.56', in which case all pixels with value lower than 956.56 will be colorized.
+For relative threholds use the format 'ryyyy'. E.g.: 'r34.56', in which case all pixels with values in the range 0%-34.56% of the data range will be colorized.
+Ignored if 'mv_thresholdOn' is 'none'",,str,a0,{flag}.startswith('a') or {flag}.startswith('r'),Invalid value {flag} specified for {flag_name}! Use the format 'rxxxx' for relative values and 'ayyyy' for absolute values
+mv_withinArea,Movie,mv_withinArea,MV-movie,indicates whether colortable-based data colorization in movies is restricted to an area indicated by the `.area/.area.tif` file for this measurement/animal,,bool,0,,
+mv_xgap,Movie,mv_xgap,MV-movie,"Specifies the width of the frame to be added for annnotations. If mv_xgap is 50, the frame will extend 50 pixels to the left of the data and 50 pixels to the right of the data.",,int,0,,
+mv_ygap,Movie,mv_ygap,MV-movie,"Specifies the height of the frame to be added for annnotations. If mv_ygap is 50, the frame will extend 50 pixels above the data and 50 pixels below the data.",,int,0,,
+SO_bgColor,Output,SO_bgColor,SO-overviews,string indicating the color of border of overviews and tapestries. Valid values are those which can be interpreted as matplotlib colors,,str,w,,
+SO_cutborder,Output,SO_cutborder,SO-overviews,specifies the number of pixels to exclude on all sides of of the overview frame. Default value=0,,int,0,{flag} >= 0,"{flag_name} has to be >= 0, value specified = {flag}"
+SO_fgColor,Output,SO_fgColor,SO-overviews,string indicating the color of annotations to be added onto to overviews and tapestries. Valid values are those which can be interpreted as matplotlib colors,,str,k,,
+SO_fontName,Output,SO_fontName,SO-overviews,string indicating the name of the system font to use for annotating overviews. E.g.: 'DejeVu Sans'. Use 'None' for default font,"OpenSans-Regular: a font included with VIEW
+PixelOperator8: a font included with VIEW",str,None,,
+SO_indiScale3factor,Output,SO_indiScale3factor,SO-overviews,"float, defines the central area to use when SO_individualScale=3. If it is set to 0.2, the central area is the part of the frame that remains after excluding 20% of frame width on left and right; and 20% of frame height on the top and bottom.",,float,0.2,0 <= {flag} <= 0.5,"{flag_name} has to be in [0, 0.5], value specified = {flag}"
+SO_individualScale,Output,SO_individualScale,SO-overviews,"Specifies the method for choosing the dynamic range within which data is restricted before creating movie output. In other words, specifies the data values that are to correspond to the bottom-most and top-most color of the colormap. Valid values are `x` and `yx` (0-6, 10-16, 20-26)","0: lower end is set to the value of the flag 'scalemin' and the upper end to the value of the flag 'scalemax'
+1: same as 0
+2: lower end is set to the minimum value of the entire movie, where 'minimum' is interpreted based on the the flag 'mv_percentileScale'. Similarly, the upper end is set to the maximum value of the entire movie.
+3: Similar to when 2, but the minimum and maximum values are calculated using a central region of the movie defined by the flag 'mv_indiScale3factor'
+4: lower end is set to the flag 'scalemin', upper end is set as when 2.
+5: lower end is set to the minimum of the region defined by the mask contained in the associated '.Area' or '.area.tif' file in the folder 'Coor'. Similarly the upper end is set to the maximum of the region.
+6: lower end is set to the value of the flag 'scalemin', the upper end is set as in when 5.
+11: Same as 1 above, but with the ranges minimum to 0 and 0 to maximum separately being mapped into lower and upper half range. Similarly 12, 13...
+21: Same as 1 above, but with center scaling at 0, adapt minimum or maximum accordingly. Similarly 22, 23..",int,0,,
+SO_lowerThreshPositiveResps,Output,SO_lowerThreshPositiveResps,SO-overviews,"string indicating a lower threshold, which is applied to the data indicated in 'SO_thresholdOn'. Pixels with values higher than this threshold will be colorized.
+Absolute and relative thresholds can be specified for this flag.
+For absolute thresholds use the format 'axxxx'. E.g.: 'a956.56', in which case all pixels with value higher than 956.56 will be colorized.
+For relative threholds use the format 'ryyyy'. E.g.: 'r34.56', in which case all pixels with values in the range 34.56%-100% of the data range will be colorized.
+Ignored if 'SO_thresholdOn' is 'none'",,str,a0,{flag}.startswith('a') or {flag}.startswith('r'),Invalid value {flag} specified for {flag_name}! Use the format 'rxxxx' for relative values and 'ayyyy' for absolute values
+SO_Method,Output,SO_Method,SO-overviews,used in view/python_core/overviews/ctv_handlers.py. Indicates whether CTVs are to be calculated pixelwise or framewise.,"0: for calculations pixel by pixel (i.e. on the time-course in each pixel).
+10: for calculations frame by frame (much faster, but not all functions are possible).",int,0,,
+SO_percentileScale,Output,SO_percentileScale,SO-overviews,indicates if percentile values based on SO_percentileValue should be used instead on minimum and maximum while scaling data for generating overviews,,bool,False,,
+SO_percentileValue,Output,SO_percentileValue,SO-overviews,"float, indicating a percentile value. Only used if SO_percentileScale is True. Data will be scaled to map the value at 'SO_percentileScale'th percentile to the bottom-most color and '100-SO_percentileScale'th percentile to the top-most color.",,float,0,0 <= {flag} <= 100,Invalid value {flag} for {flag_name}. Valid values are floats from 0 to 100
+SO_reverseIt,Output,SO_reverseIt,SO-overviews,Specifies whether to flip vertically (i.e. left-right) the overview frame. Is identical to SO_rotateImage eq 7.,,bool,False,,
+SO_rotateImage,Output,SO_rotateImage,SO-overviews,"Specifies the rotation to be applied to each movie frame. When set to 0, no rotation is applied. This flag emulates the IDL command 'rotate'.","0: no rotation
+1: 90cw
+2: 180cw
+3: 270cw
+4: flip and 90ccw
+5: flip and 180ccw
+6: flip and 270ccw
+7: flip with horizontal axis symmetry (i.e. up-down)",int,0,,
+SO_scaleLegendFactor,Output,SO_scaleLegendFactor,SO-overviews,factor by which the upper and lower limits of the data are multiplied before being printed above and below the colorbar,,float,1,,
+SO_showROIs,Output,SO_showROIs,SO-overviews,Overlay other information to overview output. Valid values are 0 or integers greater than 10.,"0: do nothing
+10: puts unfilled squares/circles/polygons with the foreground color specified in the flag 'mv_fgColor'. ROI information sourced from a .COOR file.
+11: similar to 10, but ROI information is sourced from a .TIF file (IDL format). Similarly 12, 13.... See documentation of RM_ROITrace
+20: ROI information sourced as in 10, but the squares/circles/polygons have different colors and the overview frame underneath is replaced by all background.
+21: ROI information sourced as in 11, but ROIs drawn as in 20",int,0,,
+SO_thresholdOn,Output,SO_thresholdOn,SO-overviews,string indicating the variable that is thresholded to decide the region of each frame that is colorized.,"none: all pixels will be colorized, subject to the flag 'SO_withinArea'. This is the default setting.
+overview: overview image generated by applying CTV to sig1 is used
+foto1: foto data calculated from raw data will be used",str,none,,
+SO_thresholdScale,Output,SO_thresholdScale,SO-overviews,string indicating how data outside the region of focus is to be scaled and mapped to gray values,"full: Black and white are respectively mapped onto the minimum and maximum of the movie data indicated by 'mv_thresholdShowImage'
+onlyShown: same as 'full', but min and max calculated restricted to the region outside the region of focus",str,full,,
+SO_thresholdShowImage,Output,SO_thresholdShowImage,SO-overviews,"string indicating the data to be shown outside the region of focus defined by 'SO_thresholdOn', 'SO_lowerThreshNegativeResps', 'SO_upperThreshNegativeResps' and 'SO_withinArea'.","foto1: foto data calculated from raw data will be used. This is the default setting. Since foto data is a frame, the region outside the region of focus will be the same for all frames
+raw1: raw data will be used.
+bgColor: all pixels outside the region of focus will be filled with the color indicated by the flag 'mv_bgColor'",str,foto1,,
+SO_upperThreshNegativeResps,Output,SO_upperThreshNegativeResps,SO-overviews,"string indicating an upper threshold, which is applied to the data indicated in 'SO_thresholdOn'.
+Pixels with values lower than this threshold will be colorized.
+Absolute and relative thresholds can be specified for this flag.
+For absolute thresholds use the format 'axxxx'. E.g.: 'a956.56', in which case all pixels with value lower than 956.56 will be colorized.
+For relative threholds use the format 'ryyyy'. E.g.: 'r34.56', in which case all pixels with values in the range 0%-34.56% of the data range will be colorized.
+Ignored if 'mv_thresholdOn' is 'none'",,str,a0,{flag}.startswith('a') or {flag}.startswith('r'),Invalid value {flag} specified for {flag_name}! Use the format 'rxxxx' for relative values and 'ayyyy' for absolute values
+SO_withinArea,Output,SO_withinArea,SO-overviews,indicates whether colortable-based data colorization in overviews is restricted to an area indicated by the `.area/.area.tif` file for this measurement/animal,,bool,0,,
+SO_xgap,Output,SO_xgap,SO-overviews,"integer, only used when 'CTV_scalebar' is True. Width of the padding added to the right and left f the overview frame is double this value",,int,30,,
+STG_MotherOfAllFolders,Paths,MotherOfAllFolders,PTH-paths,path on file system of the folder containing selected yml file,,str,not set yet,,
+STG_Datapath,Paths,STG_Datapath,PTH-paths,"string pointing to a folder for raw data. Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,not set yet,,
+STG_Measu,Paths,STG_Measu,PTH-paths,measurement tag. Will be used to look up rows from LST files. Refers to the line with this value in column 'measu',,int,-1,,
+STG_OdorInfoPath,Paths,STG_OdorInfoPath,PTH-paths,"string pointing to a folder for measurement list files. Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,not set yet,,
+STG_OdormaskPath,Paths,STG_OdormaskPath,PTH-paths,"string pointing to a folder for spatial footprint information of ROIs (primarily) and AREAs (as backup). Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,not set yet,,
+STG_OdorAreaPath,Paths,STG_OdorAreaPath,PTH-paths,"string pointing to a folder for spatial footprint information of AREAs. Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,Areas,,
+STG_OdorReportFile,Paths,STG_OdorReportFile,PTH-paths,string for free usage to define output file name,,str,empty,,
+STG_OdorReportPath,Paths,STG_OdorReportPath,PTH-paths,"string pointing to a folder for output (movies, overviews, tapestries, glodatamixes, pipeline reports). Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,not set yet,,
+STG_ReportTag,Paths,STG_ReportTag,PTH-paths,name of this animal e.g. in animal.lst,,str,not set yet,,
+STG_ProcessedDataPath,Paths,STG_ProcessedDataPath,PTH-paths,"string pointing to a folder for processed data (movement corrected movies, etc). Can be absolute or relative to MotherOfAllFolders (by default, this is the folder containing the YML file)",,str,Processed Data,,
+STG_TempArchivePath,Paths,STG_TempArchivePath,PTH-paths,string pointing to a folder which will be used to archive files generated for the comparison of pipelines. Must be absolute,,str,not set yet,,
+CTV_FeatureNumber,Output,CTV_FeatureNumber,RM-report method,"integer indicating which feature of the CTV to use, where CTV features are numbered 0, 1, 2, 3, ...",,int,0,{flag} >= 0,"Flag {flag_name} can only take integer values 0, 1, 2... Specified value: {flag}"
+CTV_firstframe,Output,CTV_firstframe,RM-report method,"integer indicating a frame number, where frames are numbered 0, 1, 2...",,int,22,,
+CTV_lastframe,Output,CTV_lastframe,RM-report method,"integer indicating a frame number, where frames are numbered 0, 1, 2...",,int,36,,
+CTV_Method,Output,CTV_Method,RM-report method,"specifies curve-to-value function for pixelwise application to movies to generate overviews. To specify a custom-written ctv method, specify function name here and the file containing it in 'CTV_MethodFile'. Or use an internally implemented CTV","22: is the difference between two fixed points
+0: one feature, (definition taken forward from VIEW-IDL) mean of all frames, useful for simulated photographs
+22: one feature, (mean of 3 frames around <last_frame>) – (mean of 3 frames around <first_frame>)
+222: one feature, (mean of 4 frames starting at <last_frame>) – (mean of 4 frames starting at <first_frame>)
+35: one feature, relates to the maximum within 3 secs after stimulus onset
+22and35: two features, of 22 and 35 above
+300: one feature, same as 0
+301: one feature, (definition taken forward from VIEW-IDL) mean of frames 5 to 10, which is generally before stimulus onset. Useful for morphological views.
+302: one feature, mean of frames from <first_frame> to <last_frame> (both inclusive).
+303: one feature, Average of background frames, calculated using first stimulus onset and the flags LE_StartBackground and LE_PrestimEndBackground. Can be useful to visualize and compare baseline values of signals.
+330: one feature, median of all frames
+331: one feature, median of frames 5 to 10, which is generally before stimulus onset. Useful for morphological views.
+332: one feature, median of frames from <first_frame> to <last_frame> (both inclusive).
+333: one feature, Median of background frames, calculated using first stimulus onset and the flags LE_StartBackground and LE_PrestimEndBackground. Can be useful to visualize and compare baseline values of signals.","int, str",22,,
+CTV_MethodFile,Output,CTV_MethodFile,RM-report method,only used when 'CTV_Method',,str,not set yet,,
+CTV_scalebar,Output,CTV_scalebar,RM-report method,"when True, colorbar is added to the right of overviews and movies",,bool,False,,
+CTV_StimulusNumber,Output,CTV_StimulusNumber,RM-report method,"integer indicating which stimulus to use when calculating CTV, where stimuli are numbered 0, 1, 2, 3, ...",,int,0,{flag} >= 0,"Flag {flag_name} can only take integer values 0, 1, 2... Specified value: {flag}"
+CTVM_Method,Output,CTVM_Method,RM-report method,(not yet implemented in pyVIEW)for multiple CTV values at once,,int,0,,
+Signal_FilterSpaceFlag,Filters,FilterSpaceFlag,RM-report method,Toggles on/off the filter applied to sig1 before generating overview frames or movies,,bool,0,,
+Signal_FilterSpaceSize,Filters,FilterSpaceSize,RM-report method,standard deviation of the spatial gaussian filter applied to sig1 before creating overviews/movies. Only used if 'FilterSpaceFlag' is True,,float,3,,
+Signal_FilterTimeFlag,Filters,FilterTimeFlag,RM-report method,Toggles on/off the filter applied to sig1 before generating movies,,bool,0,,
+Signal_FilterTimeSize,Filters,FilterTimeSize,RM-report method,standard deviation of the temporal gaussian filter applied to sig1 before creating movies. Only used if 'FilterTimeFlag' is True,,float,3,,
+RM_differentViews,Output,RM_differentViews,RM-report method,"Change view, e.g. mirror flip right ALs   (SingleOverviews.pro)",,bool,0,,
+RM_Radius,Output,RM_Radius,RM-report method,"integer representing number of pixels, interpreted as the size of glomeruli read from .coor file, used when marking ROIs on overviews and exporting glodatamixes",,int,5,,
+RM_ROIThreshold,Output,RM_ROIThreshold,RM-report method,"When converting spatial footprints of ROIs into binary masks, all pixel above this percentile will be considered to be inside the binary mask",,float,75,,
+RM_ROITrace,Output,RM_ROITrace,RM-report method,Indicates the file from which component masks are sourced,"0 : read the .coor file
+1 : (not tested) read the .tif file (8-bit, value indicates the name of the glomerulus)
+2 : read the .Area file (IDL format).
+3 : read the .roi file created in ILTIS
+4 : read the .roi.tif file created by a processing pipeline
+5 : read the .area.tif file created in ILTIS
+6 : use a fictive ROI with uniform weight over the entire frame",int,3,,
+SO_MV_scalemax,Output,scalemax,RM-report method,value to scale maximum to with SO_indivdiualScale or mv_individualScale equals 0,,float,1,,
+SO_MV_scalemin,Output,scalemin,RM-report method,corresponding value for minimum,,float,0,,
+LE_CalcMethod,CalcSignals,view_CalcMethod,CALC-signal calculation,integer indicating the method used for calculating a biologically relevant signal from raw movie data. Used in view/python_core/calc_methods.py,"0: sig1 = raw1 / 1000
+3: sig1=deltaF/F
+4: sig1=raw1/raw2 - background(raw1/raw2)",int,3,,
+VIEW_batchmode,Xtra,batchmode,SYS-system,"choice between interactive mode and batchmode. Valid values are: True, False ",,bool,True,,
+SO_MV_colortable,Output,colortable,SYS-system,"if integer indicates an IDL_style color table to use. Valid values are: 11-14. Values are 12-14 self-programmed rainbows.
+if string, must be the name of a matplotlib colormap.
+See https://matplotlib.org/tutorials/colors/colormaps.html.
+NOTE: The inverse of every matplotlib colormap is also available, just append '_r' to colormap name. E.g.: Inverse of the colormap 'jet' would be 'jet_r'","
+11: a self programmed colortable
+12: a self-programmed rainbow colortable
+13: a self-programmed rainbow colortable
+14: a self-programmed rainbow colortable
+jet: a matplotlib colormap
+viridis: a matplotlib colormap, etc","int, str",13,,

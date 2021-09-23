@@ -1,0 +1,20 @@
+name: view_dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.7
+  - jinja2
+  - easygui  # only available in conda-forge
+  - seaborn
+  - bokeh
+  - xlrd
+  - pyqtgraph
+  - whoosh
+  - moviepy  # only available on conda-forge
+  - openpyxl
+  - ipdb
+  - nose
+  - ipython
+  - jupyter
+  - appdirs

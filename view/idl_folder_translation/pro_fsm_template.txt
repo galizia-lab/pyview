@@ -1,0 +1,18 @@
+Value List flag_names (\w+)
+Value List flag_values ([-\w\.]+)
+Value List measus (\d+)
+
+# Initially, parse lines for flag value initializations, until "flag[rm_newcolumn]=1" is encountered then transit
+Start
+  # for each flag match initialization, append values to the lists "flag_names" and "flag_values"
+  ^${flag_names}\s*=\s*${flag_values}
+  # once "flag[rm_newcolumn]=1" is encountered, record all values and transit
+  ^flag\[rm_newcolumn\]=1 -> Record TIFColumn
+
+TIFColumn
+  # for each subloop/measu match, append measu value to the list "measus"
+  ^subloop,'${measus}'
+  # once "flag[rm_newcolumn]=1" is encountered, record all values and restart
+  ^flag\[rm_newcolumn\]=1 -> Record TIFColumn
+
+

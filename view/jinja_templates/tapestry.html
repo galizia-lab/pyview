@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<!-- all measurements in vw, i.e., fraction of the width of the display on which the HTML will be opened-->
+{% set tapestry_width = 100 %}
+{% set fontsize2image_container_width = 1 / 30 %}
+{% set image_container_width = (98 / ncols) / (1 + 1.2 * fontsize2image_container_width) %}
+{% set fontsize = [image_container_width * fontsize2image_container_width, 0.75]|max %}
+{% set image_width = image_container_width / (1 - colorbar2width) %}
+{% set image_height = image_width / aspect_ratio %}
+<!-- 2vw for margin, border and padding -->
+{% set tapestry_height = (image_height + 1.4 * fontsize) * nrows + 2 %}
+
+<style>
+    * {
+        margin:0;
+        padding: 0;
+        font-size: {{ fontsize }}vw;
+    }
+    .thumbnail {grid-area: thumbnail;}
+    .textbelow {grid-area: textbelow;}
+    .textrighttop {grid-area: textrighttop;}
+    .textrightbottom {grid-area: textrightbottom;}
+
+    .textrighttop > p, .textrightbottom > p, .textbelow > p{
+        font-weight: bold;
+    }
+
+    .textrighttop > p {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+    }
+
+    .textrightbottom > p {
+        position: relative;
+        top: {{ (image_height / 2) - 2 * fontsize }}vw;
+        /* Safari */
+        -webkit-transform: rotate(-90deg);
+
+        /* Firefox */
+        -moz-transform: rotate(-90deg);
+
+        /* IE */
+        -ms-transform: rotate(-90deg);
+
+        /* Opera */
+        -o-transform: rotate(-90deg);
+
+        white-space: nowrap;
+
+    }
+    div > img {
+        width: {{ image_width }}vw;
+        height:{{ image_height }}vw;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        overflow: hidden;}
+    .grid-container{
+        display: grid;
+        grid-template-columns: {{ image_container_width }}vw {{ 1.2 * fontsize }}vw;
+        grid-template-rows: {{ image_height / 2 }}vw {{ image_height / 2 }}vw {{ 1.4 * fontsize }}vw;
+        grid-template-areas:
+                'thumbnail textrighttop'
+                'thumbnail textrightbottom'
+                'textbelow textbelow';
+    }
+    .grid-container > div, .tapestry-container{
+        background-color: {{ bg_color }};
+    }
+
+    .grid-container > div > p{
+        color: {{ fg_color }};
+    }
+
+    .tapestry-container{
+        width: {{ tapestry_width }}vw;
+        height: {{ tapestry_height}}vw;
+        margin: 0.5vw;
+        padding: 0.5vw;
+        border: 0.5vw;
+    }
+
+    table{
+        overflow: hidden;
+    }
+
+    /* Tooltip container */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      border: {{ 0.1 * fontsize }}vw dotted {{ fg_color }};
+      padding: {{ 0.1 * fontsize}}vw;
+    }
+
+    .tooltip > p{
+        font-weight: bold;
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: {{ image_container_width }}vw;
+        background-color: {{ bg_color }};
+        color: {{ fg_color }};
+        text-align: center;
+        padding: {{ image_container_width * 0.05 }}vw 0;
+
+        /* Position the tooltip text - see examples below! */
+        position: absolute;
+        z-index: 2;
+        bottom: 100%;
+        left: 0%;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+    }
+
+</style>
+<body>
+<div class="tapestry-container">
+    <table>
+        {% for patches_row in patches_collection:%}
+            <tr>
+                {% for patch in patches_row: %}
+                    <td>
+                        <div class="grid-container">
+                            <div class="thumbnail"><img src="{{ patch.image_relative_path }}"
+                                                        alt="{{ patch.image_relative_path }}"></div>
+                            <div class="textrightbottom"><p>{{ patch.text_right_bottom }}</p></div>
+                            <div class="textrighttop"><p>{{ patch.text_right_top }}</p></div>
+                            <div class="textbelow">
+                                <div class="tooltip">
+                                    <p>{{ patch.text_below }}</p>
+                                    <span class="tooltiptext">
+                                        <b>Animal:</b> {{ patch.animal }}<br><br>
+                                        <b>Flags changed from previous row:</b><br>{{ patch.flag_changes }}
+                                    </span>
+                                </div>
+                                {% if patch.movie_file is not none: %}
+                                <a href="{{patch.movie_file}}">(movie)</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+{% if all_data_limits is not none: %}
+<p>
+    Minimum of lower data limit over all overviews: <b>{{ all_data_limits[0] }}</b><br><br>
+    Maximum of upper data limit over all overviews: <b>{{ all_data_limits[1] }}</b>
+</p>
+{% endif %}
+</body>
+</html>
