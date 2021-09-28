@@ -19,14 +19,17 @@ class GDMRow:
 
     @classmethod
     def from_data_and_metadata(
-            cls, metadata_dict: Mapping, trace: Sequence, sampling_period_ms: float,
+            cls, metadata_dict: Mapping, trace: Sequence=None, sampling_period_ms: float=None,
             starting_time_s: float = 0, units: str = "au"
     ):
         metadata = pd.Series(metadata_dict)
-        time_series = AnalogSignal(
-            signal=trace, sampling_period=sampling_period_ms * pq.ms, t_start=starting_time_s * pq.s,
-            units=units
-        )
+        if trace is not None:
+            time_series = AnalogSignal(
+                signal=trace, sampling_period=sampling_period_ms * pq.ms, t_start=starting_time_s * pq.s,
+                units=units
+            )
+        else:
+            time_series = None
 
         return cls(metadata=metadata, time_series=time_series)
 
@@ -42,17 +45,24 @@ class GDMRow:
     @classmethod
     def parse_from_csv_df_row(cls, csv_df_row):
 
-        sampling_period = csv_df_row["Cycle"]
-        t_start = csv_df_row["TraceOffset"]
-        n_samples = csv_df_row["NumFrames"]
+        try:
+            sampling_period = csv_df_row["Cycle"]
+            t_start = csv_df_row["TraceOffset"]
+            n_samples = csv_df_row["NumFrames"]
 
-        trace_start_pos = next(iter(i for i, x in enumerate(csv_df_row.index.values) if x == "PlaceHolder")) + 1
+            trace_start_pos = next(iter(i for i, x in enumerate(csv_df_row.index.values) if x == "PlaceHolder")) + 1
+            trace = [float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
+        except (KeyError, StopIteration) as e:
+            sampling_period = None
+            t_start = 0
+            trace_start_pos = len(csv_df_row)
+            trace = None
 
         return cls.from_data_and_metadata(
             metadata_dict=csv_df_row.iloc[:trace_start_pos],
             sampling_period_ms=sampling_period,
             starting_time_s=t_start,
-            trace=[float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
+            trace=trace
         )
 
 
@@ -126,11 +136,16 @@ class GDMFile:
         self.data_dict[new_index] = gdm_row.time_series
 
     @classmethod
-    def load_from_csv(cls, csv_file):
-        
+    def load_from_csv(cls, csv_file, metadata_only=False):
+        """
+        Load data and metadata from a csv file
+        :param csv_file: absolute path of CSV file on file system
+        :param bool metadata_only: whether to only read metadata, i.e., skip reading data
+        :return: object of class GDMFile
+        """
         gdm_file = cls()
         
-        csv_df = read_chunks_gdm_csv(csv_file)
+        csv_df = read_chunks_gdm_csv(csv_file, metadata_only=metadata_only)
 
         for i, row in csv_df.iterrows():
             gdm_file.append_gdm_row(GDMRow.parse_from_csv_df_row(row))
@@ -164,8 +179,9 @@ class GDMFile:
 
     def get_data_as_numpy2D(self):
         """
+
         If all data have the same length, return them as a 2D numpy array containing one time series per row
-        :rtype:
+        :rtype: numpy.ndarray
         """
         if len(self.metadata_df["NumFrames"].unique()) == 1:
             return np.array([x.magnitude for x in self.data_dict.values()])[:, :, 0]
@@ -173,17 +189,28 @@ class GDMFile:
             raise ValueError("GDMFile has data of different lengths. Cannot create a numpy array")
 
 
-def read_chunks_gdm_csv(input_csv):
+def read_chunks_gdm_csv(input_csv, metadata_only=False):
     """
     Read a csv containing gdm and FID chunks, parsing date and time columns properly
     :param str input_csv: path to the input csv
+    :param bool metadata_only: whether to only read metadata, i.e., skip reading data
     :return: pandas.DataFrame
     """
 
     print(f"Reading {input_csv}")
+    
+    if metadata_only:
+        gdm_df = pd.read_csv(input_csv, sep=";", nrows=1, header=0)
+        columns2read = []
+        for x in gdm_df.columns:
+            if x == "PlaceHolder":
+                break
+            else:
+                columns2read.append(x)
 
-    # apparently reading everything and then filtering out rows is faster than selectively reading rows
-    gdm_df = pd.read_csv(input_csv, sep=";")
+        gdm_df = pd.read_csv(input_csv, sep=";", usecols=columns2read)
+    else:
+        gdm_df = pd.read_csv(input_csv, sep=";")
 
     def revise_line(line):
         if "_" in line:

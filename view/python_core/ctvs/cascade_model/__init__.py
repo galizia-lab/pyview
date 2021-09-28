@@ -68,9 +68,10 @@ def estimate_delay_rising_phase_only(stimulus_trace: Sequence[float], output_tra
     return delay_estimated
 
 
-def predict_into_future(fit_params, gm):
+def predict_into_future(fit_params, factor):
 
-    trace = np.array(fit_params["output"] - fit_params.C)
+    output = factor * fit_params["output"]
+    trace = np.array(output)
     n_pts = trace.shape[0]
     time_trace = fit_params["time_trace_fitted"]
     sampling_period = time_trace[1] - time_trace[0]
@@ -84,32 +85,37 @@ def predict_into_future(fit_params, gm):
 
     max_pos = central_part.argmax() + central_part_start
 
-    prediction_time_trace = np.arange(
-        time_trace[-1],
-        time_trace[max_pos] + 50,  # units of 50 is seconds
-        sampling_period)
+    prediction_start = time_trace[-2]
+    longest_time_constant = fit_params["kF"] + fit_params['kA']
+    if "kS" in fit_params:
+        longest_time_constant = max(fit_params["kS"], longest_time_constant)
+    prediction_end = time_trace[max_pos] + 6 * longest_time_constant  # units is seconds
 
-    gs = GekkoSolver(state_variables=gm.state_variables, parameters=gm.parameters, equations=gm.equations)
-    predicted_trace = gs.solve(
-        time_vec=prediction_time_trace,
-        input_vec=np.zeros_like(prediction_time_trace),
-        parameter_values={k: fit_params[k] for k in gm.parameters},
-        state_variable_init_dict={k: fit_params[k][-1] for k in gm.state_variables},
-        output_init=fit_params["output"][-1]
-    )
+    predicted_trace = None
+    if prediction_end > prediction_start:
+        prediction_time_trace = np.arange(prediction_start, prediction_end + sampling_period, sampling_period)
 
-    if predicted_trace is None:
-        predicted_trace_no_overlap = None
-        predicted_time_trace_no_overlap = None
-    else:
-        predicted_trace_no_overlap = np.array(predicted_trace)[1:]
-        predicted_time_trace_no_overlap = np.array(prediction_time_trace)[1:]
+        gs = GekkoSolver.init_from_model(fit_params["model"])
+        predicted_trace = gs.solve(
+            time_vec=prediction_time_trace,
+            input_vec=np.zeros_like(prediction_time_trace),
+            parameter_values={k: fit_params[k] for k in gs.parameters},
+            state_variable_init_dict={k: fit_params[k][-2:] for k in gs.state_variables},
+            output_init=output[-2:]
+        )
+
+    predicted_trace_no_overlap = None
+    predicted_time_trace_no_overlap = None
+    if predicted_trace is not None:
+        if predicted_trace[-1] <= predicted_trace[-2]:
+            predicted_trace_no_overlap = np.array(predicted_trace)[1:] * factor
+            predicted_time_trace_no_overlap = np.array(prediction_time_trace)[1:]
 
     return predicted_trace_no_overlap, predicted_time_trace_no_overlap
 
 
 def fit_cascade_model(
-        stimulus_trace, output_trace, time_trace, delays_to_test=np.arange(-15, 8, 1).astype(int)
+        stimulus_trace, output_trace, time_trace, delays_to_test=np.arange(-15, 9, 1).astype(int)
 ):
 
     stimulus_trace = np.array(stimulus_trace)
@@ -125,7 +131,6 @@ def fit_cascade_model(
     factor = 1 if pcc.is_chunk_response_positive() else -1
 
     bics = []
-    gms = []
     fit_params_all = []
     model_one_comp = ModelOneComp()
 
@@ -140,7 +145,7 @@ def fit_cascade_model(
             stimulus_trace_to_fit = stimulus_trace[:stimulus_trace.shape[0] + delay]
             time_trace_to_fit = time_trace[:time_trace.shape[0] + delay]
 
-        fit_params, gm = fit_compare_models(
+        fit_params = fit_compare_models(
             time_vec=time_trace_to_fit,
             input_vec=stimulus_trace_to_fit, output_vec=factor * output_trace_to_fit,
             model2consider=model_one_comp
@@ -152,14 +157,12 @@ def fit_cascade_model(
 
             fit_params_all.append(fit_params)
             bics.append(fit_params["bic"])
-            gms.append(gm)
 
     if len(fit_params_all) == 0:
         return None
     else:
         best_ind = np.argmin(bics)
         fit_params_best_one_comp = fit_params_all[best_ind]
-        gm_best_one_comp = gms[best_ind]
         delay_best = delays_to_test[best_ind]
         fit_params_best_one_comp["delay_input"] = delay_best * sampling_period
         cascade_model_output = dict(
@@ -167,10 +170,9 @@ def fit_cascade_model(
         )
 
         fit_params_all_second = []
-        gms_all_second = []
         bics_second = []
 
-        params_fixed = ["C", "kA"]
+        params_fixed = ["kA"]
 
         models_to_fit = []
 
@@ -202,7 +204,7 @@ def fit_cascade_model(
 
         for model2fit, second_comp_delay in zip(models_to_fit, second_comp_delays):
 
-            fit_params, gm = fit_compare_models(
+            fit_params = fit_compare_models(
                 time_vec=fit_params_best_one_comp["time_trace_fitted"],
                 input_vec=fit_params_best_one_comp["stimulus_trace_fitted"],
                 output_vec=factor * fit_params_best_one_comp["output_trace_expected"],
@@ -213,7 +215,6 @@ def fit_cascade_model(
                 fit_params["output"] = factor * fit_params["output"]
                 fit_params["output_trace_expected"] = factor * fit_params["output_trace_expected"]
                 fit_params_all_second.append(fit_params)
-                gms_all_second.append(gm)
                 bics_second.append(fit_params["bic"])
 
         best_ind = None
@@ -226,21 +227,20 @@ def fit_cascade_model(
             cascade_model_output["fit_params_two_comp"] = fit_params_best_two_comp
 
             # https://imaging.mrc-cbu.cam.ac.uk/statswiki/FAQ/AICreg
+            # difference of 50 chosen based fitting on a test set
             if fit_params_all_second[best_ind]["bic"] >= fit_params_best_one_comp["bic"] - 50:
                 best_ind = None
 
         if best_ind is None:
             fit_params_best = fit_params_best_one_comp
-            gm_best = gm_best_one_comp
         else:
             fit_params_best = fit_params_all_second[best_ind]
-            gm_best = gms_all_second[best_ind]
 
-        predicted_trace, predicted_time_trace = predict_into_future(fit_params_best, gm_best)
+        predicted_trace, predicted_time_trace = predict_into_future(fit_params_best, factor)
 
         cascade_model_output.update(dict(
             sign_factor=factor, fit_params=fit_params_best,
-            predicted_time_trace=predicted_time_trace, predicted_trace=predicted_trace,
+            predicted_time_trace=predicted_time_trace, predicted_trace=predicted_trace
         ))
 
         tempdir = pl.Path(tempfile.gettempdir())

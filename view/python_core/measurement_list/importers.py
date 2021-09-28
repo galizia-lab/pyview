@@ -55,23 +55,17 @@ class BaseImporter(ABC):
         for fle_ind, fle in enumerate(raw_data_files):
 
             logging.getLogger("VIEW").info(f"Parsing metadata from {fle}")
-            df = self.read_single_measurement_metadata(fle, fle_ind, measurement_filter)
+            df = self.parse_metadata(fle, fle_ind, measurement_filter)
 
             combined_df = combined_df.append(df, ignore_index=True)
 
         return combined_df
 
-    @abstractmethod
-    def read_single_measurement_metadata(self, fle: str, fle_ind: int,
-                                         measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
-
-        pass
-
     def get_filetype_info_string(self):
 
         return [f"*{x}" for x in self.associated_extensions] + [self.associate_file_type]
 
-    def ask_for_files(self, default_dir, multiple: bool=True) -> dict:
+    def ask_for_files(self, default_dir, multiple: bool = True) -> dict:
 
         default_dir_str = str(pl.Path(default_dir) / "*")
         files_chosen = easygui.fileopenbox(
@@ -92,17 +86,42 @@ class BaseImporter(ABC):
             return animal_tag_raw_data_mapping
 
     @abstractmethod
-    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
+        """
+        Reads and returns the metadata from a metadata file
+        :param str fle: path of a metadata file
+        :param int fle_ind: integer representing the row order of the measurement associated with <fle>,
+        if it is part of a series
+        :param Callable measurement_filter: only used for Till Vision setups. See tillvisionio.VWSDataManager.get_all_metadata
+        :rtype: pd.DataFrame
+        :return: the columns of the DataFrame returned must be a subset of the metadata columns defined in `view/flags_and_metadata_definitions/metadata_definition.csv`
+        """
 
         pass
 
     @abstractmethod
-    def get_path_relative_to_data_dir(self, fle):
+    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
+        """
+        Parses the animal tag from raw data file names (<file_chosen>). Revises the raw data file names if necessary.
+        Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
+        :param list files_chosen: list of raw data file names
+        :rtype: dict
+        """
+        pass
 
+    @abstractmethod
+    def get_path_relative_to_data_dir(self, fle):
+        """
+        Creates a string representing the path of the raw data file <fle> relative to the data directory represented
+        by the flag "STG_Datapath" (Eg.: "01_DATA")
+        :param fle: path of the raw data file as parsed from the metadata file
+        :rtype: str
+        """
         pass
 
 
-class TillImporter(BaseImporter):
+class TillImporter(BaseImporter, ABC):
 
     def __init__(self, default_values: typing.Mapping):
 
@@ -179,9 +198,9 @@ class TillImporterOneWavelength(TillImporter):
         super().__init__(default_values)
         self.LE_loadExp = 3
 
-    # for till data, a single raw data file is a vws.log file
-    def read_single_measurement_metadata(self, fle: str, fle_ind: int,
-                                         measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
+    # for till data, metadata is contained in vws.log file
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
         vws_manager = VWSDataManager(fle)
         measurements = vws_manager.get_all_metadata(filter=measurement_filter,
                                                     additional_cols_func=additional_cols_func)
@@ -209,8 +228,8 @@ class TillImporterTwoWavelength(TillImporter):
         super().__init__(default_values)
         self.LE_loadExp = 4
 
-    def read_single_measurement_metadata(self, fle: str, fle_ind: int,
-                                         measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool]) -> pd.DataFrame:
 
         vws_manager = VWSDataManager(fle)
         measurements_wl340_df, measurements_wl380_df \
@@ -239,10 +258,10 @@ class LSMImporter(BaseImporter):
     def __init__(self, default_values: typing.Mapping):
 
         super().__init__(default_values)
-        self.associate_file_type = "Zeiss LSM files"
-        self.associated_extensions = [".lsm"]
-        self.movie_data_extensions = [".lsm"]
-        self.LE_loadExp = 20
+        self.associate_file_type = "Zeiss LSM files"  # short text describing raw data files
+        self.associated_extensions = [".lsm"]  # possible extensions of files containing metadata
+        self.movie_data_extensions = [".lsm"]  # possible extension of file containing data (calcium imaging movies)
+        self.LE_loadExp = 20  # associated value of the flag LE_loadExp
 
     def get_path_relative_to_data_dir(self, fle):
 
@@ -279,8 +298,8 @@ class LSMImporter(BaseImporter):
         return pd.DataFrame(lst_line).T
 
     # for till data, a single raw data file is a .lsm file
-    def read_single_measurement_metadata(self, fle: str, fle_ind: int,
-                                         measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
 
         lsm_metadata = tifffile.TiffFile(fle).lsm_metadata
 
@@ -323,6 +342,10 @@ def get_importer_class(LE_loadExp):
 
 
 def get_setup_extension(LE_loadExp):
-
+    """
+    returns the file extension of raw data file of the setup specified by <LE_loadExp>
+    :param int LE_loadExp: value of the flag of the same name
+    :rtype: list
+    """
     importer_class = get_importer_class(LE_loadExp)
     return importer_class({}).movie_data_extension

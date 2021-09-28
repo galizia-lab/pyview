@@ -35,11 +35,11 @@ def main(fle_or_dir, replacement_map_csv):
                 except UnicodeDecodeError as ucde:
                     pass  # happens if the file is not a text file encoded in unicode
 
-                if changes_made:
-                    file.unlink()
+            if changes_made:
+                file.unlink()
 
-                    with open(file, "w") as fh:
-                        fh.write(s)
+                with open(file, "w") as fh:
+                    fh.write(s)
 
 
 if __name__ == '__main__':
