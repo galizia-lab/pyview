@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Dict, Mapping, Sequence
 from neo import AnalogSignal
 import quantities as pq
+import numpy as np
 
 
 @dataclass
@@ -55,7 +56,6 @@ class GDMRow:
         )
 
 
-
 @dataclass
 class GDMFile:
     """Class for a collection fo GDMRow objects, with CSV (and other) IO interfaces"""
@@ -105,14 +105,13 @@ class GDMFile:
 
     def append_from_a_gdm_file(self, gdm_file):
 
-        current_rows = self.metadata_df.shape[0]
-
-        if current_rows == 0:
+        if self.metadata_df.shape[0] == 0:
             self.metadata_df = gdm_file.metadata_df
             self.data_dict = gdm_file.data_dict
         else:
+            current_max_ind = self.metadata_df.index.values.max()
             for enum_ind, (ind, metadata_row) in enumerate(gdm_file.metadata_df.iterrows()):
-                new_ind = current_rows + enum_ind
+                new_ind = current_max_ind + enum_ind + 1
                 self.metadata_df.loc[new_ind] = metadata_row
                 self.data_dict[new_ind] = gdm_file.data_dict[ind]
 
@@ -163,6 +162,16 @@ class GDMFile:
         df.to_csv(filename, sep=';', header=True, index=False)
         logging.getLogger("VIEW").info(f"Finished writing {filename}")
 
+    def get_data_as_numpy2D(self):
+        """
+        If all data have the same length, return them as a 2D numpy array containing one time series per row
+        :rtype:
+        """
+        if len(self.metadata_df["NumFrames"].unique()) == 1:
+            return np.array([x.magnitude for x in self.data_dict.values()])[:, :, 0]
+        else:
+            raise ValueError("GDMFile has data of different lengths. Cannot create a numpy array")
+
 
 def read_chunks_gdm_csv(input_csv):
     """
@@ -185,3 +194,30 @@ def read_chunks_gdm_csv(input_csv):
         gdm_df["line"] = gdm_df["line"].apply(revise_line)
 
     return gdm_df
+
+
+def parse_stim_info(gdm_row_metadata, sort=True):
+
+    stimulus_components = eval(gdm_row_metadata["Odour"])
+    if type(gdm_row_metadata["StimONms"]) is str:
+        stimulus_times = eval(gdm_row_metadata["StimONms"])
+    else:
+        stimulus_times = gdm_row_metadata["StimONms"]
+
+    if type(gdm_row_metadata["StimLen"]) is str:
+        stimulus_durations = eval(gdm_row_metadata["StimLen"])
+    else:
+        stimulus_durations = gdm_row_metadata["StimLen"]
+
+    if type(stimulus_components) is str:
+        stimulus_times = stimulus_times,
+        stimulus_components = stimulus_components,
+        stimulus_durations = stimulus_durations,
+
+    if sort:
+        arg_sort = np.argsort(stimulus_times)
+        stimulus_times = [stimulus_times[x] for x in arg_sort]
+        stimulus_components = [stimulus_components[x] for x in arg_sort]
+        stimulus_durations = [stimulus_durations[x] for x in arg_sort]
+
+    return stimulus_components, stimulus_times, stimulus_durations

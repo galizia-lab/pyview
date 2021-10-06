@@ -437,6 +437,7 @@ class FlagsManager(object):
                     if path.is_absolute():
                         dict2write[flag_name] = os.path.relpath(path, self["STG_MotherOfAllFolders"])
 
+        dict2write["STG_MotherOfAllFolders"] = "!!parent of this file will be used!!"
         for k, v in dict2write.items():
             if type(v) in (tuple,):
                 dict2write[k] = str(v)
