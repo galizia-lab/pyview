@@ -1,12 +1,13 @@
 from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget
 from .file_selector_combobox import get_file_selector_combobox_using_settings
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 from ..python_core.p1_class import Default_P1_Getter, P1SingleWavelengthTIF, \
-    P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill
+    P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill, P1DualWavelengthTIFSingleFile
 from view.python_core.flags import FlagsManager
 import pathlib as pl
 import traceback
 import sys
+from abc import abstractmethod
 
 
 # modified version of solution from https://stackoverflow.com/questions/9374063/remove-all-items-from-a-layout
@@ -79,7 +80,7 @@ def get_a_tiff_combobox(parent):
                           comment=None)
 
 
-class VIEWTIFFLoaderInterface(QObject):
+class BaseLoaderInterface(QObject):
 
     data_loaded_signal = pyqtSignal(dict, FlagsManager)
 
@@ -87,14 +88,6 @@ class VIEWTIFFLoaderInterface(QObject):
 
         super().__init__(parent)
         self.default_p1_getter = Default_P1_Getter()
-
-    def refresh_layout(self, widget):
-        clear_layout(widget.layout())
-
-        view_tif_combobox = get_a_tiff_combobox(widget)
-        view_tif_combobox.return_filenames_signal.connect(self.load_list)
-
-        widget.layout().addWidget(view_tif_combobox)
 
     def write_status(self, msg):
 
@@ -147,12 +140,35 @@ class VIEWTIFFLoaderInterface(QObject):
 
         return [[x] for x in filenames]
 
+    @abstractmethod
+    def refresh_layout(self, widget):
+        pass
+
+    @abstractmethod
     def get_p1_class(self):
 
+        pass
+
+
+class VIEWTIFFLoaderInterface(BaseLoaderInterface):
+
+    def __init__(self, parent):
+
+        super().__init__(parent)
+
+    def refresh_layout(self, widget):
+        clear_layout(widget.layout())
+
+        view_tif_combobox = get_a_tiff_combobox(widget)
+        view_tif_combobox.return_filenames_signal.connect(self.load_list)
+
+        widget.layout().addWidget(view_tif_combobox)
+
+    def get_p1_class(self):
         return P1SingleWavelengthTIF
 
 
-class TillSingleLoaderInterface(VIEWTIFFLoaderInterface):
+class TillSingleLoaderInterface(BaseLoaderInterface):
 
     def __init__(self, parent):
 
@@ -170,7 +186,7 @@ class TillSingleLoaderInterface(VIEWTIFFLoaderInterface):
         return P1SingleWavelengthTill
 
 
-class TillDualLoaderInterface(VIEWTIFFLoaderInterface):
+class TillDualLoaderInterface(BaseLoaderInterface):
 
     def __init__(self, parent):
 
@@ -210,7 +226,7 @@ class TillDualLoaderInterface(VIEWTIFFLoaderInterface):
         return P1DualWavelengthTill
 
 
-class ZeissSingleLoaderInterface(VIEWTIFFLoaderInterface):
+class ZeissSingleLoaderInterface(BaseLoaderInterface):
 
     def __init__(self, parent):
 
@@ -229,6 +245,17 @@ class ZeissSingleLoaderInterface(VIEWTIFFLoaderInterface):
         return P1SingleWavelengthLSM
 
 
+class OmeFuraTiffInterface(VIEWTIFFLoaderInterface):
+
+    def __init__(self, parent):
+
+        super().__init__(parent)
+
+    def get_p1_class(self):
+
+        return P1DualWavelengthTIFSingleFile
+
+
 def get_loader_interface_class(LE_loadExp):
 
     if LE_loadExp == 3:
@@ -239,6 +266,8 @@ def get_loader_interface_class(LE_loadExp):
         return ZeissSingleLoaderInterface
     elif LE_loadExp == 33:
         return VIEWTIFFLoaderInterface
+    elif LE_loadExp == 35:
+        return OmeFuraTiffInterface
     else:
         raise NotImplementedError
 
