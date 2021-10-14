@@ -34,18 +34,34 @@ class GekkoSolver(object):
         self.equations = equations
         eval(f"self.m.Equations({equations.replace('m.', 'self.m.')})")
 
+    @classmethod
+    def init_from_model(cls, model):
+
+        state_variable_inits = model.get_state_variable_inits()
+        # sampling period irrelevant as we only need the parameter names
+        parameter_inits = model.get_parameter_inits(sampling_period=1)
+
+        gm = cls(
+            state_variables=state_variable_inits.keys(),
+            parameters=parameter_inits.keys(),
+            equations=model.get_equations()
+        )
+
+        model.extra_init_steps(gm.m)
+
+        return gm
+
     def get_param_var_type(self):
 
         return "Const"
 
     def get_output_variable(self):
 
-        return self.m.Var()
+        return self.m.Var(fixed_initial=True)
 
     def solve(self, time_vec, input_vec, parameter_values, state_variable_init_dict, output_init):
 
-        # allow output to be calculated
-        self.m.output.value = output_init
+        self.m.output.value = output_init[-1]
 
         # initialize input
         self.m.input.value = input_vec
@@ -62,9 +78,9 @@ class GekkoSolver(object):
         # initialize state variables
         for sv_name, sv_value in state_variable_init_dict.items():
             if sv_name in self.state_variables:
-                self.state_variables[sv_name].value = sv_value
+                self.state_variables[sv_name].value = sv_value[-1]
 
-        self.m.options.imode = 6  # dynamic integration
+        self.m.options.imode = 6  # sequential dynamic simulation
 
         # set timeout to 5 minutes
         self.m.options.max_time = 60
@@ -181,22 +197,19 @@ class ModelOneComp(object):
                 [ 
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
-                    m.output == m.F + m.C
+                    m.output == m.F
                     ]
                 """
 
     def get_state_variable_inits(self):
         return {"F": 0, "A": 0}
 
-    def get_parameter_inits(self, sampling_period, output_vec):
-        output_vec_init = output_vec[: int(0.5 * output_vec.shape[0])]
-        output_min = output_vec_init.min()
+    def get_parameter_inits(self, sampling_period):
 
         return {
                 "kF": np.array([0.01, 20, 100]) * sampling_period,
                 "kAF": np.array([1e-3, 1, 1e6]) * sampling_period,
                 "kA": np.array([0.01, 1, 100]) * sampling_period,
-                "C": [output_min, output_min, np.percentile(output_vec_init, 75)]
                 }
 
 
@@ -219,7 +232,7 @@ class ModelTwoCompNoDelay(ModelOneComp):
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
                     m.S.dt() == - m.S / m.kS - m.kAS * m.A,
-                    m.output == m.F + m.S + m.C,
+                    m.output == m.F + m.S,
                     m.kS > m.kF
                     ]
                 """
@@ -229,8 +242,8 @@ class ModelTwoCompNoDelay(ModelOneComp):
         temp.update({"S": 0})
         return temp
 
-    def get_parameter_inits(self, sampling_period, output_vec):
-        temp = super().get_parameter_inits(sampling_period, output_vec)
+    def get_parameter_inits(self, sampling_period):
+        temp = super().get_parameter_inits(sampling_period)
         temp.update(
             {
                 "kS": np.array([1, 100, 200]) * sampling_period,
@@ -268,7 +281,7 @@ class ModelTwoComp(ModelTwoCompNoDelay):
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
                     m.S.dt() == - m.S / m.kS - m.kAS * m.A_delayed,
-                    m.output == m.F + m.S + m.C,
+                    m.output == m.F + m.S,
                     m.kS > m.kF
                     ]
                 """
@@ -297,18 +310,12 @@ def fit_compare_models(time_vec, output_vec, model2consider, input_vec=None, dea
 
     sampling_period = time_vec[1] - time_vec[0]
 
-    state_variable_inits = model2consider.get_state_variable_inits()
-    parameter_inits = model2consider.get_parameter_inits(sampling_period=sampling_period, output_vec=output_vec)
-
-    gm = GekkoFitter(
-        state_variables=state_variable_inits.keys(),
-        parameters=parameter_inits.keys(),
-        equations=model2consider.get_equations()
-    )
-
-    model2consider.extra_init_steps(gm.m)
-
     output_vec = np.asarray(output_vec)
+
+    gm = GekkoFitter.init_from_model(model=model2consider)
+
+    state_variable_inits = model2consider.get_state_variable_inits()
+    parameter_inits = model2consider.get_parameter_inits(sampling_period=sampling_period)
 
     fit_params = gm.fit(
         time_vec=time_vec.copy(), input_vec=input_vec.copy(), output_vec=output_vec.copy(),
@@ -336,7 +343,7 @@ def fit_compare_models(time_vec, output_vec, model2consider, input_vec=None, dea
         fit_params["output_trace_expected"] = output_vec
         fit_params["time_trace_fitted"] = time_vec
 
-    return fit_params, gm
+    return fit_params
 
     # if len(bics):
     #     best_model_ind = np.argmin(bics)

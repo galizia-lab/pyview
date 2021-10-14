@@ -395,7 +395,7 @@ class P1SingleWavelengthLSM(P1SingleWavelengthAbstract):
 
         lsm_importer = LSMImporter(default_values=MetadataDefinition().get_default_row())
         # selection of the first row is required as this function returns a one-row DataFrame
-        row = lsm_importer.read_single_measurement_metadata(fle=filenames[0], fle_ind=-2).iloc[0]
+        row = lsm_importer.parse_metadata(fle=filenames[0], fle_ind=-2).iloc[0]
         # revise index names to be lower case
         row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
         p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(row)
