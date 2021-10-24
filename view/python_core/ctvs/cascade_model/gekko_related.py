@@ -96,7 +96,7 @@ class GekkoSolver(object):
             poss2 = str(e).find("Time Limit Exceeded:") >= 0
             poss3 = str(e).find("NameError: name \'TimeoutExpired\' is not defined")
             if poss1 or poss2 or poss3:
-                print(f"Encountered an error during function fitting with GEKKO: {e}")
+                print(f"Encountered an error during function solving/fitting with GEKKO: {e}")
                 return None
             else:
                 raise e
@@ -207,9 +207,9 @@ class ModelOneComp(object):
     def get_parameter_inits(self, sampling_period):
 
         return {
-                "kF": np.array([0.01, 20, 100]) * sampling_period,
-                "kAF": np.array([1e-3, 1, 1e6]) * sampling_period,
-                "kA": np.array([0.01, 1, 100]) * sampling_period,
+                "kF": np.array([0.01, 20, 200]) * sampling_period,
+                "kAF": np.array([1e-3, 1, 200]) * sampling_period,
+                "kA": np.array([0.01, 1, 200]) * sampling_period,
                 }
 
 
@@ -247,7 +247,7 @@ class ModelTwoCompNoDelay(ModelOneComp):
         temp.update(
             {
                 "kS": np.array([1, 100, 200]) * sampling_period,
-                "kAS": np.array([-30, 1, 30]) * sampling_period
+                "kAS": np.array([-200, 1, 200]) * sampling_period
             })
         if self.param_inits is not None:
             for k, v in self.param_inits.items():

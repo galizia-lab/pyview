@@ -572,7 +572,7 @@ class P1DualWavelengthTill(P1DualWavelengthTIFTwoFiles):
         return load_pst(filename)
 
 
-class P1SingleWavelength666(P1SingleWavelengthTIF):
+class P1SingleWavelength666(P1SingleWavelengthAbstract):
 
     def __init__(self, peaksignal):
 
@@ -593,6 +593,14 @@ class P1SingleWavelength666(P1SingleWavelengthTIF):
         raw_data66 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
 
         return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data66
+
+    def read_data(self, filename: str):
+
+        raise NotImplementedError
+
+    def get_extensions(self):
+
+        raise NotImplementedError
 
 
 class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
