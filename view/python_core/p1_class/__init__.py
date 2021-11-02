@@ -248,7 +248,7 @@ class P1SingleWavelengthAbstract(ABC):
         try:
             filename = get_existing_raw_data_filename(flags=flags, dbb=metadata.dbb1, extensions=current_extensions)
             if pl.Path(filename).suffix in current_extensions:
-                logging.getLogger("VIEW").info(f"Reading raw data from {filename}")
+                logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Reading raw data from {filename}")
                 return filename, self.read_data(filename)
             else:
                 raise FileNotFoundError()
@@ -258,7 +258,7 @@ class P1SingleWavelengthAbstract(ABC):
                 filename = get_existing_raw_data_filename(
                     flags=flags, dbb=metadata.dbb1, extensions=[default_extension])
                 if pl.Path(filename).suffix == default_extension:
-                    logging.getLogger("VIEW").info(f"Reading raw data from {filename}")
+                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 2) Reading raw data from {filename}")
                     data, _ = read_tif_2Dor3D(filename)
                     return filename, data
                 else:

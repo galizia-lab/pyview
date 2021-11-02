@@ -2,45 +2,149 @@ import tifffile
 import numpy as np
 import yaml
 import pathlib as pl
+import datetime as dt
+import xml.etree.ElementTree as ET
+import logging
 
 
-def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False):
+def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     """
     Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX
     :param str tif_file: path of tif file
     :param bool flip_y: whether to flip Y axis
     :param bool return_3D: whether to convert 2D to 3D if required
     :return: numpy.ndarray in XY or XYT format
+
+    Read metadata and return as dictionary
+    
+    Tiff file could be OME
+    e.g. Live Acquisition, or Fiji
+
+    :param str tif_file: path of tif file
+    :param bool flip_y: whether to flip Y axis
+    
+    return: numpy array XYT, metadata dictionary
+    
     """
+    # if tif_file is str, convert it to path
 
+
+    if type(tif_file) == str:
+        tif_file = pl.Path(tif_file)
+
+    # load metadata
+    # tif_file=animal_list[10]
     with tifffile.TiffFile(tif_file) as tif:
+            metadata   = tif.imagej_metadata
+            # imagej_metadata does not work any more or never worked on stack - read metadata from first frame
+            if metadata is None:
+                metadata = tif.pages[0].description
 
-        metadata = tif.pages[0].description
-        labels = None
+    # extract XML tree from metadata into root
+    try:
+        root = ET.fromstring(metadata)
+        metadata_present = True
 
-        if type(metadata) is str:
-            if metadata.startswith("Labels="):
-                labels = metadata[7:].split(";;")
+        # define namespace for OME data
+        # this uses xTree OME syntax
+        # https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element
+        ns = {
+            "d": "http://www.openmicroscopy.org/Schemas/OME/2013-06"    
+        }
+        # now get all infos that we put into settings file
+        meta_info = root.find("./d:Image/d:Pixels", ns).attrib
+        # result is a dictionary, for example:
+     #        {'ID': 'Pixels:1-0',
+     # 'DimensionOrder': 'XYTZC',
+     # 'Type': 'uint16',
+     # 'SizeX': '1392',
+     # 'SizeY': '1040',
+     # 'SizeZ': '1',
+     # 'SizeC': '1',
+     # 'SizeT': '160',
+     # 'PhysicalSizeX': '6.45',
+     # 'PhysicalSizeY': '6.45',
+     # 'PhysicalSizeZ': '1000',
+     # 'SignificantBits': '14'}
+        # acquisition date as string, e.g. '2021-09-19T16:49:28'
+        AcquisitionDate = root.find("./d:Image/d:AcquisitionDate", ns).text
+        meta_info.update({'AcquisitionDate':AcquisitionDate})
+        # binning info, e.g. '1x1'
+        Binning = root.find("./d:Image/d:Pixels/d:Channel/d:DetectorSettings", ns).attrib["Binning"]
+        meta_info.update({'Binning':Binning})
+     # frame interval
+        # relative time of secoond image (first image looks unsafe - often it is blanck. Therefore use frames 2 and 3)
+        time_frame1 = root.find("./d:Image/d:Pixels/d:Plane[2]", ns).attrib["DeltaT"]
+        # relative time of third image
+        time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[3]", ns).attrib["DeltaT"]
+        GDMfreq = (float(time_frame2) - float(time_frame1))
+        GDMfreq = int(GDMfreq*1000 + 0.5) # unit is ms, rounded
+        meta_info.update({'GDMfreq':str(GDMfreq)})
+    # exposure time for frame 2 - expecting that to be uniform
+        ExposureTime_ms = float(root.find("./d:Image/d:Pixels/d:Plane[2]", ns).attrib["ExposureTime"])
+        ExposureTime_ms = int(1000*ExposureTime_ms) # value in Andor is in seconds
+        meta_info.update({'ExposureTime_ms':str(ExposureTime_ms)})
+    # columns in .settings that need to be filled here:
+    # get the tif file, including the last directory
+        this_filename = tif_file.parts
+        dbb = this_filename[-2] +'/'+ this_filename[-1]
+        meta_info.update({'dbb':dbb})
+        meta_info.update({'Label':this_filename[-1]})
+        # PxSzX
+        # replace the Andor name "PhysicalSizeX' with the Galizia name PsSzX
+        meta_info['PsSzX'] = meta_info.pop('PhysicalSizeX')
+        meta_info['PsSzY'] = meta_info.pop('PhysicalSizeY')
+        # PxSzY, e.g. 1.5625
+    # When was this measurement taken?
+    # first get the time when the measurement was started
+        measurementtime = dt.datetime.fromisoformat(AcquisitionDate)
+    # now add the time of the first frame, since measurement start time ie equal for all measurements in one loop
+        measurementtime_delta = dt.timedelta(seconds=float(time_frame1))
+        measurementtime = measurementtime + measurementtime_delta
+        # StartTime, e.g. 10:05:04
+        StartTime = measurementtime.strftime('%H:%M:%S')
+        meta_info.update({'StartTime':StartTime})
+        # UTC, e.g. 1623229504.482
+        UTC = measurementtime.timestamp()
+        meta_info.update({'UTCTime':UTC})
+    except:
+        metadata_present = False
+        meta_info = None
+    
+        #load data
+    if load_data:
+        with tifffile.TiffFile(tif_file) as tif:
+                imagej_hyperstack = tif.asarray()
+                
+        if len(imagej_hyperstack.shape) == 3:  # 3D data in TYX format
+    
+            if flip_y:
+                imagej_hyperstack = np.flip(imagej_hyperstack, axis=1)
+    
+            imagej_hyperstack = imagej_hyperstack.swapaxes(0, 2)  # return in XYT format
+            # since this is for Andor, and Andor for some reason sometimes has the first image blank, we need to check for this
+            if np.std(imagej_hyperstack[:,:,0]) == 0: #all numbers in first frame are equal
+                imagej_hyperstack = imagej_hyperstack[:,:,1:]
+                if metadata_present:
+                    SizeT = str(int(meta_info['SizeT']) - 1 )
+                    meta_info.update({'SizeT':SizeT})
 
-    data_in = tifffile.imread(tif_file)
+        # read 2D tif data
+        elif len(imagej_hyperstack.shape) == 2:  # 2D data in YX format
+    
+            if flip_y:
+                imagej_hyperstack = np.flip(imagej_hyperstack, axis=0)  # YX to XY format
+    
+            imagej_hyperstack = imagej_hyperstack.swapaxes(0, 1)
+            if return_3D:
+                imagej_hyperstack = np.stack([imagej_hyperstack], axis=2)
+    else:
+        imagej_hyperstack = None
 
-    if len(data_in.shape) == 3:  # 3D data in TYX format
+    return imagej_hyperstack, meta_info
+# end read_ometif_metadict
 
-        if flip_y:
-            data_in = np.flip(data_in, axis=1)
 
-        return data_in.swapaxes(0, 2), labels  # return in XYT format
-
-    elif len(data_in.shape) == 2:  # 2D data in YX format
-
-        if flip_y:
-            data_in = np.flip(data_in, axis=0)  # YX to XY format
-
-        data_out = data_in.swapaxes(0, 1)
-        if return_3D:
-            data_out = np.stack([data_out], axis=2)
-
-        return data_out, labels
 
 
 def read_single_file_fura_tif(tif_file):
