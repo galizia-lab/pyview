@@ -2,6 +2,11 @@ import sys
 import pathlib as pl
 import pandas as pd
 
+# run example
+# python replace_flag_names.py /Users/galizia/Documents/DATA/fidor_play/Or22a_GC6m /Users/galizia/Documents/Code/Git_code/pyview/view/flags_and_metadata_definitions/view_flags_renaming_2021.csv
+
+rename_directory = '/Users/galizia/Documents/DATA/fidor_play/Or22a_GC6m' 
+rename_instructions = '/Users/galizia/Documents/Code/Git_code/pyview/view/flags_and_metadata_definitions/view_flags_renaming_2021.csv'
 
 def main(fle_or_dir, replacement_map_csv):
 
@@ -44,9 +49,11 @@ def main(fle_or_dir, replacement_map_csv):
 
 if __name__ == '__main__':
 
-    assert len(sys.argv) == 3, \
-        f"Could not understand command. Please use as\n" \
-        f"python {__file__} <path to file or directory> <CSV file containing replacement map>"
-
-    main(sys.argv[1], sys.argv[2])
+    # assert len(sys.argv) == 3, \
+    #     f"Could not understand command. Please use as\n" \
+    #     f"python {__file__} <path to file or directory> <CSV file containing replacement map>"
+    if len(sys.argv) == 3:
+        main(sys.argv[1], sys.argv[2])
+    else:
+        main(rename_directory, rename_instructions)
 
