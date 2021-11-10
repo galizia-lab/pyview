@@ -5,6 +5,7 @@ import pathlib as pl
 import datetime as dt
 import xml.etree.ElementTree as ET
 import logging
+import os
 
 
 def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
@@ -122,12 +123,29 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
                 imagej_hyperstack = np.flip(imagej_hyperstack, axis=1)
     
             imagej_hyperstack = imagej_hyperstack.swapaxes(0, 2)  # return in XYT format
-            # since this is for Andor, and Andor for some reason sometimes has the first image blank, we need to check for this
+
+            # with the Andor camera in Konstanz, run with LA software
+            # the first image in a series is overexposed, we need to check for this
+            # thus, remove first frame if it is outside 3*sd of the mean of the next 10 frames
             if np.std(imagej_hyperstack[:,:,0]) == 0: #all numbers in first frame are equal
+                logging.getLogger("VIEW").info(f"Read_tif_2Dor3D in {os.path.basename(__file__)}: removed first frame because no information present")
                 imagej_hyperstack = imagej_hyperstack[:,:,1:]
                 if metadata_present:
                     SizeT = str(int(meta_info['SizeT']) - 1 )
                     meta_info.update({'SizeT':SizeT})
+            # this only works if ALL pixels in the first frame are overexposed
+            # therefore, additionally, if first frame is outside the noise
+            # defined here as 2 times SD in the first 15 frames
+            else: #check condition
+                line = imagej_hyperstack.mean(axis=(0,1))
+                condition = (line[0] > (np.mean(line[1:15]) + 2*np.std(line[1:15])))
+                if condition:
+                    logging.getLogger("VIEW").info(f"Read_tif_2Dor3D in {os.path.basename(__file__)}: removed first frame because average value above noise")
+                    imagej_hyperstack = imagej_hyperstack[:,:,1:]
+                    if metadata_present:
+                        SizeT = str(int(meta_info['SizeT']) - 1 )
+                        meta_info.update({'SizeT':SizeT})
+
 
         # read 2D tif data
         elif len(imagej_hyperstack.shape) == 2:  # 2D data in YX format
