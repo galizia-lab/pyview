@@ -96,13 +96,14 @@ def predict_into_future(fit_params, factor):
         prediction_time_trace = np.arange(prediction_start, prediction_end + sampling_period, sampling_period)
 
         gs = GekkoSolver.init_from_model(fit_params["model"])
-        predicted_trace = gs.solve(
+        predicted_traces_dict = gs.solve(
             time_vec=prediction_time_trace,
             input_vec=np.zeros_like(prediction_time_trace),
             parameter_values={k: fit_params[k] for k in gs.parameters},
             state_variable_init_dict={k: fit_params[k][-2:] for k in gs.state_variables},
             output_init=output[-2:]
         )
+        predicted_trace = predicted_traces_dict["output"]
 
     predicted_trace_no_overlap = None
     predicted_time_trace_no_overlap = None
