@@ -38,7 +38,7 @@ class GekkoSolver(object):
     def init_from_model(cls, model):
 
         state_variable_inits = model.get_state_variable_inits()
-        # sampling period irrelevant as we only need the parameter names
+        # sampling period is irrelevant as we only need the parameter names
         parameter_inits = model.get_parameter_inits(sampling_period=1)
 
         gm = cls(
@@ -100,7 +100,13 @@ class GekkoSolver(object):
                 return None
             else:
                 raise e
-        return self.m.output
+
+        sv_fit_dict = pd.Series()
+        sv_fit_dict["output"] = np.array(self.m.output)
+        for sv_name, sv in self.state_variables.items():
+            sv_fit_dict[sv_name] = np.array(sv.value)
+
+        return sv_fit_dict
 
 
 class GekkoFitter(GekkoSolver):

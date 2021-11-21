@@ -21,10 +21,10 @@ def test_non_default():
     for child in progs_path.iterdir():
         if child.suffix == ".yml" and child.name != "defult.yml":
 
-            if child.name.lower().find("linux") >= 0 and platform.system() != "Linux":
-                continue
-            elif child.name.lower().find("windows") >= 0 and platform.system() != "Windows":
-                continue
+            # if child.name.lower().find("linux") >= 0 and platform.system() != "Linux":
+            #     continue
+            # elif child.name.lower().find("windows") >= 0 and platform.system() != "Windows":
+            #     continue
 
             create_tapestry.description = f"Generating tapestry with {child.name}"
             yield create_tapestry, str(child), test_yml, text_below
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     # run_with_yml_name("different_animals")
     # run_with_yml_name("with_movies_stack_tif")
     # run_with_yml_name("with_movies_libx264")
-    run_with_yml_name("custom_csv_linux")
-    # run_with_yml_name("custom_csv_windows")
+    # run_with_yml_name("custom_csv_linux")
+    run_with_yml_name("custom_csv_windows")
     # run_with_yml_name("different_flags")
