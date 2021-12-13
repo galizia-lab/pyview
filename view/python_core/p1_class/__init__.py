@@ -455,7 +455,7 @@ class P1DualWavelengthAbstract(P1SingleWavelengthAbstract, ABC):
         # calculate foto1
         self.foto1 = calc_foto1(self.raw1)
 
-        # calculate foto1
+        # calculate foto2
         self.foto2 = calc_foto1(self.raw2)
 
         # Loading Air not implemented
@@ -596,6 +596,7 @@ class P1SingleWavelength666(P1SingleWavelengthTIF):
 
 
 class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
+    #created Dec 2021 for Till Trondheim Data: 340 & 380 in one file
 
     def __init__(self):
 

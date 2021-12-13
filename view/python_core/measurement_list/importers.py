@@ -8,6 +8,8 @@ import easygui
 import logging
 import pprint
 from abc import ABC, abstractmethod
+import xml.etree.ElementTree as ET
+import datetime
 
 
 def calculate_dt_from_timing_ms(timing_ms: str) -> float:
@@ -310,13 +312,182 @@ class LSMImporter(BaseImporter):
 
         return lst_row
 
+
+class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
+    #added Dec2021, to import single tiff file with dual wavelength as used in Trondheim
+    # init in view uses read_single_file_fura_tif(filename)
+
+    def __init__(self, default_values: typing.Mapping):
+
+        super().__init__(default_values)
+        self.associate_file_type = "Dual Wavelength Tif files"  # short text describing raw data files
+        self.associated_extensions = [".tif"]  # possible extensions of files containing metadata
+        self.movie_data_extensions = [".tif"]  # possible extension of file containing data (calcium imaging movies)
+        self.LE_loadExp = 35  # associated value of the flag LE_loadExp
+
+    def get_path_relative_to_data_dir(self, fle):
+
+        for movie_data_extension in self.movie_data_extensions:
+            if fle.endswith(movie_data_extension):
+                fle_path = pl.PureWindowsPath(fle)
+                return 1, str(pl.Path(fle_path.parts[-3]) / fle_path.parts[-2] / fle_path.stem)
+        else:
+            return 0, -1
+
+    def convert_metadata_to_lst_row(self, measu, fle, meta_info, default_row):
+        """
+        Convert values from meta_info to .lst nomenclature
+        :param meta_info['PsSzX']: dict, like the one returned by tifffile.TiffFile.lsm_metadata
+        :param default_row: pandas.Series, with default values
+        :return: pandas.Series
+        """
+
+        lst_line = default_row.copy()
+        lst_line["Label"] = meta_info['Label']
+        # converting from seconds to milliseconds
+        lst_line["Cycle"] = meta_info['GDMfreq'] 
+        lst_line["Lambda"] = "340/380" # meta_info['PsSzX']
+        lst_line['UTC'] = meta_info['UTCTime'] 
+        # convert from meters to micrometers
+        lst_line["PxSzX"] = meta_info['PsSzX']
+        lst_line["PxSzY"] = meta_info['PsSzY']
+
+        analyze, dbb1_relative = self.get_path_relative_to_data_dir(fle)
+        lst_line["DBB1"] = meta_info['dbb']
+        lst_line["dbb2"] = meta_info['dbb']
+        lst_line["Analyze"] = analyze
+        lst_line["Measu"] = measu
+
+#additional info
+        lst_line["ExposureTime_ms"] = meta_info['ExposureTime_ms']
+        lst_line["AcquisitionDate"] = meta_info['AcquisitionDate']
+        lst_line["Binning"] = meta_info['Binning']
+        lst_line["StartTime"] = meta_info['StartTime']
+
+
+        return pd.DataFrame(lst_line).T
+
+    # for till data, a single raw data file is a .lsm file
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
+
+
+#######
+        # load metadata
+        tif_file=pl.Path(fle)
+        with tifffile.TiffFile(tif_file) as tif:
+                metadata   = tif.imagej_metadata
+                # imagej_metadata does not work any more or never worked on stack - read metadata from first frame
+                if metadata is None:
+                    metadata = tif.pages[0].description
+    
+        # extract XML tree from metadata into root
+        root = ET.fromstring(metadata)
+        # define namespace for OME data
+        # this uses xTree OME syntax
+        # https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element
+        ns = {
+            "d": "http://www.openmicroscopy.org/Schemas/OME/2013-06"    
+        }
+        # now get all infos that we put into settings file
+        meta_info = root.find("./d:Image/d:Pixels", ns).attrib
+        # result is a dictionary, for example:
+     #        {'ID': 'Pixels:1-0',
+     # 'DimensionOrder': 'XYTZC',
+     # 'Type': 'uint16',
+     # 'SizeX': '1392',
+     # 'SizeY': '1040',
+     # 'SizeZ': '1',
+     # 'SizeC': '1',
+     # 'SizeT': '160',
+     # 'PhysicalSizeX': '6.45',
+     # 'PhysicalSizeY': '6.45',
+     # 'PhysicalSizeZ': '1000',
+     # 'SignificantBits': '14'}
+        # acquisition date as string, e.g. '2021-09-19T16:49:28'
+        AcquisitionDate = root.find("./d:Image/d:AcquisitionDate", ns).text
+        meta_info.update({'AcquisitionDate':AcquisitionDate})
+        # binning info, e.g. '1x1'
+        Binning = root.find("./d:Image/d:Pixels/d:Channel/d:DetectorSettings", ns).attrib["Binning"]
+        meta_info.update({'Binning':Binning})
+     # frame interval. Since this is dual wavelength, take distance of frame3 and frame5
+        # relative time of secoond image (first image looks unsafe - often it is blanck. Therefore use frames 2 and 3)
+        time_frame1 = root.find("./d:Image/d:Pixels/d:Plane[3]", ns).attrib["DeltaT"]
+        # relative time of third image
+        time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[5]", ns).attrib["DeltaT"]
+        GDMfreq = (float(time_frame2) - float(time_frame1))
+        GDMfreq = round(GDMfreq*1000) # unit is ms, rounded
+        meta_info.update({'GDMfreq':str(GDMfreq)})
+    # this format is for two-wavelength recording,
+    # so I take exposure time for frame 3 and 4
+    # just in case the very first one would be strange
+        ExposureTime_ms = float(root.find("./d:Image/d:Pixels/d:Plane[3]", ns).attrib["ExposureTime"])
+        ExposureTime_ms_340 = int(1000*ExposureTime_ms) # value in Andor is in seconds
+        ExposureTime_ms = float(root.find("./d:Image/d:Pixels/d:Plane[4]", ns).attrib["ExposureTime"])
+        ExposureTime_ms_380 = int(1000*ExposureTime_ms) # value in Andor is in seconds
+        ExposureTimeStr = str(ExposureTime_ms_340)+'/'+str(ExposureTime_ms_380)
+        meta_info.update({'ExposureTime_ms':ExposureTimeStr})
+    # columns in .settings that need to be filled here:
+    # get the tif file, including the last directory
+        this_filename = tif_file.parts
+        dbb = this_filename[-2] +'/'+ this_filename[-1]
+        meta_info.update({'dbb':dbb})
+        meta_info.update({'Label':this_filename[-1]})
+        # PxSzX
+        # replace the Andor name "PhysicalSizeX' with the Galizia name PsSzX
+        meta_info['PsSzX'] = meta_info.pop('PhysicalSizeX')
+        meta_info['PsSzY'] = meta_info.pop('PhysicalSizeY')
+        # PxSzY, e.g. 1.5625
+    # When was this measurement taken?
+    # first get the time when the measurement was started
+        measurementtime = datetime.datetime.fromisoformat(AcquisitionDate)
+    # now add the time of the first frame, since measurement start time ie equal for all measurements in one loop
+        measurementtime_delta = datetime.timedelta(seconds=float(time_frame1))
+        measurementtime = measurementtime + measurementtime_delta
+        # StartTime, e.g. 10:05:04
+        StartTime = measurementtime.strftime('%H:%M:%S')
+        meta_info.update({'StartTime':StartTime})
+        # UTC, e.g. 1623229504.482
+        UTC = measurementtime.timestamp()
+        meta_info.update({'UTCTime':UTC})
+        
+##example for meta_info: 
+ #    {'ID': 'Pixels:1-0',
+ # 'DimensionOrder': 'XYCTZ',
+ # 'Type': 'uint16',
+ # 'SizeX': '336',
+ # 'SizeY': '256',
+ # 'SizeZ': '1',
+ # 'SizeC': '2',
+ # 'SizeT': '100',
+ # 'PhysicalSizeZ': '1000',
+ # 'SignificantBits': '16',
+ # 'AcquisitionDate': '2019-08-14T14:44:29',
+ # 'Binning': '4x4',
+ # 'GDMfreq': '34',
+ # 'ExposureTime_ms': '13',
+ # 'dbb': '190815_h2_El/A_3.tif',
+ # 'Label': 'A_3.tif',
+ # 'PsSzX': '1.3',
+ # 'PsSzY': '1.3',
+ # 'StartTime': '14:44:29',
+ # 'UTCTime': 1565786669.06601}
+
+        lst_row = self.convert_metadata_to_lst_row(measu=fle_ind + 1,
+                                                       fle=fle,
+                                                       meta_info=meta_info,
+                                                       default_row=self.get_default_row())
+        return lst_row
+
+
+
     def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
 
         if len(files_chosen) == 0:
             return {}
         else:
             parents = [pl.Path(fle).parent for fle in files_chosen]
-            assert all(x == parents[0] for x in parents), f"LSM files specified for constructing measurement " \
+            assert all(x == parents[0] for x in parents), f"Tif files specified for constructing measurement " \
                                                           f"list file do no belong to the same directory: " \
                                                           f"{files_chosen}"
             return {parents[0].parent.name: files_chosen}
@@ -335,6 +506,10 @@ def get_importer_class(LE_loadExp):
     elif LE_loadExp == 20:
 
         return LSMImporter
+    
+    elif LE_loadExp == 35:
+
+        return P1DualWavelengthTIFSingleFileImporter
 
     else:
 
