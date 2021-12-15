@@ -126,6 +126,22 @@ default_values['dbb2'] = 'none'  # file name of raw data in dual wavelength reco
 # ----------------- The same is internally applied to all rows of the measurement list----------------------------------
 
 
+def get_odorinfo_from_label(label):
+    # format for file name (label) is: 
+# odor_concentration_anything_else.tif
+# separating element is underscore
+    # is the information for a concentration present? Detect "-"
+    parts = label.split("_")
+    if len(parts) > 1:
+        odor = parts[0] 
+        concentration = parts[1] 
+    else:
+        odor = 'odor?'
+        concentration = 'conc?'
+    return [odor, concentration]
+
+
+
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
 
     # Examples:
@@ -138,20 +154,16 @@ def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
     list_row["StimLen"] = '2000'
     list_row["Comment"] = 'create_measurement_list_bente'
     list_row["Line"] = 'ham'
-
+#extract odor and concentration from name
+    (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_label(list_row["Label"])
     
     
     return list_row
 
-# ----------------------------------------------------------------------------------------------------------------------
-
-# ------------------ A function defining the criteria for excluding measurements ---------------------------------------
-# ------------------ Currently applicable only for tillvision setups ---------------------------------------------------
-
-
 def measurement_filter(s):
     # exclude blocks that have in the name "Snapshot" or "Delta"
     # or that do not have any "_"
+    # only necessary for old format, but not for .tif files
     name = s["Label"]
     label_not_okay = name.count('Snapshot') > 0 or name.count('Delta') > 0 or name.count('_') < 1
     label_okay = not label_not_okay
@@ -163,6 +175,12 @@ def measurement_filter(s):
             atleast_two_frames = True
 
     return label_okay and atleast_two_frames
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ------------------ A function defining the criteria for excluding measurements ---------------------------------------
+# ------------------ Currently applicable only for tillvision setups ---------------------------------------------------
+
 
 
 # ______________________________________________________________________________________________________________________
@@ -211,11 +229,17 @@ if __name__ == "__main__":
 
             # apply custom modifications
             measurement_list.update_from_custom_func(custom_func=custom_func, animal_tag=animal_tag)
+            
 
             # set anaylze to 0 if raw data files don't exist
             flags.update_flags({"STG_ReportTag": animal_tag})
             measurement_list.sanitize(flags=flags,
                                       data_file_extensions=importer.movie_data_extensions)
+
+            # sort by time as in column "UTC"
+            #sorted_df = df.sort_values(by=['Column_name'], ascending=True)
+            measurement_list.measurement_list_df = measurement_list.measurement_list_df.sort_values(by=['UTC'], ascending=True)
+
 
             # construct the name of the output file
             #AskAjay - what I am writing seems crude to me (Giovanni Dec 21)
