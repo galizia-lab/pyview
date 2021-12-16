@@ -49,7 +49,7 @@ LE_loadExp = 35
 
 # Mother of all Folders of your dataset
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
-STG_MotherOfAllFolders = r""
+STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bente_Test_2021"
 
 # path of the "Data" folder in VIEW organization containing the data
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -80,8 +80,8 @@ default_values['Cycle'] = 0  # how many ms per frame
 default_values['DBB1'] = 'none'  # file name of raw data
 default_values['UTC'] = 0  # recording time, extracted from file
 
-default_values['PxSzX'] = '4.6'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
-default_values['PxSzY'] = '4.6'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
+default_values['PxSzX'] = '0.0'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
+default_values['PxSzY'] = '0.0'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
 
 default_values['Lambda'] = 0  # wavelength of stimulus. In TILL, from .log file, In Zeiss LSM, from .lsm file
 
@@ -135,6 +135,9 @@ def get_odorinfo_from_label(label):
     if len(parts) > 1:
         odor = parts[0] 
         concentration = parts[1] 
+        # in the case the name is odor_conc.tif:
+        if concentration[-4:] == '.tif':
+            concentration = concentration[:-4]
     else:
         odor = 'odor?'
         concentration = 'conc?'
