@@ -367,12 +367,9 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
 
         return pd.DataFrame(lst_line).T
 
-    # for till data, a single raw data file is a .lsm file
+    # for till data, a single raw data file 
     def parse_metadata(self, fle: str, fle_ind: int,
                        measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
-
-
-#######
         # load metadata
         tif_file=pl.Path(fle)
         with tifffile.TiffFile(tif_file) as tif:
@@ -451,7 +448,7 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
         UTC = measurementtime.timestamp()
         meta_info.update({'UTCTime':UTC})
         
-##example for meta_info: 
+##example for meta_info now: 
  #    {'ID': 'Pixels:1-0',
  # 'DimensionOrder': 'XYCTZ',
  # 'Type': 'uint16',

@@ -160,6 +160,8 @@ def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
 #extract odor and concentration from name
     (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_label(list_row["Label"])
     
+    if  list_row["Label"][-4:] == '.tif':
+            list_row["Label"] = list_row["Label"][:-4]
     
     return list_row
 
@@ -259,6 +261,5 @@ if __name__ == "__main__":
             # write measurement file to list
             measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
                                                 overwrite_old_values=overwrite_old_values)
-
 
 

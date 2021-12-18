@@ -438,7 +438,7 @@ def ctv_chunk_magnitude_basic(
 
 
 def get_custom_ctv_method(file, function_name):
-
+    
     with open(file, 'r') as fh:
         import scipy
         exec(compile(fh.read(), "<string>", "exec"), {"np": np, "scipy": scipy}, locals())
