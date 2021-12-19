@@ -1,5 +1,5 @@
 '''
-Creates .lst file for dual wavelength TIFF files (FURA) in the format used in Trondheim
+Creates .lst file for single wavelength TIFF files (pre-calculated RATIO) in the format used in Trondheim
 Author: Giovanni, Dec 2021, based on template in VIEW folder by Ajay
 
 Expected data structure:
@@ -28,9 +28,6 @@ Good to know:
     If that information is wrong, incomplete, or else, modify the code in:
         importers.py:P1DualWavelengthTIFSingleFileImporter:parse_metadata
 '''
-
-
-
 from view.python_core.measurement_list import MeasurementList
 from view.python_core.measurement_list.importers import get_importer_class
 from view.python_core.flags import FlagsManager
@@ -45,7 +42,7 @@ logging.basicConfig(level=logging.INFO)
 # 3 for single wavelength Till Photonics Measurements
 # 4 for two wavelength Till Photonics Measurements
 # 20 for Zeiss Confocal Measurements
-LE_loadExp = 35
+LE_loadExp = 33 #for Bente, 33 or 35 both work!
 
 # Mother of all Folders of your dataset
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -144,7 +141,6 @@ def get_odorinfo_from_label(label):
     return [odor, concentration]
 
 
-
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
 
     # Examples:
@@ -152,23 +148,31 @@ def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
     # list_row["Odour"] = get_odor_from_label(list_row["Label"])
     # if list_row["Measu"]
     # get Odor from another file based on the value of <animal_tag> and list_row["Label"]
-    
     list_row["StimONms"] = '3000'
     list_row["StimLen"] = '2000'
-    list_row["Comment"] = 'create_measurement_list_bente'
+    list_row["Comment"] = 'create_measurement_list_ratio'
     list_row["Line"] = 'ham'
 #extract odor and concentration from name
     (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_label(list_row["Label"])
+    try:
+        float(list_row["OConc"])
+    except: #Odour concentration is not a number, set to fictive 0
+        list_row["OConc"] = '0.0'
     
     if  list_row["Label"][-4:] == '.tif':
             list_row["Label"] = list_row["Label"][:-4]
-    
+        
     return list_row
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ------------------ A function defining the criteria for excluding measurements ---------------------------------------
+# ------------------ Currently applicable only for tillvision setups ---------------------------------------------------
+
 
 def measurement_filter(s):
     # exclude blocks that have in the name "Snapshot" or "Delta"
     # or that do not have any "_"
-    # only necessary for old format, but not for .tif files
     name = s["Label"]
     label_not_okay = name.count('Snapshot') > 0 or name.count('Delta') > 0 or name.count('_') < 1
     label_okay = not label_not_okay
@@ -180,12 +184,6 @@ def measurement_filter(s):
             atleast_two_frames = True
 
     return label_okay and atleast_two_frames
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-# ------------------ A function defining the criteria for excluding measurements ---------------------------------------
-# ------------------ Currently applicable only for tillvision setups ---------------------------------------------------
-
 
 
 # ______________________________________________________________________________________________________________________
@@ -234,7 +232,6 @@ if __name__ == "__main__":
 
             # apply custom modifications
             measurement_list.update_from_custom_func(custom_func=custom_func, animal_tag=animal_tag)
-            
 
             # set anaylze to 0 if raw data files don't exist
             flags.update_flags({"STG_ReportTag": animal_tag})
@@ -243,6 +240,7 @@ if __name__ == "__main__":
 
             # sort by time as in column "UTC"
             #sorted_df = df.sort_values(by=['Column_name'], ascending=True)
+            # does not work if the list file already existed. 
             measurement_list.measurement_list_df = measurement_list.measurement_list_df.sort_values(by=['UTC'], ascending=True)
 
 
@@ -257,9 +255,10 @@ if __name__ == "__main__":
             out_file = pl.Path(singlefilein.parent.parent.parent)
             out_file = pl.Path.joinpath(out_file,  '02_LISTS' , singlefilein.parts[-2])
             out_file = f"{out_file}{measurement_output_extension}"
-    
+
             # write measurement file to list
             measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
                                                 overwrite_old_values=overwrite_old_values)
+
 
 

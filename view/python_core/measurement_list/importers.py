@@ -314,7 +314,8 @@ class LSMImporter(BaseImporter):
 
 
 class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
-    #added Dec2021, to import single tiff file with dual wavelength as used in Trondheim
+    # added Dec2021, to import single tiff file with dual wavelength as used in Trondheim
+    # or also single wavelength (e.g. Ratio) tif files
     # init in view uses read_single_file_fura_tif(filename)
 
     def __init__(self, default_values: typing.Mapping):
@@ -346,7 +347,7 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
         lst_line["Label"] = meta_info['Label']
         # converting from seconds to milliseconds
         lst_line["Cycle"] = meta_info['GDMfreq'] 
-        lst_line["Lambda"] = "340/380" # meta_info['PsSzX']
+        lst_line["Lambda"] = meta_info['Lambda'] 
         lst_line['UTC'] = meta_info['UTCTime'] 
         # convert from meters to micrometers
         lst_line["PxSzX"] = meta_info['PsSzX']
@@ -425,8 +426,20 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
         meta_info['PsSzX'] = meta_info.pop('PhysicalSizeX')
         meta_info['PsSzY'] = meta_info.pop('PhysicalSizeY')
     # When was this measurement taken?
-    # first get the time when the measurement was started
-        time_frame1 = root.find("./d:Image/d:Pixels/d:Plane[3]", ns).attrib["DeltaT"]
+    # first get the time when the measurement was started: first frame
+        first_frame = 1
+        num_frames = int(meta_info['SizeT'])
+        last_frame = num_frames * int(meta_info['SizeC'])
+        root_text_first_frame = "./d:Image/d:Pixels/d:Plane["+str(first_frame)+"]"
+        root_text_last_frame  = "./d:Image/d:Pixels/d:Plane["+str(last_frame)+"]"
+        time_frame1 = root.find(root_text_first_frame, ns).attrib["DeltaT"]
+        time_frame_last = root.find(root_text_last_frame, ns).attrib["DeltaT"]
+        # frame interval. Since this is dual wavelength, 
+        # take time from first to last, and divide by dimension T
+        GDMfreq = (float(time_frame_last) - float(time_frame1)) / num_frames
+        GDMfreq = round(GDMfreq*1000) # unit is ms, rounded
+        meta_info.update({'GDMfreq':str(GDMfreq)})
+
         measurementtime = datetime.datetime.fromisoformat(AcquisitionDate)
     # now add the time of the first frame, since measurement start time ie equal for all measurements in one loop
         measurementtime_delta = datetime.timedelta(seconds=float(time_frame1))
@@ -440,7 +453,7 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
 
 
 # from here, information that is not available in .tif for saved ratios
-        if int(meta_info['SizeC']) != 1:
+        if int(meta_info['SizeC']) == 2:
             meta_info.update({'dbb2':dbb}) # copy filename also into column dbb2, since it is dual wavelength
             # binning info, e.g. '1x1'
             Binning = root.find("./d:Image/d:Pixels/d:Channel/d:DetectorSettings", ns).attrib["Binning"]
@@ -454,24 +467,14 @@ class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
             ExposureTime_ms_380 = int(1000*ExposureTime_ms) # value in Andor is in seconds
             ExposureTimeStr = str(ExposureTime_ms_340)+'/'+str(ExposureTime_ms_380)
             meta_info.update({'ExposureTime_ms':ExposureTimeStr})
-         # frame interval. Since this is dual wavelength, take distance of frame3 and frame5
-            # relative time of secoond image (first image looks unsafe - often it is blanck. Therefore use frames 2 and 3)
-            # relative time of third image
-            time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[5]", ns).attrib["DeltaT"]
-            GDMfreq = (float(time_frame2) - float(time_frame1))
-            GDMfreq = round(GDMfreq*1000) # unit is ms, rounded
-            meta_info.update({'GDMfreq':str(GDMfreq)})
-        else:
+            meta_info.update({'Lambda':"340/380"}) #most likely this is FURA 
+            
+            
+        else: #single wavelength, ie. SizeC==1
             meta_info.update({'dbb2':'none'}) # copy filename also into column dbb2, since it is dual wavelength
             meta_info.update({'ExposureTime_ms':'unknown'})
             meta_info.update({'Binning':'unknown'})
-         # frame interval. Since this is single wavelength, take distance of frame3 and frame4
-            # relative time of secoond image (first image looks unsafe - often it is blanck. Therefore use frames 2 and 3)
-            # relative time of third image
-            time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[4]", ns).attrib["DeltaT"]
-            GDMfreq = (float(time_frame2) - float(time_frame1))
-            GDMfreq = round(GDMfreq*1000) # unit is ms, rounded
-            meta_info.update({'GDMfreq':str(GDMfreq)})
+            meta_info.update({'Lambda':"ratio of 340/380"}) #most likely this is ready made ratio 
         
 ##example for meta_info now: 
  #    {'ID': 'Pixels:1-0',
