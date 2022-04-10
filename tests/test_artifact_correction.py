@@ -3,9 +3,9 @@ from view.python_core.io import write_tif_2Dor3D
 from common import initialize_test_yml_list_measurement
 
 
-def run_artifact_correction(flags_to_update, output_suffix=None):
+def run_artifact_correction(flags_to_update, output_suffix=None, tiny_dataset=False):
 
-    test_yml, test_animal, test_measu = initialize_test_yml_list_measurement()
+    test_yml, test_animal, test_measu = initialize_test_yml_list_measurement(tiny_dataset=tiny_dataset)
 
     flags = {
         "LE_BleachCorrMethod": "None",
@@ -13,7 +13,7 @@ def run_artifact_correction(flags_to_update, output_suffix=None):
         "LE_BleachExcludeArea": False,
         "LE_BleachCutBorder": 0,
         "LE_ScatteredLightFactor": 0,
-        "LE_ScatteredLightRadius": 50
+        "LE_ScatteredLightRadius": 50,
     }
 
     flags.update(flags_to_update)
@@ -55,14 +55,28 @@ def test_no_bleach_with_scatter_light_correction():
     )
 
 
-def test_log_bleach_pixelwise():
+def test_log_bleach_pixelwise_1cpu():
     """
-    testing loading data using pixelwise log bleach correction
+    testing loading data using pixelwise log bleach correction (non-parallel)
     """
 
     run_artifact_correction(
         flags_to_update={
-            "LE_BleachCorrMethod": "log_pixelwise"
+            "LE_BleachCorrMethod": "log_pixelwise_1cpu"
+        },
+        tiny_dataset=True
+        # output_suffix="_BC_log_pixelwise"
+    )
+
+
+def test_log_bleach_pixelwise_parallel():
+    """
+    testing loading data using pixelwise log bleach correction (parallel)
+    """
+
+    run_artifact_correction(
+        flags_to_update={
+            "LE_BleachCorrMethod": "log_pixelwise_parallel"
         },
         # output_suffix="_BC_log_pixelwise"
     )
@@ -70,12 +84,12 @@ def test_log_bleach_pixelwise():
 
 def test_log_bleach_pixelwise_excluding_area():
     """
-    testing loading data using pixelwise log bleach correction with area exclusion
+    testing loading data using pixelwise log bleach correction (parallel) with area exclusion
     """
 
     run_artifact_correction(
         flags_to_update={
-            "LE_BleachCorrMethod": "log_pixelwise",
+            "LE_BleachCorrMethod": "log_pixelwise_parallel",
             "LE_BleachExcludeArea": True
         },
         # output_suffix="_BC_log_pixelwise_excludingArea"
@@ -84,12 +98,12 @@ def test_log_bleach_pixelwise_excluding_area():
 
 def test_log_bleach_pixelwise_excluding_stimulus():
     """
-    testing loading data using pixelwise log bleach correction with stimulus exclusion
+    testing loading data using pixelwise log bleach correction (parallel) with stimulus exclusion
     """
 
     run_artifact_correction(
         flags_to_update={
-            "LE_BleachCorrMethod": "log_pixelwise",
+            "LE_BleachCorrMethod": "log_pixelwise_parallel",
             "LE_BleachExcludeStimulus": True,
             "LELog_ExcludeSeconds": 5,
             "LE_PrestimEndBackground": 5
@@ -166,9 +180,10 @@ def test_artifact_correction_filters_only():
 if __name__ == '__main__':
 
     # test_no_bleach_method()
-    # test_log_bleach_pixelwise()
+    test_log_bleach_pixelwise_1cpu()
+    # test_log_bleach_pixelwise_parallel()
     # test_log_bleach_pixelwise_excluding_stimulus()
-    test_log_bleach_uniform()
+    # test_log_bleach_uniform()
     # test_log_bleach_uniform_excluding_area()
     # test_log_bleach_uniform_excluding_stimulus()
 
