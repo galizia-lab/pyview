@@ -3,6 +3,7 @@ from view.idl_translation_core.bleach_correction import fitlogdecay, model_func
 from itertools import product
 import multiprocessing as mp
 import logging
+import platform
 
 
 shared_arr_g = None
@@ -50,7 +51,7 @@ def numpy2raw_array(ndarray):
     return shared_arr, dtype, shape
 
 
-def bleach_correct_pixelwise(movie: np.ndarray, weights, area):
+def bleach_correct_pixelwise(movie: np.ndarray, weights, area, ncpu: int):
 
     assert movie.shape[:2] == area.shape, f"Area file specified has dimensions {area.shape} that does not match with" \
                                           f"data dimensions {movie.shape}"
@@ -63,18 +64,24 @@ def bleach_correct_pixelwise(movie: np.ndarray, weights, area):
     shared_arr_g = numpy2raw_array(movie)
     weights_g = weights
 
-    # apply bleach correction to each patch in parallel
-    with mp.Pool(processes=mp.cpu_count()) as p:  # use all cores
-        op_params_list = p.map(bleach_correct_pixelwise_worker, pixel_inds, chunksize=100)
+    if ncpu > 1:
 
-    # # reference implementation without parallelization
-    # # also useful for debugging
-    # # apply bleach correction to each patch without parallelization
-    # op_params_list = []
-    # for pixel_ind_nr, pixel_ind in enumerate(pixel_inds):
-    #     logging.getLogger("VIEW").debug(f"Doing pixel {pixel_ind_nr + 1}/{len(pixel_inds)}")
-    #     op_params = bleach_correct_pixelwise_worker(pixel_ind)
-    #     op_params_list.append(op_params)
+        assert platform.system() != "Windows", \
+            "Pixelwise bleach correction currently does not work on Windows due to parallization issues. Sorry!"
+
+        # apply bleach correction to each patch in parallel
+        with mp.Pool(processes=ncpu) as p:  # use all cores
+            op_params_list = p.map(bleach_correct_pixelwise_worker, pixel_inds, chunksize=100)
+    elif ncpu == 1:
+
+        # apply bleach correction to each patch without parallelization
+        op_params_list = []
+        for pixel_ind_nr, pixel_ind in enumerate(pixel_inds):
+            logging.getLogger("VIEW").debug(f"Doing pixel {pixel_ind_nr + 1}/{len(pixel_inds)}")
+            op_params = bleach_correct_pixelwise_worker(pixel_ind)
+            op_params_list.append(op_params)
+    else:
+        raise ValueError(f"Paramater ncpu has to be 1 or more ({ncpu} specified)")
 
     array2return = shared_to_numpy(shared_arr_g, copy=True)
 

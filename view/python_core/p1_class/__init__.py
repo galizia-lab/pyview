@@ -634,6 +634,34 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
         raise NotImplementedError
 
 
+class P1SingleWavelength676(P1SingleWavelength666):
+
+    def __init__(self, peaksignal):
+
+        super().__init__(peaksignal)
+
+    def read_data_with_defaulting(self, metadata: pd.Series, flags):
+        """
+        Creates fake data 666, restrict it to 10x10x10 and returns it with a fake filename
+        :param pandas.Series metadata:
+        :param FlagsManager flags:
+        :rtype: tuple
+        :return: (filename, raw_data)
+            filename: str, path of the file found
+            raw_data: np.ndarray
+        """
+
+        raw_data666 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
+
+        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data666[:50, :50, :50]
+
+    def read_data(self, filename: str):
+        raise NotImplementedError
+
+    def get_extensions(self):
+        raise NotImplementedError
+
+
 class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
     #created Dec 2021 for Till Trondheim Data: 340 & 380 in one file
 
@@ -736,6 +764,8 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1SingleWavelength666(peaksignal=odor_conc)
     elif LE_loadExp == 667:
         empty_obj = P1SingleWavelength666(peaksignal=10)
+    elif LE_loadExp == 676:
+        empty_obj = P1SingleWavelength676(peaksignal=10)
     else:
         raise NotImplementedError
 

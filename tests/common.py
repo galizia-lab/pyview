@@ -39,11 +39,15 @@ def get_example_dataset_roots():
     return dataset_roots
 
 
-def initialize_test_yml_list_measurement():
+def initialize_test_yml_list_measurement(tiny_dataset=False):
 
     example_data_path = get_example_data_root_path()
 
-    example_dataset_moaf = example_data_path / "FakeData"
+    if tiny_dataset:
+        example_dataset_moaf = example_data_path / "FakeData_tiny"
+    else:
+        example_dataset_moaf = example_data_path / "FakeData"
+
     test_yml = example_dataset_moaf / "test_defaults.yml"
     test_animal = "FakeData"
     test_measu = 8
