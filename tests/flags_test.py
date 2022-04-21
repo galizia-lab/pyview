@@ -17,9 +17,9 @@ def test_flags_internal():
     flags = FlagsManager()
 
 
-def test_SO_MV_SO_MV_colortable_flags():
+def test_SO_MV_colortable_flags():
     """
-    Testing setting SO_MV_SO_MV_colortable values
+    Testing setting SO_MV_colortable values
     """
 
     flags = FlagsManager()
@@ -27,7 +27,7 @@ def test_SO_MV_SO_MV_colortable_flags():
     values = [11, 12, 13, 14, "jet", "autumn"]
 
     for value in values:
-        flags.update_flags({"SO_MV_SO_MV_colortable": value})
+        flags.update_flags({"SO_MV_colortable": value})
 
 
 def test_flag_fails():
@@ -93,16 +93,16 @@ def test_flags_read_write():
     temp_yml_path.unlink()
 
 
-def test_interpret_flag_SO_MV_SO_MV_colortable():
+def test_interpret_flag_SO_MV_colortable():
     """
-    Testing view.python_core.flags.interpret_flag_SO_MV_SO_MV_colortable
+    Testing view.python_core.flags.interpret_flag_SO_MV_colortable
     """
 
-    valid_SO_MV_SO_MV_colortable_values = [11, 12, 13, 14, "winter", "cool", "jet"]
+    valid_SO_MV_colortable_values = [11, 12, 13, 14, "winter", "cool", "jet"]
 
-    invalid_SO_MV_SO_MV_colortable_value = [50, 150, "whatever", "notacolormap"]
+    invalid_SO_MV_colortable_value = [50, 150, "whatever", "notacolormap"]
 
-    for value in valid_SO_MV_SO_MV_colortable_values:
+    for value in valid_SO_MV_colortable_values:
 
         cmap, bg, fg = interpret_flag_SO_MV_colortable(value)
 
@@ -120,7 +120,7 @@ def test_interpret_flag_SO_MV_SO_MV_colortable():
 
             assert np.allclose(original_cols[1:-1, :], interpreted_cols)
 
-    for value in invalid_SO_MV_SO_MV_colortable_value:
+    for value in invalid_SO_MV_colortable_value:
 
         it_failed = False
         try:

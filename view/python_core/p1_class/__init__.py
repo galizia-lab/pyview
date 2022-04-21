@@ -101,6 +101,18 @@ class P1SingleWavelengthAbstract(ABC):
 
     def correct_raw_data(self, raw_data, p1_metadata, flags):
 
+        # if the flag replace_init_frames is 2, replace the first two frames with the third
+        frames2replace = flags["Data_ReplaceInitFrames"]
+        if frames2replace < raw_data.shape[2]:
+
+            temp = raw_data.swapaxes(0, 2)  # convert TYX, otherwise the frame replacement takes more commands
+            temp[:frames2replace, :, :] = temp[frames2replace, :, :]
+            raw_data = temp.swapaxes(0, 2)  # convert back to XYT
+        else:
+            logging.getLogger("VIEW").warning(
+                f"value of the flag Data_ReplaceInitFrames ({flags['Data_ReplaceInitFrames']}) "
+                f"is too large for the number of frames loaded ({raw_data.shape[2]}). Not Replacing any frames!")
+
         # apply median filter first, then mean filter, depending on flags
         raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="median")
         raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="mean")
