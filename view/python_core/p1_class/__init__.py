@@ -101,6 +101,18 @@ class P1SingleWavelengthAbstract(ABC):
 
     def correct_raw_data(self, raw_data, p1_metadata, flags):
 
+        # if the flag replace_init_frames is 2, replace the first two frames with the third
+        frames2replace = flags["Data_ReplaceInitFrames"]
+        if frames2replace < raw_data.shape[2]:
+
+            temp = raw_data.swapaxes(0, 2)  # convert TYX, otherwise the frame replacement takes more commands
+            temp[:frames2replace, :, :] = temp[frames2replace, :, :]
+            raw_data = temp.swapaxes(0, 2)  # convert back to XYT
+        else:
+            logging.getLogger("VIEW").warning(
+                f"value of the flag Data_ReplaceInitFrames ({flags['Data_ReplaceInitFrames']}) "
+                f"is too large for the number of frames loaded ({raw_data.shape[2]}). Not Replacing any frames!")
+
         # apply median filter first, then mean filter, depending on flags
         raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="median")
         raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="mean")
@@ -603,6 +615,34 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
         raise NotImplementedError
 
 
+class P1SingleWavelength676(P1SingleWavelength666):
+
+    def __init__(self, peaksignal):
+
+        super().__init__(peaksignal)
+
+    def read_data_with_defaulting(self, metadata: pd.Series, flags):
+        """
+        Creates fake data 666, restrict it to 10x10x10 and returns it with a fake filename
+        :param pandas.Series metadata:
+        :param FlagsManager flags:
+        :rtype: tuple
+        :return: (filename, raw_data)
+            filename: str, path of the file found
+            raw_data: np.ndarray
+        """
+
+        raw_data666 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
+
+        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data666[:50, :50, :50]
+
+    def read_data(self, filename: str):
+        raise NotImplementedError
+
+    def get_extensions(self):
+        raise NotImplementedError
+
+
 class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
     #created Dec 2021 for Till Trondheim Data: 340 & 380 in one file
 
@@ -703,6 +743,8 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1SingleWavelength666(peaksignal=odor_conc)
     elif LE_loadExp == 667:
         empty_obj = P1SingleWavelength666(peaksignal=10)
+    elif LE_loadExp == 676:
+        empty_obj = P1SingleWavelength676(peaksignal=10)
     else:
         raise NotImplementedError
 

@@ -2,22 +2,17 @@
 VIEW is a general purpose tool to analyze calcium imaging data of responses to sensory stimuli. 
 Its philosophy is two-dimensional.
 
-Dimension one - data handling: Data is treated in five steps. 
+# License
+BSD 3 Clause, see file LICENSE-BSD-3-CLAUSE
 
-1. load data, 
-2. calculate signals - e.g. ratio, movement or bleach correction etc.
-3. apply corrections using another data set - e.g. subtract air measurement
-4. create additional information - e.g. a map of localities for each glomerulus
-5. report about the data in two ways:
-    1. analyze data and generate output, interactively - e.g. time traces or false-color coded images.
-    2. analyze data and generate output, offline - using a list that controls which datasets to analyze.
+# Installation and Usage
+Please consult the [wiki](https://github.com/galizia-lab/pyview/wiki)
 
-Importantly, 5.1 and 5.2 use exactly the same code. 
-Each of these steps offers a variety of options controlled by "flags" (e.g. different data formats, movement corrections, definitions for glomerulus location, format of output data). The sequential nature means new modules can be implemented easily.
- 
-Dimension two - data analysis process: the user has interactive access to the data in order to evaluate it, and interactive access to all flag values, allowing the user to select the appropriate settings. Once the flags are chosen, the user generates a list of all measurements to be evaluated, and thus analyzes the entire dataset with identical settings, allowing for powerful (and correct) statistical analysis. 
+# Issues
+If you find bugs, have questions about its usage, or have ideas for new features, please check the Issues tab for related Issues and if you are convinced, create a new Issue. For bugs and errors, please paste the error you have encountered and clearly state the steps to reproduce the error. Thank You!
 
-VIEW is based on a previous version written in IDL, mostly by Giovanni (1996-2015) with the help of many people, and is now written in Python, mostly by Ajay (2019), again with the help of many people, and including modules from various sources.
+# Contributing
+Please consult [this page on the wiki](https://github.com/galizia-lab/pyview/wiki/Developer-Guide) for a Developer Guide. Pull requests corresponding to well documented issues in this repository are welcome!
 
-
-For more information about installing and using VIEW, consult the [wiki](https://github.com/galizia-lab/pyview/wiki)
+# Testing
+TODO

@@ -1,6 +1,8 @@
 from .pixelwise import bleach_correct_pixelwise
 from ...idl_translation_core.bleach_correction import fitlogdecay, get_bleach_weights
 import numpy as np
+import platform
+import multiprocessing as mp
 
 
 class NoBleachCompensator(object):
@@ -38,7 +40,7 @@ class BaseBleachCompensator(NoBleachCompensator):
             exclude_stimulus=flags["LE_BleachExcludeStimulus"])
 
 
-class PixelWiseBleachCompensator(BaseBleachCompensator):
+class PixelWiseBleachCompensatorParallel(BaseBleachCompensator):
 
     def __init__(self, flags, p1_metadata, movie_size):
         """
@@ -48,6 +50,7 @@ class PixelWiseBleachCompensator(BaseBleachCompensator):
         """
 
         super().__init__(flags, p1_metadata, movie_size)
+        self.ncpu = mp.cpu_count()
 
     def apply(self, stack_xyt: np.ndarray, area_mask: np.ndarray):
         """
@@ -59,7 +62,20 @@ class PixelWiseBleachCompensator(BaseBleachCompensator):
         """
 
         return bleach_correct_pixelwise(
-            movie=stack_xyt, weights=self.weights, area=area_mask)
+            movie=stack_xyt, weights=self.weights, area=area_mask, ncpu=self.ncpu)
+
+
+class PixelWiseBleachCompensator1CPU(PixelWiseBleachCompensatorParallel):
+
+    def __init__(self, flags, p1_metadata, movie_size):
+        """
+        :param FlagsManager flags:
+        :param pandas.Series p1_metadata: experimental metadata
+        :return: an object that can be used to apply bleach compensation
+        """
+
+        super().__init__(flags, p1_metadata, movie_size)
+        self.ncpu = 1
 
 
 class UniformBleachCompensator(BaseBleachCompensator):
@@ -122,9 +138,13 @@ def get_bleach_compensator(flags, p1_metadata, movie_size):
 
         return NoBleachCompensator()
 
-    if flags["LE_BleachCorrMethod"] == "log_pixelwise":
+    if flags["LE_BleachCorrMethod"] == "log_pixelwise_1cpu":
 
-        return PixelWiseBleachCompensator(flags, p1_metadata, movie_size)
+        return PixelWiseBleachCompensator1CPU(flags, p1_metadata, movie_size)
+
+    if flags["LE_BleachCorrMethod"] == "log_pixelwise_parallel":
+
+        return PixelWiseBleachCompensatorParallel(flags, p1_metadata, movie_size)
 
     elif flags["LE_BleachCorrMethod"] == "log_uniform":
 

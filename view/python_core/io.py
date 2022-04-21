@@ -10,33 +10,25 @@ import os
 
 def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     """
-    Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX
+    Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX. Also works for OME Tiff files,
+    e.g. Live Acquisition, or FIJI
     :param str tif_file: path of tif file
     :param bool flip_y: whether to flip Y axis
     :param bool return_3D: whether to convert 2D to 3D if required
-    :return: numpy.ndarray in XY or XYT format
-
-    Read metadata and return as dictionary
-    
-    Tiff file could be OME
-    e.g. Live Acquisition, or Fiji
-
-    :param str tif_file: path of tif file
-    :param bool flip_y: whether to flip Y axis
-    
-    return: numpy array XYT, metadata dictionary
+    :param bool load_data: if True loads data and returns else first return value is None
+    :return: data, metadata
+    data: numpy.ndarray in XY or XYT format
+    metadata: dictionary if present, else None
     
     """
     # if tif_file is str, convert it to path
-
-
     if type(tif_file) == str:
         tif_file = pl.Path(tif_file)
 
     # load metadata
     # tif_file=animal_list[10]
     with tifffile.TiffFile(tif_file) as tif:
-            metadata   = tif.imagej_metadata
+            metadata = tif.imagej_metadata
             # imagej_metadata does not work any more or never worked on stack - read metadata from first frame
             if metadata is None:
                 metadata = tif.pages[0].description
@@ -111,58 +103,33 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     except:
         metadata_present = False
         meta_info = None
-    
-        #load data
+
+    # load data
     if load_data:
         with tifffile.TiffFile(tif_file) as tif:
                 imagej_hyperstack = tif.asarray()
-                
+
         if len(imagej_hyperstack.shape) == 3:  # 3D data in TYX format
-    
+
             if flip_y:
                 imagej_hyperstack = np.flip(imagej_hyperstack, axis=1)
-    
+
             imagej_hyperstack = imagej_hyperstack.swapaxes(0, 2)  # return in XYT format
-
-            # with the Andor camera in Konstanz, run with LA software
-            # the first image in a series is overexposed, we need to check for this
-            # thus, remove first frame if it is outside 3*sd of the mean of the next 10 frames
-            if np.std(imagej_hyperstack[:,:,0]) == 0: #all numbers in first frame are equal
-                logging.getLogger("VIEW").info(f"Read_tif_2Dor3D in {os.path.basename(__file__)}: removed first frame because no information present")
-                imagej_hyperstack = imagej_hyperstack[:,:,1:]
-                if metadata_present:
-                    SizeT = str(int(meta_info['SizeT']) - 1 )
-                    meta_info.update({'SizeT':SizeT})
-            # this only works if ALL pixels in the first frame are overexposed
-            # therefore, additionally, if first frame is outside the noise
-            # defined here as 2 times SD in the first 15 frames
-            else: #check condition
-                line = imagej_hyperstack.mean(axis=(0,1))
-                condition = (line[0] > (np.mean(line[1:15]) + 2*np.std(line[1:15])))
-                if condition:
-                    logging.getLogger("VIEW").info(f"Read_tif_2Dor3D in {os.path.basename(__file__)}: removed first frame because average value above noise")
-                    imagej_hyperstack = imagej_hyperstack[:,:,1:]
-                    if metadata_present:
-                        SizeT = str(int(meta_info['SizeT']) - 1 )
-                        meta_info.update({'SizeT':SizeT})
-
 
         # read 2D tif data
         elif len(imagej_hyperstack.shape) == 2:  # 2D data in YX format
-    
+
             if flip_y:
-                imagej_hyperstack = np.flip(imagej_hyperstack, axis=0)  # YX to XY format
-    
-            imagej_hyperstack = imagej_hyperstack.swapaxes(0, 1)
+                imagej_hyperstack = np.flip(imagej_hyperstack, axis=0)
+
+            imagej_hyperstack = imagej_hyperstack.swapaxes(0, 1)  # YX to XY format
             if return_3D:
                 imagej_hyperstack = np.stack([imagej_hyperstack], axis=2)
-    else:
+    else:  # i.e., if load_data is false
         imagej_hyperstack = None
 
     return imagej_hyperstack, meta_info
 # end read_ometif_metadict
-
-
 
 
 def read_single_file_fura_tif(tif_file):
