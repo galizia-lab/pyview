@@ -1,6 +1,7 @@
 from view import VIEW
 from view.python_core.io import write_tif_2Dor3D
 from common import initialize_test_yml_list_measurement
+import numpy as np
 
 
 def run_artifact_correction(flags_to_update, output_suffix=None, tiny_dataset=False):
@@ -31,6 +32,23 @@ def run_artifact_correction(flags_to_update, output_suffix=None, tiny_dataset=Fa
         op_dir.mkdir(exist_ok=True)
         op_filename = op_dir / f"{test_animal}_{test_animal}{output_suffix}.tif"
         write_tif_2Dor3D(array_xy_or_xyt=vo.p1.raw1, tif_file=op_filename)
+
+    return vo
+
+
+def test_replace_init_frames():
+    """
+    testing loading data with Data_ReplaceInitFrames = 5
+    """
+
+    frames2replace = 5
+    vo = run_artifact_correction(flags_to_update={"Data_ReplaceInitFrames": frames2replace})
+
+    temp = vo.p1.raw1
+
+    # after replacement, the first <frames2replace + 1> frames are identical to the first frame,
+    # while <frames2replace + 2>th frame isn't
+    assert sum(np.allclose(temp[:, :, 0], temp[:, :, i]) for i in range(frames2replace + 2)) == frames2replace + 1
 
 
 def test_no_bleach_method():
@@ -180,7 +198,7 @@ def test_artifact_correction_filters_only():
 if __name__ == '__main__':
 
     # test_no_bleach_method()
-    test_log_bleach_pixelwise_1cpu()
+    # test_log_bleach_pixelwise_1cpu()
     # test_log_bleach_pixelwise_parallel()
     # test_log_bleach_pixelwise_excluding_stimulus()
     # test_log_bleach_uniform()
@@ -188,6 +206,7 @@ if __name__ == '__main__':
     # test_log_bleach_uniform_excluding_stimulus()
 
     # test_no_bleach_with_scatter_light_correction()
+    test_replace_init_frames()
 
     # run_artifact_correction(
     #     flags_to_update={"Data_Median_Filter": 3, "Data_Median_Filter_space": 10, "Data_Median_Filter_time": 10},
