@@ -14,7 +14,8 @@ Data_Mean_Filter_time,Filters,integer indicating width of the mean filter used f
 Data_ReplaceInitFrames,Filters,"integer, when it is 2, the first two frames are replaced by the third right after reading data from file",,int,0,"{flag} >= 0","{flag_name} must be a non-negative integer"
 LE_BleachCorrMethod,Filters,indicates the method for correcting bleaching artifacts.,"None: bleaching artifacts are not corrected
 log_uniform: fluorescence relative to background is assumed to follow the same exponential function for all pixels.
-log_pixelwise: fluorescence relative to background is assumed to follow different exponential functions for different pixels",str,None,,
+log_pixelwise_1cpu: fluorescence relative to background is assumed to follow different exponential functions for different pixels. Correction is done using only one CPU core
+log_pixelwise_parallel: the same as log_pixelwise_1cpu, except correction is done in parallel using all CPU cores (currently fails with an error on Windows, works on Linux/Mac)",str,None,,
 LE_BleachCutBorder,Filters,indicates the percentage of pixels to exclude along the border when not using AREA file,,float,20,,
 LE_BleachExcludeArea,Filters,"if True, function fitting for bleach correction will exclude pixels outside AREA mask, if an appropriate AREA file is found",,bool,True,,
 LE_BleachExcludeStimulus,Filters,"if True, function fitting for bleach correction will exclude stimulus frames. Stimulus frames are defined to begin at the end of background and they end based on LELog_ExcludeSeconds. Note that the end of the background depends on background flags",,bool,True,,
