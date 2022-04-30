@@ -10,6 +10,7 @@ import pprint
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 import datetime
+from readlif.reader import LifFile
 
 
 def calculate_dt_from_timing_ms(timing_ms: str) -> float:
@@ -253,6 +254,112 @@ class TillImporterTwoWavelength(TillImporter):
             this_lst_frame = this_lst_frame.append(lst_line_wl380, ignore_index=True)
 
         return this_lst_frame
+
+class Lif_Importer(BaseImporter):
+    'importer for Leica Confocal/2-Photon .lif files'
+
+    def __init__(self, default_values: typing.Mapping):
+
+        super().__init__(default_values)
+        self.associate_file_type = "Leica .lif files"  # short text describing raw data files
+        self.associated_extensions = [".lif"]  # possible extensions of files containing metadata
+        self.movie_data_extensions = [".lif"]  # possible extension of file containing data (calcium imaging movies)
+        self.LE_loadExp = 21  # associated value of the flag LE_loadExp
+
+    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
+        '''
+        Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
+
+        Parameters
+        ----------
+        files_chosen : list
+            list of lif files.
+
+        Returns
+        -------
+        dict
+            file names without path.
+
+        '''
+        if len(files_chosen) == 0:
+            return {}
+        else:
+            dict2return = {}
+            for fle in files_chosen:
+
+                fle_path = pl.Path(fle)
+                dict2return[fle_path.name] = [fle]
+
+            return dict2return
+
+
+    def get_path_relative_to_data_dir(self, fle):
+
+        for movie_data_extension in self.movie_data_extensions:
+            if fle.endswith(movie_data_extension):
+                fle_path = pl.PureWindowsPath(fle)
+                return 1, str(fle_path.stem)
+        else:
+            return 0, -1
+
+    def convert_lsm_metadata_to_lst_row(self, fle, measu, this_measurement, default_row):
+        """
+        Convert values from  lif metadata to .lst nomenclature
+        for a particular measurement
+        """
+        # this_measurement is a .lif object
+        
+        lst_line = default_row.copy()
+        # fle is string, convert to path and extract file name
+        lst_line["Label"] = this_measurement.name
+        # converting from seconds to milliseconds
+        lst_line["Cycle"] = this_measurement.info["settings"]["FrameTime"] #seconds per frame?
+        lst_line["Lambda"] = 0 # TODO
+        lst_line['UTC'] = 0 # TODO # excel_datetime(lsm_metadata["ScanInformation"]["Sample0time"]).timestamp()
+        # convert from meters to micrometers
+        lst_line["PxSzX"] = this_measurement.info["scale"][0]
+        lst_line["PxSzY"] = this_measurement.info["scale"][1] #y-size
+
+        analyze, dbb1_relative = self.get_path_relative_to_data_dir(fle)
+        lst_line["DBB1"] = dbb1_relative
+        lst_line["Analyze"] = analyze
+        lst_line["Measu"] = measu
+
+        lst_line['SampFreq'] = this_measurement.info["scale"][3] #frames per second?
+        lst_line['FrameSizeX'] = this_measurement.dims.x #pixel number in x
+        lst_line['FrameSizeY'] = this_measurement.dims.y #pixel number in x
+        lst_line['NumFrames'] = this_measurement.dims.t #pixel number in x
+        lst_line['Comment'] = "Leica .lif file"
+
+
+        return pd.DataFrame(lst_line).T
+
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
+
+        this_lst_frame = pd.DataFrame()
+        lif_alldata = LifFile(fle) # this is the full lif fila, all data
+        # iterate all measurements
+        for fle_ind, measurement in enumerate(lif_alldata.get_iter_image()):
+            
+            # load each measurement
+            this_measurement = lif_alldata.get_image(fle_ind)
+        # only take imaging measurements, i.e. where the time dimension is > 0
+        # this excludes snapshots
+        # this also excludes z-stacks
+            if this_measurement.dims.t > 1:
+
+                lst_line = self.convert_lsm_metadata_to_lst_row(fle, fle_ind, this_measurement,
+                                                               default_row=self.get_default_row())
+
+                #lst_line["MTime"] = self.get_mtime(utc=lst_line["UTC"][0], first_utc=first_utc)
+                #lst_line["Measu"] = i # index of this measurement
+
+                this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+
+        return this_lst_frame
+
+
 
 
 class LSMImporter(BaseImporter):
@@ -531,6 +638,10 @@ def get_importer_class(LE_loadExp):
     elif LE_loadExp == 20:
 
         return LSMImporter
+    
+    elif LE_loadExp == 21:
+
+        return Lif_Importer
     
     elif LE_loadExp == 33:
         # single wavelength TIFF

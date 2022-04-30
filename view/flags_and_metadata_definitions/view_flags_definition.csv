@@ -42,6 +42,7 @@ LE_loadExp,LoadData,integer indicating the setup used for acquiring data.,"0 : o
 3: TILL photonics single wavelength
 4: TILL photonics dual wavelength (FURA)
 20: ZEISS multiphoton data
+21: Leica LIF confocal/multiphoton data
 33: Generic single wavelength TIF (TYX formatted data)
 34: Dual wavelength TIF in two separate files (TYX formatted data)
 35: Dual wavelength TIF in two separate files (TWYX formatted data; W=wavelength)
