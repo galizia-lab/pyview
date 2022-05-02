@@ -6,7 +6,7 @@ from view.python_core.background import get_background_frames
 from view.python_core.areas import get_area_for_p1, get_area_for_bleach_correction
 from view.python_core.measurement_list.importers import LSMImporter
 from view.python_core.foto import calc_foto1
-from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif
+from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif
 from view.python_core.paths import get_existing_raw_data_filename
 from view.python_core.stimuli import PulsedStimuliiHandler
 from view.python_core.calc_methods import get_calc_method
@@ -167,7 +167,7 @@ class P1SingleWavelengthAbstract(ABC):
         """
         # read raw1
         try:
-            logging.getLogger("VIEW").info(f"Reading raw data from ")
+            logging.getLogger("VIEW").info(f"Reading raw data")
             filename, raw_data = self.read_data_with_defaulting(metadata=p1_metadata, flags=flags)
         except FileNotFoundError as fnfe:
             raise IOError(
@@ -241,7 +241,6 @@ class P1SingleWavelengthAbstract(ABC):
             filename: str, path of the file found
             raw_data: np.ndarray
         """
-
         current_extensions = self.get_extensions()
         default_extension = self.get_default_extension()
 
@@ -249,7 +248,11 @@ class P1SingleWavelengthAbstract(ABC):
             filename = get_existing_raw_data_filename(flags=flags, dbb=metadata.dbb1, extensions=current_extensions)
             if pl.Path(filename).suffix in current_extensions:
                 logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Reading raw data from {filename}")
-                return filename, self.read_data(filename)
+                if '.lif' in current_extensions:
+                    #a .lif file containse several measurement, read_data for measu only
+                    return filename, self.read_data(filename, flags.flags['STG_Measu'])
+                else:
+                    return filename, self.read_data(filename)
             else:
                 raise FileNotFoundError()
 
@@ -337,6 +340,34 @@ class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
         """
         data, _ = read_tif_2Dor3D(filename)
         return data
+
+class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
+    """
+    Load Leica .lif file data
+    """
+    
+    def __init__(self):
+        
+        super().__init__()
+    
+    def get_extensions(self):
+        """
+        list of allowed file extensions. E.g.: [".tif"]
+        :rtype: list
+        """
+        return [".lif"]
+    
+    def read_data(self, filename: str, measu: int):
+        """
+        read and return data in <filename>, image <measu>. 
+        Data is expected to be a .lif file
+        :param str filename: absolute path of lif data file on file system
+        : param int measu: leica image number in the lif file
+        :rtype: numpy.ndarray
+        """
+        data, _ = read_lif(filename, measu)
+        return data
+
 
 
 class P1SingleWavelengthTill(P1SingleWavelengthAbstract):
@@ -691,6 +722,8 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1DualWavelengthTill()
     elif LE_loadExp == 20:
         empty_obj = P1SingleWavelengthLSM()
+    elif LE_loadExp == 21:
+        empty_obj = P1SingleWavelengthLIF()
     elif LE_loadExp == 33:
         empty_obj = P1SingleWavelengthTIF()
     elif LE_loadExp == 34:
