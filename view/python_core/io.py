@@ -11,6 +11,7 @@ from readlif.reader import LifFile
 
 def read_lif(lif_file, measu, load_data=True):
     """
+<<<<<<< HEAD
     Read a measurement from a lif file into numpy array. 
     :param str lif_file: path of lif file
     :param int measu: which measurement in the lif file to load
@@ -105,6 +106,20 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     
     """
     # if tif_file is str, convert it to path
+=======
+    Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX. Also works for OME Tiff files,
+    e.g. Live Acquisition, or FIJI
+    :param str tif_file: path of tif file
+    :param bool flip_y: whether to flip Y axis
+    :param bool return_3D: whether to convert 2D to 3D if required
+    :param bool load_data: if True loads data and returns else first return value is None
+    :return: data, metadata
+    data: numpy.ndarray in XY or XYT format
+    metadata: dictionary if present, else None
+    
+    """
+    # if tif_file is str, convert it to path
+>>>>>>> a476b63c975103c2cd6357311bbcd521129766f9
     if type(tif_file) == str:
         tif_file = pl.Path(tif_file)
 
