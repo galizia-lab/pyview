@@ -6,6 +6,89 @@ import datetime as dt
 import xml.etree.ElementTree as ET
 import logging
 import os
+from readlif.reader import LifFile
+
+
+def read_lif(lif_file, measu, load_data=True):
+    """
+    Read a measurement from a lif file into numpy array. 
+    :param str lif_file: path of lif file
+    :param int measu: which measurement in the lif file to load
+    :param bool load_data: if False, data is not loaded
+    :return: numpy.ndarray in XY or XYT format
+
+    Read metadata and return as dictionary
+    
+    .lif file is Leica lif file
+    implemente May 2022, tested with data from Marco Paoli, Toulouse
+    
+    return: numpy array XYT, metadata dictionary
+    
+    """
+    # if tif_file is str, convert it to path
+    # if type(lif_file) == str:
+    #     lif_file = pl.Path(lif_file)
+
+    # define metadata -  get default values  
+    from view.python_core.p1_class.metadata_related import MetadataDefinition
+    meta_def = MetadataDefinition()
+    p1_metadata = meta_def.get_default_row()
+    # load this dataset
+    animal = LifFile(lif_file)
+    this_measurement = animal.get_image(measu)
+    # extract metadata
+    #TODO maybe?
+    # better extract matadata by using: convert_lsm_metadata_to_lst_row
+    # from /pyview/view/python_core/measurement_list/importers.py
+    p1_metadata['Cycle'] = this_measurement.info["settings"]["FrameTime"] #seconds per frame?
+    p1_metadata['PxSzX'] = this_measurement.info["scale"][0] #x-size
+    p1_metadata['PxSzY'] = this_measurement.info["scale"][1] #y-size
+    p1_metadata['SampFreq'] = this_measurement.info["scale"][3] #frames per second?
+    p1_metadata['FrameSizeX'] = this_measurement.dims.x #pixel number in x
+    p1_metadata['FrameSizeY'] = this_measurement.dims.y #pixel number in x
+    p1_metadata['NumFrames'] = this_measurement.dims.t #pixel number in x
+    p1_metadata['Measu'] = measu
+    p1_metadata['dbb1'] = this_measurement.path
+    p1_metadata['Label'] = this_measurement.name
+    p1_metadata['Comment'] = "Leica .lif file"
+    '''
+    I cannot fine the UTC time information yet
+                p1_metadata['UTC'] = 
+                p1_metadata['MTime'] = 
+    animal.xml_header contains a time stamp high and low, maybe that can be used:
+    
+    animal.xml_header
+    Out[107]: '<LMSDataContainerHeader Version="2">
+    <Element Name="glom17_210923_bee11.lif" Visibility="1" CopyOption="1" UniqueID="18ec6190-1c45-11ec-ac11-0050622017eb">
+    <Data><Experiment Path="E:\\users\\marco\\glom17_210923_bee11.lif" IsSavedFlag="1">
+    <TimeStamp HighInteger="30912593" LowInteger="3678550032"/>
+    </Experiment></Data>\r\n\t\t<Attributes><Attribute>___Saving</Attribute>
+    </Attributes><Memory Size="0" MemoryBlockID="MemBlock_433"/>
+    <Children><Element Name="Sequence 001" Visibility="1" CopyOption="1" UniqueID="6e50af8f-1c46-11ec-ac11-0050622017eb">
+    <Data><Collection ChildTypeTest="AcceptAll"><ChildTypeList/>
+    <TimeStamp HighInteger="30912595" LowInteger="839636880"/>
+    <Attachment Name="ACQUISITION_EVENT" Application="LAS AF" Version="1.0">
+    <Event Name="Job 1_012" TimeStampHigh="30912595" TimeStampLow="839586880" Type="5" Description="" RelativeTime="0.5284902" ShowInGraph="True" ShowInEventList="True" TrigChannel="-1" TriggerID="0"/><Event Name="Job 1_012" TimeStampHigh="30912595" TimeStampLow="839946880" Type="9" Description="" RelativeTime="0.031" ShowInGraph="True" ShowInEventList="True" TrigChannel="2" TriggerID="0"/></Attachment></Collection></Data>\r\n\t\t\t\t<Memory Size="0" MemoryBlockID="MemBlock_541"/><Children><Element Name="Job 1_012" Visibility="1" CopyOption="1" UniqueID="6e50af92-1c46-11ec-ac11-0050622017eb"><Data><Image TextDescription="            
+    
+    '''    
+        #load data
+    if load_data:
+        # load this dataset
+        #animal = LifFile(lif_file)
+        #this_measurement = animal.get_image(measu)
+        
+        dims = this_measurement.dims
+        #dimensions are x, y, z, t, m. We are interested in x, y, t
+        img_data = np.zeros((dims.x, dims.y, dims.t), dtype=np.float)
+
+        frame_list   = [i for i in this_measurement.get_iter_t(c=0, z=0)]
+        for count, frame in enumerate(frame_list):
+            img_data[:,:,count] = np.asarray(frame)
+
+    return img_data, p1_metadata
+
+# end read_lif
+
 
 
 def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):

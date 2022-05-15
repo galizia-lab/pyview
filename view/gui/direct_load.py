@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget
 from .file_selector_combobox import get_file_selector_combobox_using_settings
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 from ..python_core.p1_class import Default_P1_Getter, P1SingleWavelengthTIF, \
-    P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill, P1DualWavelengthTIFSingleFile
+    P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill, P1DualWavelengthTIFSingleFile, \
+        P1SingleWavelengthLIF
 from view.python_core.flags import FlagsManager
 import pathlib as pl
 import traceback
@@ -64,6 +65,18 @@ def get_an_lsm_combobox(parent):
                           default_directory=None,
                           file_type="LSM",
                           file_filter="LSM files(*.lsm)",
+                          comment=None)
+
+def get_a_lif_combobox(parent):
+    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+
+    return combobox_class(parent=parent,
+                          groupbox_title="Leica .lif Data File(s)",
+                          use_list_in_settings="raw data files",
+                          settings_list_value_filter=lambda x: x.endswith(".lif"),
+                          default_directory=None,
+                          file_type="Lif",
+                          file_filter="Llif files(*.lif)",
                           comment=None)
 
 
@@ -224,6 +237,25 @@ class TillDualLoaderInterface(BaseLoaderInterface):
     def get_p1_class(self):
         
         return P1DualWavelengthTill
+
+
+class LifSingleLoaderInterface(BaseLoaderInterface):
+
+    def __init__(self, parent):
+
+        super().__init__(parent)
+
+    def refresh_layout(self, widget):
+
+        clear_layout(widget.layout())
+
+        lif_combobox = get_a_lif_combobox(widget)
+        lif_combobox.return_filenames_signal.connect(self.load_list)
+
+        widget.layout().addWidget(lif_combobox)
+
+    def get_p1_class(self):
+        return P1SingleWavelengthLIF
 
 
 class ZeissSingleLoaderInterface(BaseLoaderInterface):
