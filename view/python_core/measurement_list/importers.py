@@ -9,7 +9,7 @@ import logging
 import pprint
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
-import datetime
+import datetime 
 from readlif.reader import LifFile
 
 
@@ -302,7 +302,7 @@ class Lif_Importer(BaseImporter):
         else:
             return 0, -1
 
-    def convert_lsm_metadata_to_lst_row(self, fle, measu, this_measurement, default_row):
+    def convert_lsm_metadata_to_lst_row(self, fle, measu, this_measurement, root, default_row):
         """
         Convert values from  lif metadata to .lst nomenclature
         for a particular measurement
@@ -313,9 +313,9 @@ class Lif_Importer(BaseImporter):
         # fle is string, convert to path and extract file name
         lst_line["Label"] = this_measurement.name
         # converting from seconds to milliseconds
-        lst_line["Cycle"] = this_measurement.info["settings"]["FrameTime"] #seconds per frame?
+        cycle = float(this_measurement.info["settings"]["FrameTime"]) #milliseconds per frame, Leica gives microseconds
+        lst_line["Cycle"] = 1000*cycle
         lst_line["Lambda"] = 0 # TODO
-        lst_line['UTC'] = 0 # TODO # excel_datetime(lsm_metadata["ScanInformation"]["Sample0time"]).timestamp()
         # convert from meters to micrometers
         lst_line["PxSzX"] = this_measurement.info["scale"][0]
         lst_line["PxSzY"] = this_measurement.info["scale"][1] #y-size
@@ -330,7 +330,37 @@ class Lif_Importer(BaseImporter):
         lst_line['FrameSizeY'] = this_measurement.dims.y #pixel number in x
         lst_line['NumFrames'] = this_measurement.dims.t #pixel number in x
         lst_line['Comment'] = "Leica .lif file"
-
+        
+        # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
+        # see /pyview/view/python_core/measurement_list/importers.py
+        # i.e. if changes are necessary here, do them also there
+        #  time stamps are not correct - I do not know why yet (15.6.2022)
+        # that is: there are less time stamps in the XML file than measurements in the .lif file
+        # therefore, I cannot attribute the right time to each measurements
+        print('Now using UTC from first frame in measu: ', measu)
+    #timestamp of first frame in measurement measu!
+        time = root.findall(".//TimeStampList")[measu].text[:15]
+        timeStamp = int(time, 16)
+        #windows uses 1. Januar<y 1601 as reference
+        #https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+        HUNDREDS_OF_NANOSECONDS = 10000000
+        measurementtime = datetime.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+        print('Lif-File time in importers.py: ',measurementtime) #for debugging
+        # UTC, e.g. 1623229504.482
+        UTC = measurementtime.timestamp()
+        #meta_info.update({'UTCTime':UTC})
+        lst_line['UTC'] = UTC
+        # MTime is the time passed with respect to the very first measurement in this animal
+        time = root.findall(".//TimeStampList")[0].text[:15]
+        timeStamp = int(time, 16)
+        measurementtime_first = datetime.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+        MTime = measurementtime - measurementtime_first
+        #format this timedelta
+        minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
+        hours, minutes = divmod(minutes, 60)
+        lst_line['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+        #lst_line['MTime'] = deltatime.strftime('%H:%M:%S')
 
         return pd.DataFrame(lst_line).T
 
@@ -339,6 +369,7 @@ class Lif_Importer(BaseImporter):
 
         this_lst_frame = pd.DataFrame()
         lif_alldata = LifFile(fle) # this is the full lif fila, all data
+        root = ET.fromstring(lif_alldata.xml_header) #this is the full metadata as XML
         # iterate all measurements
         for fle_ind, measurement in enumerate(lif_alldata.get_iter_image()):
             
@@ -349,7 +380,7 @@ class Lif_Importer(BaseImporter):
         # this also excludes z-stacks
             if this_measurement.dims.t > 1:
 
-                lst_line = self.convert_lsm_metadata_to_lst_row(fle, fle_ind, this_measurement,
+                lst_line = self.convert_lsm_metadata_to_lst_row(fle, fle_ind, this_measurement, root,
                                                                default_row=self.get_default_row())
 
                 #lst_line["MTime"] = self.get_mtime(utc=lst_line["UTC"][0], first_utc=first_utc)

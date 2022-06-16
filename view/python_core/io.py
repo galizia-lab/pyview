@@ -11,7 +11,6 @@ from readlif.reader import LifFile
 
 def read_lif(lif_file, measu, load_data=True):
     """
-<<<<<<< HEAD
     Read a measurement from a lif file into numpy array. 
     :param str lif_file: path of lif file
     :param int measu: which measurement in the lif file to load
@@ -44,7 +43,7 @@ def read_lif(lif_file, measu, load_data=True):
     p1_metadata['Cycle'] = this_measurement.info["settings"]["FrameTime"] #seconds per frame?
     p1_metadata['PxSzX'] = this_measurement.info["scale"][0] #x-size
     p1_metadata['PxSzY'] = this_measurement.info["scale"][1] #y-size
-    p1_metadata['SampFreq'] = this_measurement.info["scale"][3] #frames per second?
+    p1_metadata['SampFreq'] = 1000*this_measurement.info["scale"][3] #frames per second?
     p1_metadata['FrameSizeX'] = this_measurement.dims.x #pixel number in x
     p1_metadata['FrameSizeY'] = this_measurement.dims.y #pixel number in x
     p1_metadata['NumFrames'] = this_measurement.dims.t #pixel number in x
@@ -52,26 +51,39 @@ def read_lif(lif_file, measu, load_data=True):
     p1_metadata['dbb1'] = this_measurement.path
     p1_metadata['Label'] = this_measurement.name
     p1_metadata['Comment'] = "Leica .lif file"
-    '''
-    I cannot fine the UTC time information yet
-                p1_metadata['UTC'] = 
-                p1_metadata['MTime'] = 
-    animal.xml_header contains a time stamp high and low, maybe that can be used:
-    
-    animal.xml_header
-    Out[107]: '<LMSDataContainerHeader Version="2">
-    <Element Name="glom17_210923_bee11.lif" Visibility="1" CopyOption="1" UniqueID="18ec6190-1c45-11ec-ac11-0050622017eb">
-    <Data><Experiment Path="E:\\users\\marco\\glom17_210923_bee11.lif" IsSavedFlag="1">
-    <TimeStamp HighInteger="30912593" LowInteger="3678550032"/>
-    </Experiment></Data>\r\n\t\t<Attributes><Attribute>___Saving</Attribute>
-    </Attributes><Memory Size="0" MemoryBlockID="MemBlock_433"/>
-    <Children><Element Name="Sequence 001" Visibility="1" CopyOption="1" UniqueID="6e50af8f-1c46-11ec-ac11-0050622017eb">
-    <Data><Collection ChildTypeTest="AcceptAll"><ChildTypeList/>
-    <TimeStamp HighInteger="30912595" LowInteger="839636880"/>
-    <Attachment Name="ACQUISITION_EVENT" Application="LAS AF" Version="1.0">
-    <Event Name="Job 1_012" TimeStampHigh="30912595" TimeStampLow="839586880" Type="5" Description="" RelativeTime="0.5284902" ShowInGraph="True" ShowInEventList="True" TrigChannel="-1" TriggerID="0"/><Event Name="Job 1_012" TimeStampHigh="30912595" TimeStampLow="839946880" Type="9" Description="" RelativeTime="0.031" ShowInGraph="True" ShowInEventList="True" TrigChannel="2" TriggerID="0"/></Attachment></Collection></Data>\r\n\t\t\t\t<Memory Size="0" MemoryBlockID="MemBlock_541"/><Children><Element Name="Job 1_012" Visibility="1" CopyOption="1" UniqueID="6e50af92-1c46-11ec-ac11-0050622017eb"><Data><Image TextDescription="            
-    
-    '''    
+    #calculate experiment time.
+        # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
+        # see /pyview/view/python_core/io.py
+        # i.e. if changes are necessary here, do them also there
+    root = ET.fromstring(animal.xml_header)
+    #times = root[0][0][0][0].attrib
+        #  time stamps are not correct - I do not know why yet (15.6.2022)
+        # that is: there are less time stamps in the XML file than measurements in the .lif file
+        # therefore, I cannot attribute the right time to each measurements
+    print('Now using UTC from first frame in measu: ', measu)
+#timestamp of first frame in measurement measu!
+    time = root.findall(".//TimeStampList")[measu].text[:15]
+    timeStamp = int(time, 16)
+    #windows uses 1. Januar<y 1601 as reference
+    #https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+    EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+    HUNDREDS_OF_NANOSECONDS = 10000000
+    measurementtime = dt.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+    print('Lif-File time in io.py: ',measurementtime) #for debugging
+    # UTC, e.g. 1623229504.482
+    UTC = measurementtime.timestamp()
+    #meta_info.update({'UTCTime':UTC})
+    p1_metadata['UTC'] = UTC
+    # MTime is the time passed with respect to the very first measurement in this animal
+    time = root.findall(".//TimeStampList")[0].text[:15]
+    timeStamp = int(time, 16)
+    measurementtime_first = dt.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+    MTime = measurementtime - measurementtime_first
+    #format this timedelta
+    minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
+    hours, minutes = divmod(minutes, 60)
+    p1_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
         #load data
     if load_data:
         # load this dataset
@@ -104,9 +116,7 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     data: numpy.ndarray in XY or XYT format
     metadata: dictionary if present, else None
     
-    """
     # if tif_file is str, convert it to path
-=======
     Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX. Also works for OME Tiff files,
     e.g. Live Acquisition, or FIJI
     :param str tif_file: path of tif file
@@ -119,7 +129,7 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     
     """
     # if tif_file is str, convert it to path
->>>>>>> a476b63c975103c2cd6357311bbcd521129766f9
+    # a476b63c975103c2cd6357311bbcd521129766f9
     if type(tif_file) == str:
         tif_file = pl.Path(tif_file)
 
