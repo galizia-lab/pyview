@@ -85,6 +85,7 @@ class UniformBleachCompensator(BaseBleachCompensator):
         super().__init__(flags, p1_metadata, movie_size)
         self.background_frames = p1_metadata.background_frames
         self.show_results = not flags["VIEW_batchmode"]
+        self.measurement_label = p1_metadata['ex_name']
 
     def apply(self, stack_xyt: np.ndarray, area_mask: np.ndarray):
 
@@ -106,7 +107,7 @@ class UniformBleachCompensator(BaseBleachCompensator):
         curve = np.nanmean(F_by_F0_txy_masked, axis=(1, 2))
 
         # apply bleach correction to curve and return the parameters A, K and C
-        fitted_curve, (A, K, C) = fitlogdecay(lineIn=curve, weights=self.weights, showresults=self.show_results)
+        fitted_curve, (A, K, C) = fitlogdecay(lineIn=curve, weights=self.weights, showresults=self.show_results, measurement_label=self.measurement_label)
 
         # converting to xyt as it is easier to subtract a trace from all pixels in this format
         F_by_F0_xyt = np.moveaxis(F_by_F0_txy, source=0, destination=-1)

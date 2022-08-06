@@ -16,8 +16,9 @@ LE_loadExp = 3
 # Mother of all Folders of your dataset
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
 #STG_STG_STG_MotherOfAllFolders = r"/home/ajay/Nextcloud/VTK_2021/bee/HS_210521_test"
-STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
+#STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
+STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022"# 01_DATA
 
 
 # path of the "Data" folder in VIEW organization containing the data
