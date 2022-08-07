@@ -1,3 +1,4 @@
+import pandas as pd
 import tifffile
 import numpy as np
 import yaml
@@ -6,102 +7,107 @@ import datetime as dt
 import xml.etree.ElementTree as ET
 import logging
 import os
+import datetime
 from readlif.reader import LifFile
 
 
-def read_lif(lif_file, measu, load_data=True):
-    """
-    Read a measurement from a lif file into numpy array. 
-    :param str lif_file: path of lif file
-    :param int measu: which measurement in the lif file to load
-    :param bool load_data: if False, data is not loaded
-    :return: numpy.ndarray in XY or XYT format
+class LIFReaderGio(LifFile):
 
-    Read metadata and return as dictionary
-    
-    .lif file is Leica lif file
-    implemente May 2022, tested with data from Marco Paoli, Toulouse
-    
-    return: numpy array XYT, metadata dictionary
-    
-    """
-    # if tif_file is str, convert it to path
-    # if type(lif_file) == str:
-    #     lif_file = pl.Path(lif_file)
+    def __init__(self, lif_file: str):
 
-    # define metadata -  get default values  
-    from view.python_core.p1_class.metadata_related import MetadataDefinition
-    meta_def = MetadataDefinition()
-    p1_metadata = meta_def.get_default_row()
-    # load this dataset
-    animal = LifFile(lif_file)
-    this_measurement = animal.get_image(measu)
-    # extract metadata
-    #TODO maybe?
-    # better extract matadata by using: convert_lsm_metadata_to_lst_row
-    # from /pyview/view/python_core/measurement_list/importers.py
-    p1_metadata['Cycle'] = this_measurement.info["settings"]["FrameTime"] #seconds per frame?
-    p1_metadata['PxSzX'] = this_measurement.info["scale"][0] #x-size
-    p1_metadata['PxSzY'] = this_measurement.info["scale"][1] #y-size
-    p1_metadata['SampFreq'] = 1000*this_measurement.info["scale"][3] #frames per second?
-    p1_metadata['FrameSizeX'] = this_measurement.dims.x #pixel number in x
-    p1_metadata['FrameSizeY'] = this_measurement.dims.y #pixel number in x
-    p1_metadata['NumFrames'] = this_measurement.dims.t #pixel number in x
-    p1_metadata['Measu'] = measu
-    p1_metadata['dbb1'] = this_measurement.path
-    p1_metadata['Label'] = this_measurement.name
-    p1_metadata['Comment'] = "Leica .lif file"
-    #calculate experiment time.
-        # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
-        # see /pyview/view/python_core/io.py
-        # i.e. if changes are necessary here, do them also there
-    root = ET.fromstring(animal.xml_header)
-    #times = root[0][0][0][0].attrib
-        #  time stamps are not correct - I do not know why yet (15.6.2022)
-        # that is: there are less time stamps in the XML file than measurements in the .lif file
-        # therefore, I cannot attribute the right time to each measurements
-    print('Now using UTC from first frame in measu: ', measu)
-#timestamp of first frame in measurement measu!
-    time = root.findall(".//TimeStampList")[measu].text[:15]
-    timeStamp = int(time, 16)
-    #windows uses 1. Januar<y 1601 as reference
-    #https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
-    EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
-    HUNDREDS_OF_NANOSECONDS = 10000000
-    measurementtime = dt.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-    print('Lif-File time in io.py: ',measurementtime) #for debugging
-    # UTC, e.g. 1623229504.482
-    UTC = measurementtime.timestamp()
-    #meta_info.update({'UTCTime':UTC})
-    p1_metadata['UTC'] = UTC
-    # MTime is the time passed with respect to the very first measurement in this animal
-    time = root.findall(".//TimeStampList")[0].text[:15]
-    timeStamp = int(time, 16)
-    measurementtime_first = dt.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-    MTime = measurementtime - measurementtime_first
-    #format this timedelta
-    minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
-    hours, minutes = divmod(minutes, 60)
-    p1_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+        super().__init__(lif_file)
 
-        #load data
-    if load_data:
-        # load this dataset
-        #animal = LifFile(lif_file)
-        #this_measurement = animal.get_image(measu)
-        
+    def load_all_metadata(self):
+        """
+        Load all metadata in the initialized LIF file
+        :return: pd.DataFrame with each row containing metadata of one measurement
+        """
+
+        root = ET.fromstring(self.xml_header)  # this is the full metadata as XML
+        all_metadata_df = pd.DataFrame()
+
+        # iterate all measurements
+        for fle_ind, measurement in enumerate(self.get_iter_image()):
+            this_measurement = self.get_image(fle_ind)
+            lif_metadata = pd.Series()
+            lif_metadata["Label"] = this_measurement.name
+            # converting from seconds to milliseconds
+            cycle = float(
+                this_measurement.info["settings"]["FrameTime"])  # milliseconds per frame, Leica gives microseconds
+            lif_metadata["Cycle"] = 1000 * cycle
+            lif_metadata["Lambda"] = 0  # TODO
+            # convert from meters to micrometers
+            lif_metadata["PxSzX"] = this_measurement.info["scale"][0]
+            lif_metadata["PxSzY"] = this_measurement.info["scale"][1]  # y-size
+
+            lif_metadata['SampFreq'] = this_measurement.info["scale"][3]  # frames per second?
+            lif_metadata['FrameSizeX'] = this_measurement.dims.x  # pixel number in x
+            lif_metadata['FrameSizeY'] = this_measurement.dims.y  # pixel number in x
+            lif_metadata['NumFrames'] = this_measurement.dims.t  # pixel number in x
+            lif_metadata['Comment'] = "Leica .lif file"
+
+            # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
+            # see /pyview/view/python_core/measurement_list/importers.py
+            # i.e. if changes are necessary here, do them also there
+            #  time stamps are not correct - I do not know why yet (15.6.2022)
+            # that is: there are less time stamps in the XML file than measurements in the .lif file
+            # therefore, I cannot attribute the right time to each measurements
+            print('Now using UTC from first frame in measu: ', fle_ind)
+            # timestamp of first frame in measurement measu!
+            time = root.findall(".//TimeStampList")[fle_ind].text[:15]
+            timeStamp = int(time, 16)
+            # windows uses 1. Januar<y 1601 as reference
+            # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+            EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+            HUNDREDS_OF_NANOSECONDS = 10000000
+            measurementtime = datetime.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+            print('Lif-File time in importers.py: ', measurementtime)  # for debugging
+            # UTC, e.g. 1623229504.482
+            UTC = measurementtime.timestamp()
+            # meta_info.update({'UTCTime':UTC})
+            lif_metadata['UTC'] = UTC
+            # MTime is the time passed with respect to the very first measurement in this animal
+            time = root.findall(".//TimeStampList")[0].text[:15]
+            timeStamp = int(time, 16)
+            measurementtime_first = datetime.datetime.utcfromtimestamp(
+                (timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+            MTime = measurementtime - measurementtime_first
+            # format this timedelta
+            minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            lif_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
+            all_metadata_df.append(pd.DataFrame(lif_metadata).T, ignore_index=True)
+
+        return all_metadata_df
+
+    def load_data(self, measu):
+
+        this_measurement = self.get_image(measu)
         dims = this_measurement.dims
-        #dimensions are x, y, z, t, m. We are interested in x, y, t
+        # dimensions are x, y, z, t, m. We are interested in x, y, t
         img_data = np.zeros((dims.x, dims.y, dims.t), dtype=np.float)
 
-        frame_list   = [i for i in this_measurement.get_iter_t(c=0, z=0)]
+        frame_list = [i for i in this_measurement.get_iter_t(c=0, z=0)]
         for count, frame in enumerate(frame_list):
-            img_data[:,:,count] = np.asarray(frame)
+            img_data[:, :, count] = np.asarray(frame)
 
-    return img_data, p1_metadata
+        return img_data
+# end LIFReaderGio
 
+
+def read_lif(lif_file, measu):
+    """
+    Read a measurement from a Leica lif file into numpy array.
+    implemente May 2022, tested with data from Marco Paoli, Toulouse
+    :param str lif_file: path of lif file
+    :param int measu: which measurement in the lif file to load
+    :return: numpy.ndarray in XYT format
+    """
+
+    lif_reader_wrapper = LIFReaderGio(lif_file)
+    return lif_reader_wrapper.load_data(measu)
 # end read_lif
-
 
 
 def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):

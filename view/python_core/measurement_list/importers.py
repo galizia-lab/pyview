@@ -9,8 +9,7 @@ import logging
 import pprint
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
-import datetime 
-from readlif.reader import LifFile
+from view.python_core.io import LIFReaderGio
 
 
 def calculate_dt_from_timing_ms(timing_ms: str) -> float:
@@ -255,8 +254,11 @@ class TillImporterTwoWavelength(TillImporter):
 
         return this_lst_frame
 
-class Lif_Importer(BaseImporter):
-    'importer for Leica Confocal/2-Photon .lif files'
+
+class LifImporter(BaseImporter):
+    """
+    importer for Leica Confocal/2-Photon .lif files
+    """
 
     def __init__(self, default_values: typing.Mapping):
 
@@ -267,7 +269,7 @@ class Lif_Importer(BaseImporter):
         self.LE_loadExp = 21  # associated value of the flag LE_loadExp
 
     def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
-        '''
+        """
         Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
 
         Parameters
@@ -280,7 +282,7 @@ class Lif_Importer(BaseImporter):
         dict
             file names without path.
 
-        '''
+        """
         if len(files_chosen) == 0:
             return {}
         else:
@@ -292,7 +294,6 @@ class Lif_Importer(BaseImporter):
 
             return dict2return
 
-
     def get_path_relative_to_data_dir(self, fle):
 
         for movie_data_extension in self.movie_data_extensions:
@@ -302,95 +303,57 @@ class Lif_Importer(BaseImporter):
         else:
             return 0, -1
 
-    def convert_lsm_metadata_to_lst_row(self, fle, measu, this_measurement, root, default_row):
+    def convert_lif_metadata_to_lst_row(self, fle, measu, lif_metadata_single, default_row):
         """
         Convert values from  lif metadata to .lst nomenclature
         for a particular measurement
         """
-        # this_measurement is a .lif object
         
         lst_line = default_row.copy()
-        # fle is string, convert to path and extract file name
-        lst_line["Label"] = this_measurement.name
-        # converting from seconds to milliseconds
-        cycle = float(this_measurement.info["settings"]["FrameTime"]) #milliseconds per frame, Leica gives microseconds
-        lst_line["Cycle"] = 1000*cycle
-        lst_line["Lambda"] = 0 # TODO
-        # convert from meters to micrometers
-        lst_line["PxSzX"] = this_measurement.info["scale"][0]
-        lst_line["PxSzY"] = this_measurement.info["scale"][1] #y-size
+
+        lst_line["Label"] = lif_metadata_single["Label"]
+        lst_line["Cycle"] = lif_metadata_single["Cycle"]
+        lst_line["Lambda"] = lif_metadata_single["Lambda"]
+
+        lst_line["PxSzX"] = lif_metadata_single["PxSzX"]
+        lst_line["PxSzY"] = lif_metadata_single["PxSzX"]  # y-size
 
         analyze, dbb1_relative = self.get_path_relative_to_data_dir(fle)
         lst_line["DBB1"] = dbb1_relative
         lst_line["Analyze"] = analyze
         lst_line["Measu"] = measu
 
-        lst_line['SampFreq'] = this_measurement.info["scale"][3] #frames per second?
-        lst_line['FrameSizeX'] = this_measurement.dims.x #pixel number in x
-        lst_line['FrameSizeY'] = this_measurement.dims.y #pixel number in x
-        lst_line['NumFrames'] = this_measurement.dims.t #pixel number in x
-        lst_line['Comment'] = "Leica .lif file"
-        
-        # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
-        # see /pyview/view/python_core/measurement_list/importers.py
-        # i.e. if changes are necessary here, do them also there
-        #  time stamps are not correct - I do not know why yet (15.6.2022)
-        # that is: there are less time stamps in the XML file than measurements in the .lif file
-        # therefore, I cannot attribute the right time to each measurements
-        print('Now using UTC from first frame in measu: ', measu)
-    #timestamp of first frame in measurement measu!
-        time = root.findall(".//TimeStampList")[measu].text[:15]
-        timeStamp = int(time, 16)
-        #windows uses 1. Januar<y 1601 as reference
-        #https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
-        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
-        HUNDREDS_OF_NANOSECONDS = 10000000
-        measurementtime = datetime.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-        print('Lif-File time in importers.py: ',measurementtime) #for debugging
-        # UTC, e.g. 1623229504.482
-        UTC = measurementtime.timestamp()
-        #meta_info.update({'UTCTime':UTC})
-        lst_line['UTC'] = UTC
-        # MTime is the time passed with respect to the very first measurement in this animal
-        time = root.findall(".//TimeStampList")[0].text[:15]
-        timeStamp = int(time, 16)
-        measurementtime_first = datetime.datetime.utcfromtimestamp((timeStamp - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-        MTime = measurementtime - measurementtime_first
-        #format this timedelta
-        minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
-        hours, minutes = divmod(minutes, 60)
-        lst_line['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-        #lst_line['MTime'] = deltatime.strftime('%H:%M:%S')
+        lst_line['SampFreq'] = lif_metadata_single["SampFreq"]
+        lst_line['FrameSizeX'] = lif_metadata_single["FrameSizeX"]
+        lst_line['FrameSizeY'] = lif_metadata_single["FrameSizeY"]
+        lst_line['NumFrames'] = lif_metadata_single["NumFrames"]
+        lst_line['Comment'] = lif_metadata_single["Comment"]
+
+        lst_line["UTC"] = lif_metadata_single["UTC"]
+        lst_line["MTime"] = lif_metadata_single["MTime"]
 
         return pd.DataFrame(lst_line).T
 
     def parse_metadata(self, fle: str, fle_ind: int,
                        measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
+        lif_reader = LIFReaderGio(fle)
+        all_lif_metadata = lif_reader.load_all_metadata()
 
         this_lst_frame = pd.DataFrame()
-        lif_alldata = LifFile(fle) # this is the full lif fila, all data
-        root = ET.fromstring(lif_alldata.xml_header) #this is the full metadata as XML
+
         # iterate all measurements
-        for fle_ind, measurement in enumerate(lif_alldata.get_iter_image()):
-            
-            # load each measurement
-            this_measurement = lif_alldata.get_image(fle_ind)
-        # only take imaging measurements, i.e. where the time dimension is > 0
-        # this excludes snapshots
-        # this also excludes z-stacks
-            if this_measurement.dims.t > 1:
+        for fle_ind, lst_row in all_lif_metadata.iterrows():
 
-                lst_line = self.convert_lsm_metadata_to_lst_row(fle, fle_ind, this_measurement, root,
-                                                               default_row=self.get_default_row())
+            if lst_row["NumFrames"] > 1:
 
-                #lst_line["MTime"] = self.get_mtime(utc=lst_line["UTC"][0], first_utc=first_utc)
-                #lst_line["Measu"] = i # index of this measurement
+                lst_line = self.convert_lif_metadata_to_lst_row(
+                    fle, fle_ind, lst_row,
+                    default_row=self.get_default_row()
+                )
 
                 this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
 
         return this_lst_frame
-
-
 
 
 class LSMImporter(BaseImporter):
@@ -672,7 +635,7 @@ def get_importer_class(LE_loadExp):
     
     elif LE_loadExp == 21:
 
-        return Lif_Importer
+        return LifImporter
     
     elif LE_loadExp == 33:
         # single wavelength TIFF
