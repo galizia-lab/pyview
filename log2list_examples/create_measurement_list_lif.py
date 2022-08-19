@@ -5,7 +5,7 @@ Author: Giovanni, April 2022, based on template in VIEW folder by Ajay & others
 Expected data structure:
     In the folder "01_DATA", each animal has a .lif file
         i.e. all measurements of one animal are in that single file
-    There is a sister folder "02_LISTS"
+    There is a sister folder "02_LISTS" (created if not yet present)
     Location is in STG_MotherOfAllFolders (set it below)
     
 Output:
@@ -20,6 +20,12 @@ What to do next?
     
     In the Animal.lst.xlsx file, correct/complete entries (e.g. odor names, odor concentrations)
     Make sure stimulus timing information is correct
+    
+    When you run this program again on the same dataset, and the Animal.lst.xlsx file is already present,
+    some columns will NOT be overwritten, but will be taken from the previous .lst.xlsx file,
+    protecting your manually entered information. 
+    Which columns? Specify them below in 
+    overwrite_old_values
 
 Why do I need a .lst.xlsx file?
     Load measurements in pyVIEW using this .lst file, so that stimulus information is correct
@@ -39,6 +45,16 @@ import logging
 import pathlib as pl
 
 logging.basicConfig(level=logging.INFO)
+
+# ------------------ names of columns that will be overwritten by old values -------------------------------------------
+# -- if you run the same animal a second time!
+# ------ these will only be used if a measurement list file with the same name as current output file exists -----------
+
+overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
+                        "Comment", "Analyze", "Odour", "OConc"]
+
+# ______________________________________________________________________________________________________________________
+
 
 # ------------------- Some parameters about experimental setup, data structure and output file type --------------------
 # 3 for single wavelength Till Photonics Measurements
@@ -127,14 +143,6 @@ default_values['dbb2'] = 'none'  # file name of raw data in dual wavelength reco
 # ----------------- This function indicates what needs to be done for a row --------------------------------------------
 # ----------------- The same is internally applied to all rows of the measurement list----------------------------------
 
-# ------------------ names of columns that will be overwritten by old values -------------------------------------------
-# -- if you run the same animal a second time!
-# ------ these will only be used if a measurement list file with the same name as current output file exists -----------
-
-overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
-                        "Comment", "Analyze", "Odour", "OConc"]
-
-# ______________________________________________________________________________________________________________________
 
 
 def get_odorinfo_from_label(label):
