@@ -20,6 +20,7 @@ class LIFReaderGio(LifFile):
     def load_all_metadata(self):
         """
         Load all metadata in the initialized LIF file
+        only including sets with more than one frame (i.e. exclude snapshots)
         :return: pd.DataFrame with each row containing metadata of one measurement
         """
 
@@ -31,19 +32,25 @@ class LIFReaderGio(LifFile):
             this_measurement = self.get_image(fle_ind)
             lif_metadata = pd.Series()
             lif_metadata["Label"] = this_measurement.name
-            # converting from seconds to milliseconds
-            cycle = float(
-                this_measurement.info["settings"]["FrameTime"])  # milliseconds per frame, Leica gives microseconds
-            lif_metadata["Cycle"] = 1000 * cycle
+#            lif_metadata["Measu"] = fle_ind
+            if this_measurement.dims.t > 1:
+                #information about time between frames if more than one frame
+                # converting from seconds to milliseconds
+                cycle = float(
+                    this_measurement.info["settings"]["FrameTime"])  # milliseconds per frame, Leica gives microseconds
+                lif_metadata["Cycle"] = 1000 * cycle
+                lif_metadata['SampFreq'] = this_measurement.info["scale"][3]  # frames per second?
+            else:
+                lif_metadata["Cycle"] = -1
+                lif_metadata['SampFreq'] = -1  # frames per second?
             lif_metadata["Lambda"] = 0  # TODO
             # convert from meters to micrometers
             lif_metadata["PxSzX"] = this_measurement.info["scale"][0]
             lif_metadata["PxSzY"] = this_measurement.info["scale"][1]  # y-size
 
-            lif_metadata['SampFreq'] = this_measurement.info["scale"][3]  # frames per second?
             lif_metadata['FrameSizeX'] = this_measurement.dims.x  # pixel number in x
-            lif_metadata['FrameSizeY'] = this_measurement.dims.y  # pixel number in x
-            lif_metadata['NumFrames'] = this_measurement.dims.t  # pixel number in x
+            lif_metadata['FrameSizeY'] = this_measurement.dims.y  # pixel number in y
+            lif_metadata['NumFrames'] = this_measurement.dims.t  # pixel number in t
             lif_metadata['Comment'] = "Leica .lif file"
 
             # extract measurement time - which is only in the XML of the full LIF file, and not in this_measurement
@@ -77,8 +84,7 @@ class LIFReaderGio(LifFile):
             hours, minutes = divmod(minutes, 60)
             lif_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
 
-            all_metadata_df.append(pd.DataFrame(lif_metadata).T, ignore_index=True)
-
+            all_metadata_df = all_metadata_df.append(pd.DataFrame(lif_metadata).T, ignore_index=True)
         return all_metadata_df
 
     def load_data(self, measu):
@@ -99,7 +105,7 @@ class LIFReaderGio(LifFile):
 def read_lif(lif_file, measu):
     """
     Read a measurement from a Leica lif file into numpy array.
-    implemente May 2022, tested with data from Marco Paoli, Toulouse
+    implemented May 2022, tested with data from Marco Paoli, Toulouse
     :param str lif_file: path of lif file
     :param int measu: which measurement in the lif file to load
     :return: numpy.ndarray in XYT format

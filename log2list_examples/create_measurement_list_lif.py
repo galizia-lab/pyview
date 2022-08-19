@@ -6,6 +6,7 @@ Expected data structure:
     In the folder "01_DATA", each animal has a .lif file
         i.e. all measurements of one animal are in that single file
     There is a sister folder "02_LISTS"
+    Location is in STG_MotherOfAllFolders (set it below)
     
 Output:
     In the folder "02_LISTS":
@@ -49,6 +50,7 @@ LE_loadExp = 21 #21 for .lif file
 # Mother of all Folders of your dataset
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
 STG_MotherOfAllFolders = r'/Users/galizia/Nextcloud/VTK_2021/Lif_Data'
+#STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/Marco_lif'
 
 # path of the "Data" folder in VIEW organization containing the data
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -232,7 +234,7 @@ if __name__ == "__main__":
                                                measurement_filter=measurement_filter)
         # inform user if no usable measurements were found
         if metadata_df.shape[0] == 0:
-            logging.info(f"No usable measurements we found among the files "
+            logging.info(f"No usable measurements was found among the files "
                          f"chosen for the animal {animal_tag}. Not creating a list file")
         else:
             # create a new Measurement list object from parsed metadata
