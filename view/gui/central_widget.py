@@ -560,7 +560,8 @@ class CentralWidget(QWidget):
 
     @pyqtSlot(name="go to wiki")
     def go_to_wiki(self):
-        QDesktopServices.openUrl(QUrl("https://gitlab.inf.uni-konstanz.de/ag-galizia/view/-/wikis/home"))
+        QDesktopServices.openUrl(QUrl("https://github.com/galizia-lab/pyview/wiki"))
+
 
     @pyqtSlot(name="write yml file")
     def write_yml_file(self):

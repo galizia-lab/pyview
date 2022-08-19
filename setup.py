@@ -42,7 +42,8 @@ setup(
         "itables>=0.2.1",
         "gekko>=0.2.8",
         "quantities>=0.12.4",
-        "neo>=0.9.0"
+        "neo>=0.9.0",
+        "readlif>=0.6.5"
     ],
 
     entry_points={"console_scripts": ["view = view.gui.start_view_gui:main"]},

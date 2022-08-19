@@ -184,7 +184,7 @@ def show_fitlogdecay(lineIn, fittedout_blue, fittedout_green, t, weights, opt_pa
     fig.canvas.set_window_title(measurement_label)
     ax1 = fig.add_subplot(2,1,1) # (2,1,1)
     ax2 = fig.add_subplot(2,1,2)
-    ax1.set_title('Fitlogdecay')
+    ax1.set_title('Fitlogdecay: ' + measurement_label)
     ax2.set_title('weights')
     ax2.plot(t, weights, 'k--',
           label='weights')

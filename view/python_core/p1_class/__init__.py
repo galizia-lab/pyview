@@ -377,7 +377,7 @@ class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
         : param int measu: leica image number in the lif file
         :rtype: numpy.ndarray
         """
-        data, _ = read_lif(filename, measu)
+        data = read_lif(filename, measu)
         return data
 
 
