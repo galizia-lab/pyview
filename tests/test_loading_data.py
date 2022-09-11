@@ -36,7 +36,9 @@ def test_loading_all_data():
         "MS_LSM/usage_lsm.yml": ["2020_02_06_OK107_GCaMP6f", "testview"],
         "Or47a_test/usage_till_test.yml":
             ["AL_190506a_or47a", "MR_190510b_or47a", "MR_190515b_or47a", "PG_190702a_or47a"],
-        "SS_LSM/usage_lsm.yml": ["2019_08_15_locust_oregon green"]
+        "SS_LSM/usage_lsm.yml": ["2019_08_15_locust_oregon green"],
+        "Bente_Test/Bente_Test_2021.yml": ["190815_h2_El_test"],
+        "MP_LIF/LIF_test.yml": ["sNPF_210623_bee07_res"]
     }
 
     example_data_root_path = get_example_data_root_path()
@@ -92,7 +94,7 @@ if __name__ == '__main__':
     #     animal="2019_08_09_locust_calcium green")
 
     load_calc_data(
-        yml_file="/home/aj/SharedWithWindows/pyview_test_data/Bente_Test/Bente_Test_2021.yml",
+        yml_file="/home/ajay/pyview_test_data/Bente_Test/Bente_Test_2021.yml",
         animal="190815_h2_El_test")
 
     # test_loading_data_without_measurement_list()
