@@ -6,7 +6,7 @@ from view.python_core.background import get_background_frames
 from view.python_core.areas import get_area_for_p1, get_area_for_bleach_correction
 from view.python_core.measurement_list.importers import LSMImporter
 from view.python_core.foto import calc_foto1
-from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif
+from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif, read_SingleWavelengthTif_MultiFile
 from view.python_core.paths import get_existing_raw_data_filename
 from view.python_core.stimuli import PulsedStimuliiHandler
 from view.python_core.calc_methods import get_calc_method
@@ -352,6 +352,35 @@ class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
         """
         data, _ = read_tif_2Dor3D(filename)
         return data
+
+
+class P1SingleWavelength_multiTIF(P1SingleWavelengthAbstract):
+    '''
+    Measurement XYT is stored in separate Tiff file for each frame/timepoint
+    '''
+    
+    def __init__(self):
+        
+        super().__init__()
+    
+    def get_extensions(self):
+        """
+        list of allowed file extensions. E.g.: [".tif"]
+        :rtype: list
+        """
+        return [".tif"]
+    
+    def read_data(self, filename_list: list):
+        """
+        read and return data in <filename_list>. Data is expected to be a numpy.ndarray of format XYT
+        :param list filename_list: absolute path of raw data files for each frame on file system
+        :rtype: numpy.ndarray
+        """
+        data, _ = read_SingleWavelengthTif_MultiFile(filename_list)
+        return data
+
+
+
 
 class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
     """
