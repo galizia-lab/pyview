@@ -3,6 +3,7 @@ LE_loadExp,Description
 4,"Till Photonics, Dual Wavelength (FURA)"
 20,"Zeis, single Wavelength"
 21,"Leica, .lif file"
+32:"Single wavelength TIF (single file for each frame)"
 33,"OME/generic TIF, single Wavelength"
 34,"Two TIF files, Dual Wavelength (FURA)"
 35,"Singe OME TIF file, Dual Wavelength (FURA)"
