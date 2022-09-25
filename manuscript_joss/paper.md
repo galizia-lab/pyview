@@ -14,7 +14,7 @@ authors:
     affiliation: 2
   - name: C Giovanni Galizia
     orcid: 0000-0001-8292-6031
-    corresponding: true # (This is how to denote the corresponding author)
+    corresponding: true
     affiliation: 1
 affiliations:
   - name: University of Konstanz, Department of Biology, Universitatsstr. 10, D-78457 Konstanz 
