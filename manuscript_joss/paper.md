@@ -24,8 +24,7 @@ affiliations:
 
 date: 25 September 2022
 bibliography: manuscript_joss/paper.bib
-
-
+---
 
 # Summary
 
