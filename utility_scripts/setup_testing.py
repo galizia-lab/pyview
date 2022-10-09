@@ -18,7 +18,7 @@ def main():
                     f"This folder exists and is not empty, hence it most likely contains the correct test data. "
                     f"What would you like to do?"
                     f"\n\n{existing_test_data_path_str}",
-                choices=["Use a new path and download test data again (~3.3GiB)", "Use the same path as above"],
+                choices=["Select a new path", "Use the same path as above"],
                 default_choice="Use the same path as above",
                 cancel_choice="Use the same path as above"
             )
