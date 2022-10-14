@@ -1,5 +1,5 @@
-# Welcome to the repository containing the python implementation of VIEW
-VIEW is a general purpose tool to analyze calcium imaging data of responses to sensory stimuli. 
+# Welcome to the repository containing the python implementation of PyView
+PyView is a general purpose tool to analyze calcium imaging data of responses to sensory stimuli. 
 Its philosophy is two-dimensional.
 
 # License
