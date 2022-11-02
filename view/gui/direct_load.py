@@ -3,7 +3,7 @@ from .file_selector_combobox import get_file_selector_combobox_using_settings
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 from ..python_core.p1_class import Default_P1_Getter, P1SingleWavelengthTIF, \
     P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill, P1DualWavelengthTIFSingleFile, \
-        P1SingleWavelengthLIF
+        P1SingleWavelengthLIF, P1SingleWavelength_multiTIFInga
 from view.python_core.flags import FlagsManager
 import pathlib as pl
 import traceback
@@ -77,6 +77,18 @@ def get_a_lif_combobox(parent):
                           default_directory=None,
                           file_type="Lif",
                           file_filter="Llif files(*.lif)",
+                          comment=None)
+
+def get_an_Inga_combobox(parent):
+    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+
+    return combobox_class(parent=parent,
+                          groupbox_title="Inga  .txt Data File(s)",
+                          use_list_in_settings="txt info files",
+                          settings_list_value_filter=lambda x: x.endswith(".txt"),
+                          default_directory=None,
+                          file_type="txt",
+                          file_filter="txt info files(*.txt)",
                           comment=None)
 
 
@@ -257,6 +269,24 @@ class LifSingleLoaderInterface(BaseLoaderInterface):
     def get_p1_class(self):
         return P1SingleWavelengthLIF
 
+class IngaSingleLoaderInterface(BaseLoaderInterface):
+
+    def __init__(self, parent):
+
+        super().__init__(parent)
+
+    def refresh_layout(self, widget):
+
+        clear_layout(widget.layout())
+
+        inga_combobox = get_an_Inga_combobox(widget)
+        inga_combobox.return_filenames_signal.connect(self.load_list)
+
+        widget.layout().addWidget(inga_combobox)
+
+    def get_p1_class(self):
+        return P1SingleWavelength_multiTIFInga
+
 
 class ZeissSingleLoaderInterface(BaseLoaderInterface):
 
@@ -289,6 +319,8 @@ class OmeFuraTiffInterface(VIEWTIFFLoaderInterface):
 
 
 def get_loader_interface_class(LE_loadExp):
+    if type(LE_loadExp) != int:
+        LE_loadExp = int(LE_loadExp) # in case this was a string
 
     if LE_loadExp == 3:
         return TillSingleLoaderInterface
@@ -296,6 +328,8 @@ def get_loader_interface_class(LE_loadExp):
         return TillDualLoaderInterface
     elif LE_loadExp == 20:
         return ZeissSingleLoaderInterface
+    elif LE_loadExp == 32:
+        return IngaSingleLoaderInterface
     elif LE_loadExp == 33:
         return VIEWTIFFLoaderInterface
     elif LE_loadExp == 34:
