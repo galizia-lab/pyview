@@ -23,6 +23,7 @@ def get_background_frames(p1_metadata, flags):
 
         logging.getLogger("VIEW").warning(
             f"No stimuli information specified in measurement list file. "
+            f"Or LE_StimulusBasedBackground set to false. "
             f"Defaulting to the background range {default_background}")
         return default_background
 

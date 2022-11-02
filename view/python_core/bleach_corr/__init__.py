@@ -3,6 +3,7 @@ from ...idl_translation_core.bleach_correction import fitlogdecay, get_bleach_we
 import numpy as np
 import platform
 import multiprocessing as mp
+import logging
 
 
 class NoBleachCompensator(object):
@@ -151,6 +152,9 @@ def get_bleach_compensator(flags, p1_metadata, movie_size):
 
         return UniformBleachCompensator(flags, p1_metadata, movie_size)
     else:
+        logging.getLogger("VIEW").warning(
+            f"Not a valid bleach value: "
+            f"LE_BleachCorrMethod={flags['LE_BleachCorrMethod']}  ")
         raise NotImplementedError
 
 

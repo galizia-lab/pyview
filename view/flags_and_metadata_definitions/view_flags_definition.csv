@@ -11,7 +11,7 @@ Data_Mean_Filter,Filters,integer indicating whether the raw data should be filte
 3: filter in space and time, using flag values (Data_Mean_Filter_space)(Data_Mean_Filter_time)",int,0,"{flag} in (0, 1, 2, 3)","Invalid value {flag} for {flag_name}, valid values are:\n0 (no median filtering)\n1 (median filtering only in space, with fixed window size)\n2 (median filtering only in time, with fixed window size)\n3 (median filtering in both space and time, with window sizes specified in the flags “Data_Median_Filter_space” and “Data_Median_Filter_time” respectively)"
 Data_Mean_Filter_space,Filters,integer indicating width of the mean filter used for filtering values over SPACE. Only used if Data_Mean_Filter is set to 3.,,int,3,{flag} >= 0,"Invalid value {flag} for {flag_name}, only non-negative integers are valid."
 Data_Mean_Filter_time,Filters,integer indicating width of the mean filter used for filtering values over TIME. Only used if Data_Mean_Filter is set to 3.,,int,3,{flag} >= 0,"Invalid value {flag} for {flag_name}, only non-negative integers are valid."
-Data_ReplaceInitFrames,Filters,"integer, when it is 2, the first two frames are replaced by the third right after reading data from file",,int,0,"{flag} >= 0","{flag_name} must be a non-negative integer"
+Data_ReplaceInitFrames,Filters,"integer, when it is 2, the first two frames are replaced by the third right after reading data from file",,int,0,{flag} >= 0,{flag_name} must be a non-negative integer
 LE_BleachCorrMethod,Filters,indicates the method for correcting bleaching artifacts.,"None: bleaching artifacts are not corrected
 log_uniform: fluorescence relative to background is assumed to follow the same exponential function for all pixels.
 log_pixelwise_1cpu: fluorescence relative to background is assumed to follow different exponential functions for different pixels. Correction is done using only one CPU core
@@ -34,7 +34,7 @@ GDM_chunkPostStim,Output,Only used when the flag 'gdm_outputType' is 'chunks_onl
 GDM_chunkPreStim,Output,Only used when the flag 'gdm_outputType' is 'chunks_only'. Indicates the number of seconds between chunk start and stimulus onset,,float,0,,
 GDM_outputType,Output,kind of out to write into GDM file.,"
 full_traces: for each glomerulus/neural unit, add a row containing metadata + averaged trace
-chunks_only: for each glomerulus/neural unit and stimulus, add a row containing metadata + averaged trace",str,"full_traces",,
+chunks_only: for each glomerulus/neural unit and stimulus, add a row containing metadata + averaged trace",str,full_traces,,
 GDM_withinArea,Output,whether to constrain and revise ROI masks to be within area when exporting GDM files,,bool,0,,
 LE_labelColumns,LoadData,"columns of the measurement list that will be concatenated to the internal label of measurements in VIEW.
 For possible column names, see the entries of the column 'LST Name' in the file `view/flags_and_metadata_definitions/metadata_definition.csv` of the repository",,tuple,"('Measu',)",,
@@ -45,7 +45,7 @@ LE_loadExp,LoadData,integer indicating the setup used for acquiring data.,"0 : o
 4: TILL photonics dual wavelength (FURA)
 20: ZEISS multiphoton data
 21: Leica LIF confocal/multiphoton data
-32: Generic single wavelength TIF (YX formatted data single file for each frame sequential naming)
+32: Inga: single wavelength multi TIF (YX formatted data single file for each frame sequential naming) 
 33: Generic single wavelength TIF (TYX formatted data)
 34: Dual wavelength TIF in two separate files (TYX formatted data)
 35: Dual wavelength TIF in two separate files (TWYX formatted data; W=wavelength)
@@ -229,8 +229,7 @@ RM_ROITrace,Output,Indicates the file from which component masks are sourced,"0 
 6 : use a fictive ROI with uniform weight over the entire frame",int,3,,
 SO_MV_scalemax,Output,value to scale maximum to with SO_indivdiualScale or mv_individualScale equals 0,,float,1,,
 SO_MV_scalemin,Output,corresponding value for minimum,,float,0,,
-LE_CalcMethod,CalcSignals,integer indicating the method used for calculating a biologically relevant signal from raw movie data. Used in view/python_core/calc_methods.py,"
-0: sig1 = raw1 / 1000
+LE_CalcMethod,CalcSignals,integer indicating the method used for calculating a biologically relevant signal from raw movie data. Used in view/python_core/calc_methods.py,"0: sig1 = raw1 / 1000
 1: sig1 = raw2 / 1000
 3: sig1 = deltaF/F
 4: sig1 = raw1/raw2 - (raw1/raw2 averaged over the background)",int,3,,
@@ -238,8 +237,7 @@ VIEW_batchmode,Xtra,"choice between interactive mode and VIEW_batchmode. Valid v
 SO_MV_colortable,Xtra,"if integer indicates an IDL_style color table to use. Valid values are: 11-14. Values are 12-14 self-programmed rainbows.
 if string, must be the name of a matplotlib colormap.
 See https://matplotlib.org/tutorials/colors/colormaps.html.
-NOTE: The inverse of every matplotlib colormap is also available, just append '_r' to colormap name. E.g.: Inverse of the colormap 'jet' would be 'jet_r'","
-11: a self programmed SO_MV_colortable
+NOTE: The inverse of every matplotlib colormap is also available, just append '_r' to colormap name. E.g.: Inverse of the colormap 'jet' would be 'jet_r'","11: a self programmed SO_MV_colortable
 12: a self-programmed rainbow SO_MV_colortable
 13: a self-programmed rainbow SO_MV_colortable
 14: a self-programmed rainbow SO_MV_colortable
