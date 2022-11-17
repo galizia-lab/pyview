@@ -113,6 +113,8 @@ class MultiTiffReaderInga():
     '''
 
     def __init__(self, txt_file: str, measu: int):
+        # I don't want measu up here, because I want to read multiple measurements without always re-reading the .txt file
+        # if that creates problems, change back and also change self.measu definition below (now to 0)
     #def read_metadata_txt_file(fle):
         '''
         For multifile tif, Inga writes an info file as such:
@@ -246,7 +248,8 @@ class MultiTiffReaderInga():
             self.all_meta_data = all_metadata_df
         return all_metadata_df
 
-    def load_data(self, datadirectory, measu=0):
+    def load_data(self, measu):
+#    def load_data(self, datadirectory, measu):
         #load measurement measu into a NumPy Array stack
         #assumes load_all_metadata was run, so that self.all_meta_data exists
         #if no measurement is selected, take the first one (for debugging, Oct. 2022)
@@ -254,10 +257,10 @@ class MultiTiffReaderInga():
         #datadirectory = r'/Users/galizia/Documents/DATA/inga_calcium/01_DATA/'
         
         metadata = self.load_all_metadata() # getting info from Inga .txt file
-        which_line = self.measu
+        thisline = metadata.loc[measu] # self.measu
         which_directory = self.data_path
         directory = pl.Path(which_directory)
-        filenames =  [directory / fln for fln in metadata["dbb2"].values[0]]
+        filenames =  [directory / fln for fln in thisline["dbb2"]]
         img_data = tifffile.imread(filenames)
         # format is now TXY
         print('io.py: transposed data array - adjust syntax if needed')
@@ -414,7 +417,8 @@ def read_SingleWavelengthTif_MultiFileInga(txt_file, measu):
     returns numpy array
 
     """
-    print('/view/python_core/io.py: reading MultiFile tiff in read_SingleWavelengthTif_MultiFile. Delete this message after debugging')
+    print('/view/python_core/io.py: reading MultiFile tiff in read_SingleWavelengthTif_MultiFile.')
+    print('use object MultiTiffReaderInga directly')
     #return tifffile.imread(tif_file_list)  # return in format XYT
     inga_reader_wrapper = MultiTiffReaderInga(txt_file, measu)
     return inga_reader_wrapper.load_data(measu)
