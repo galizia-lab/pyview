@@ -437,10 +437,10 @@ class IngaTif_Importer(BaseImporter):
                        measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
         # load metadata from a .txt file, format defined by Inga Petelski, 2022
 
-        inga_reader = MultiTiffReaderInga(fle) # initialize reader with the txt file
+        inga_reader = MultiTiffReaderInga(fle, measu=0) # initialize reader with the txt file, measu to first line
         all_metadata = inga_reader.load_all_metadata() # get the dataframe
 
-        this_lst_frame = pd.DataFrame()
+        #this_lst_frame = pd.DataFrame()
 
         # # iterate all measurements
         # for fle_ind, lst_row in all_metadata.iterrows():
