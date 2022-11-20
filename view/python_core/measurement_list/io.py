@@ -85,44 +85,13 @@ def get_format_specific_defs():
     :return:
     """
 
-    df = pd.DataFrame(columns=("IOclass", "relevant_column", "extension"))
-
     # the order of definition here is very important. It sets the hierarchy when looking for list files.
-    tempS = pd.Series()
-    tempS.name = "XLS LST format"
-    tempS["IOclass"] = XLSIO
-    tempS["relevant_column"] = "LST Name"
-    tempS["extension"] = ".lst.xls"
-
-    df = df.append(tempS)
-
-    tempS_copy = tempS.copy()
-    tempS_copy.name = "XLSX LST format"
-    tempS_copy["extension"] = ".lst.xlsx"
-
-    df = df.append(tempS_copy)
-
-    tempS = pd.Series()
-    tempS.name = "Legacy Text LST format"
-    tempS["IOclass"] = LSTIO
-    tempS["relevant_column"] = "LST Name"
-    tempS["extension"] = ".lst"
-
-    df = df.append(tempS)
-
-    tempS = pd.Series()
-    tempS.name = "XLS FID Settings format"
-    tempS["IOclass"] = XLSIO
-    tempS["relevant_column"] = "Settings Name"
-    tempS["extension"] = ".settings.xls"
-
-    df = df.append(tempS)
-
-    tempS_copy = tempS.copy()
-    tempS_copy.name = "XLSX FID Settings format"
-    tempS_copy["extension"] = ".settings.xlsx"
-
-    df = df.append(tempS_copy)
+    df = pd.DataFrame(columns=["IOclass", "relevant_column", "extension"])
+    df.loc["XLS LST format", :] = [XLSIO, "LST Name", ".lst.xls"]
+    df.loc["XLSX LST format", :] = [XLSIO, "LST Name", ".lst.xlsx"]
+    df.loc["Legacy Text LST format"] = [LSTIO, "LST Name", ".lst"]
+    df.loc["XLS FID Settings format"] = [XLSIO, "Settings Name", ".settings.xls"]
+    df.loc["XLSX FID Settings format"] = [XLSIO, "Settings Name", ".settings.xlsx"]
 
     return df
 

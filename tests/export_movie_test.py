@@ -127,6 +127,7 @@ def test_different_export_formats():
     export_fake_data_movie({"mv_exportFormat": "single_tif", 'mv_individualScale': 2}, "_indScale2")
     export_fake_data_movie({"mv_exportFormat": "ayuv", 'mv_individualScale': 2}, "_indScale2_ayuv")
 
+
 def test_filters():
     """
     Testing export movie with temporal and spatial filters
@@ -203,6 +204,7 @@ def test_thresholdShowImage():
                                     f"mv_thresholdOn_foto1_posVal_a1000_Image_"
                                     f"{threshold_show_image}_scale_{threshold_scale}")
 
+
 def test_withinArea():
     """
     Testing export movie with mv_withinArea set
@@ -259,6 +261,7 @@ def test_mark_rois():
         flags2use_new = flags2use.copy()
         flags2use_new["mv_cutborder"] = 5
         export_fake_data_movie(flags_to_update=flags2use_new, movie_name_suffix=f"mv_showROIs{test_value}_cutborder5")
+
 
 @raises(ValueError)
 def test_large_bordercut():

@@ -109,6 +109,7 @@ def test_scale_flags():
             flags["SO_indiScale3factor"] = 0
             generate_overviews(flags, f"SO_individualScale{indiscale}_factor0{label}")
 
+
 @raises(ValueError)
 def test_large_bordercut():
     """
@@ -116,7 +117,6 @@ def test_large_bordercut():
     """
 
     generate_overviews({"SO_cutborder": 106}, "_impossible")
-
 
 
 def test_filters():

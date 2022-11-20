@@ -92,7 +92,7 @@ class BaseStimuliiHandler(object):
                                  data_sampling_period_td]],
                                columns=self.stimulus_frame.columns)
 
-        self.stimulus_frame = self.stimulus_frame.append(temp_df, ignore_index=True)
+        self.stimulus_frame = pd.concat([self.stimulus_frame, temp_df], ignore_index=True)
 
         return 0
 
