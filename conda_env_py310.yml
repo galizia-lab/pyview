@@ -1,6 +1,7 @@
 name: view_py310
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.10
   - pip
@@ -10,6 +11,7 @@ dependencies:
   - xlrd
   - pyqtgraph
   - whoosh
+  - moviepy  # only available on conda-forge
   - openpyxl
   - jupyter
   - appdirs
