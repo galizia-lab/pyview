@@ -6,7 +6,6 @@ dependencies:
   - python=3.10
   - pip
   - jinja2
-  - easygui  # only available in conda-forge
   - seaborn
   - bokeh
   - xlrd
