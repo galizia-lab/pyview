@@ -208,7 +208,7 @@ class MeasurementList(object):
 
             if col_name not in self.measurement_list_df.columns:
 
-                self.measurement_list_df[col_name] = default_value
+                self.measurement_list_df.loc[:, col_name] = default_value
 
     def convert_to_numeric(self):
         self.measurement_list_df = \

@@ -1,0 +1,15 @@
+name: view_py39
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - jinja2
+  - seaborn
+  - bokeh
+  - xlrd
+  - pyqtgraph
+  - whoosh
+  - openpyxl
+  - jupyter
+  - appdirs

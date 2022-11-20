@@ -130,8 +130,7 @@ class MovieWriterStackTif(object):
 
         outfile_path = f"{full_filename_without_extension}.tif"
 
-        tifffile.imsave(file=str(outfile_path), data=data_4D_formatted,
-                         imagej=True)
+        tifffile.imwrite(outfile_path, data=data_4D_formatted, imagej=True)
         logging.getLogger("VIEW").info(f"Wrote a tiff stack to {str(outfile_path)}")
 
         return outfile_path

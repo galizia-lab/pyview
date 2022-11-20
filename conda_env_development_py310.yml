@@ -1,0 +1,21 @@
+name: view_dev_py310
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - jinja2
+  - easygui  # only available in conda-forge
+  - seaborn
+  - bokeh
+  - xlrd
+  - pyqtgraph
+  - whoosh
+  - moviepy  # only available on conda-forge
+  - openpyxl
+  - ipdb
+  - nose
+  - ipython
+  - jupyter
+  - appdirs

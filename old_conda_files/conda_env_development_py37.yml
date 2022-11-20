@@ -1,9 +1,10 @@
-name: view_dev
+name: view_dev_py37
 channels:
   - defaults
   - conda-forge
 dependencies:
   - python=3.7
+  - pip
   - jinja2
   - easygui  # only available in conda-forge
   - seaborn

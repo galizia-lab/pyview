@@ -86,7 +86,8 @@ class CalculatorPercentileMax(CalculatorDefault):
         self.percentile_value = percentile_value_from_top
 
     def max(self, data):
-        return np.percentile(data, 100 - self.percentile_value)
+        # method was set to 'nearest' because of numpy bug: https://github.com/numpy/numpy/issues/21524
+        return np.percentile(data, 100 - self.percentile_value, method='nearest')
 
 
 class CalculatorPercentileMin(CalculatorDefault):
@@ -96,7 +97,8 @@ class CalculatorPercentileMin(CalculatorDefault):
         self.percentile_value = percentile_value_from_bottom
 
     def min(self, data):
-        return np.percentile(data, self.percentile_value)
+        # method was set to 'nearest' because of numpy bug: https://github.com/numpy/numpy/issues/21524
+        return np.percentile(data, self.percentile_value, method='nearest')
 
 
 class SquareSubsetter2D(CalculatorDefault):

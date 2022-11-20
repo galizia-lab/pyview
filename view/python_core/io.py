@@ -341,7 +341,7 @@ def write_tif_2Dor3D(array_xy_or_xyt, tif_file, dtype=None, scale_data=False, la
     if labels is not None:
         kwargs["description"] = "Labels=" + ";;".join(labels)
 
-    tifffile.imwrite(file=tif_file, data=array_to_write, **kwargs)
+    tifffile.imwrite(tif_file, data=array_to_write, **kwargs)
 
 
 def read_check_yml_file(yml_filename, expected_type=None):

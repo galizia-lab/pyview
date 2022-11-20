@@ -30,7 +30,7 @@ setup(
         # iltis ported to PyQt5 is needed, old iltis built using PyQt4 will not work.
         # Source code available at https://gitlab.inf.uni-konstanz.de/ag-galizia/iltis.
         # See wiki on https://gitlab.inf.uni-konstanz.de/ag-galizia/view for more info
-        "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@1.4",
+        "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@1.5",
         "tillvisionio@git+https://git@github.com/galizia-lab/tillvisionio.git@1.0",
         "tifffile>=2019.7.26",
         "easygui>=0.98.1",

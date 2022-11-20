@@ -1,8 +1,9 @@
-name: view
+name: view_py38
 channels:
   - defaults
 dependencies:
-  - python=3.7
+  - python=3.8
+  - pip
   - jinja2
   - seaborn
   - bokeh
