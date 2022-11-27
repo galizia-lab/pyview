@@ -343,6 +343,9 @@ if __name__ == "__main__":
             cols_to_move = ['Measu','Analyze','Label', 'Odour', 'OConc']
             metadata_df = metadata_df[ cols_to_move + [ col for col in metadata_df.columns if col not in cols_to_move ] ]
 
+            #because ILTIS uses column 'Stimulus' and not 'Odour', duplicate that information
+            metadata_df['Stimulus'] = metadata_df['Odour']
+
             # # set anaylze to 0 if raw data files don't exist
             # flags.update_flags({"STG_ReportTag": animal_tag})
             # measurement_list.sanitize(flags=flags,
@@ -399,6 +402,7 @@ if __name__ == "__main__":
                     metadata_df.at[index,'PxSzX'] = row['PxSzX'] / bin_post_hoc
                     metadata_df.at[index,'PxSzY'] = row['PxSzY'] / bin_post_hoc
                     metadata_df.at[index,'DBB1'] = row['Label']+'/'+ fle
+                    metadata_df.at[index,'AnimalLabel'] = row['Label'] # for filename creation
                     metadata_df.at[index,'Label'] = row['Label']+'_'+str(index)
                     metadata_df.at[index,'dbb2'] = ' '
                     metadata_df.at[index,'Comment'] = 'Inga Post-Hoc Binned data '
@@ -408,7 +412,7 @@ if __name__ == "__main__":
             outputfile = pl.Path(STG_MotherOfAllFolders) / bin_OdorInfoPath
             outputfile.mkdir(parents=True, exist_ok=True)
             # for the file name, take the label of the first measurement
-            fle_name = f"{metadata_df['Label'][0]}{measurement_output_extension}"
+            fle_name = f"{metadata_df['AnimalLabel'][0]}{measurement_output_extension}"
             outputfile = outputfile / fle_name
             
 

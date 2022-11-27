@@ -371,7 +371,7 @@ class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
-        return [".txt"] #this is the filename of Inga's information about the data
+        return [".txt", "/protocol.txt"] #this is the filename of Inga's information about the data
     
     def read_data(self, filename: str, measu: int):
         """
