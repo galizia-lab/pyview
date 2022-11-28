@@ -54,7 +54,8 @@ import logging
 import pathlib as pl
 import numpy as np
 from view.python_core.io import read_SingleWavelengthTif_MultiFileInga, write_tif_2Dor3D
-
+import easygui
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -68,7 +69,10 @@ overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
 # ______________________________________________________________________________________________________________________
 
 
-
+IngaFileName = 'protocol.txt'
+# if IngaFileName is given, the program will ask for a directory,
+# and then process all files in all subdirectories with that name.
+# if IngaFileName is None, the program will ask for single files
 
 # ------------------- Some parameters about experimental setup, data structure and output file type --------------------
 # 3 for single wavelength Till Photonics Measurements
@@ -287,6 +291,20 @@ def binning_3D(in_array, binning_factor=4, axis=2):
     return new_array
 
 
+def IngaCrawlDirectories(basepath, filename):
+    dir_chosen = easygui.diropenbox(
+        title="Choose parent directory for all files to be crawled",
+        default=basepath)
+    #no look in all subdirectories for files with given name
+    filenames = []
+    for root, dirs, files in os.walk(dir_chosen):
+        for f in files:
+            if f.find(filename)>=0:
+                filenames.append(os.path.join(root,f))
+    return filenames
+
+
+
 
 # ______________________________________________________________________________________________________________________
 
@@ -307,7 +325,17 @@ if __name__ == "__main__":
     # open a dialog for choosing raw data files
     # this returns a dictionary where keys are animal tags (STG_ReportTag) and
     # values are lists of associated raw data files
-    animal_tag_raw_data_mapping = importer.ask_for_files(default_dir=flags["STG_Datapath"])
+    
+    
+    #special case for Inga: do not select files, but select a directory, and then craws inside
+    #if IngaFileName then ask for a directory and crawl in subdirectories
+    if IngaFileName != None:
+        files_chosen = IngaCrawlDirectories(flags["STG_Datapath"], IngaFileName)
+        animal_tag_raw_data_mapping = importer.get_animal_tag_raw_data_mapping(files_chosen)
+    else:
+        animal_tag_raw_data_mapping = importer.ask_for_files(default_dir=flags["STG_Datapath"])
+    
+    
     # make sure some files were chosen
     assert len(animal_tag_raw_data_mapping) > 0, IOError("No files were chosen!")
 
@@ -339,12 +367,13 @@ if __name__ == "__main__":
                                                       'DBB_Folder':'DBB1'})
             # measurement_list.update_from_custom_func(custom_func=custom_func, animal_tag=animal_tag)
 
-            # shift a few columns to the front
-            cols_to_move = ['Measu','Analyze','Label', 'Odour', 'OConc']
-            metadata_df = metadata_df[ cols_to_move + [ col for col in metadata_df.columns if col not in cols_to_move ] ]
-
             #because ILTIS uses column 'Stimulus' and not 'Odour', duplicate that information
             metadata_df['Stimulus'] = metadata_df['Odour']
+            
+            # shift a few columns to the front
+            cols_to_move = ['Measu','Analyze','Label', 'Odour', 'OConc','Stimulus']
+            metadata_df = metadata_df[ cols_to_move + [ col for col in metadata_df.columns if col not in cols_to_move ] ]
+
 
             # # set anaylze to 0 if raw data files don't exist
             # flags.update_flags({"STG_ReportTag": animal_tag})

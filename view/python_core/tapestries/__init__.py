@@ -37,6 +37,17 @@ class TapestryCreater(object):
         # if measus in current row, set current_measus to it
         if "measus" in row:
             current_measus = row["measus"]
+            
+        # instead or organizing a tapestry with the measu numbers, it can be organized with any column
+        # in that case, measu_order_column needs to contain that column name, e.g. 'Stimulus' or 'Odour'
+        if "measu_order_column" in row:
+            #row['Measus'] contains the values
+            new_measus = []
+            for old_measu in current_measus:
+               c = self.view.measurement_list.get_row_index_by_column_value(row['measu_order_column'], old_measu)
+               new_measus.append(c)
+            # overwrite current_measus with index value of those measurements
+            current_measus = new_measus                
 
         return current_animal, current_measus
 
