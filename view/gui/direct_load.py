@@ -296,9 +296,11 @@ def get_loader_interface_class(LE_loadExp):
         return TillDualLoaderInterface
     elif LE_loadExp == 20:
         return ZeissSingleLoaderInterface
+    elif LE_loadExp == 21:
+        return LifSingleLoaderInterface
     elif LE_loadExp == 33:
         return VIEWTIFFLoaderInterface
-    elif LE_loadExp == 34:
+    elif LE_loadExp == 35:
         return OmeFuraTiffInterface
     else:
         raise NotImplementedError
