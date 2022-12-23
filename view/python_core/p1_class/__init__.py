@@ -770,13 +770,13 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1DualWavelengthTIFTwoFiles()
     elif LE_loadExp == 35:
         empty_obj = P1DualWavelengthTIFSingleFile()
-    elif LE_loadExp == 665:
+    elif LE_loadExp == 665: # synthetic data set, response negative, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=-10)
-    elif LE_loadExp == 666:
+    elif LE_loadExp == 666: # synthetic data set, response magnitude taken from list
         empty_obj = P1SingleWavelength666(peaksignal=odor_conc)
-    elif LE_loadExp == 667:
+    elif LE_loadExp == 667: # synthetic data set, response positive, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=10)
-    elif LE_loadExp == 676:
+    elif LE_loadExp == 676: # synthetic data set 666, clipped
         empty_obj = P1SingleWavelength676(peaksignal=10)
     else:
         raise NotImplementedError
