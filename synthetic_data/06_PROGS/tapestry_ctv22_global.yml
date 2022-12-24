@@ -1,0 +1,37 @@
+
+# entries 'animal' and 'measus' mandatory for the first row
+row1: # row name can be arbitrary, but cannot be repeated
+
+
+  # animal whose data will be used
+  animal: 'Synthetic_data_strip'
+
+  # values from the column "Measu" of the measurement list for this animal
+  measus: [1,2,3,4]
+
+  # flags to be set/overwritten before creating overviews
+  flags:
+    CTV_Method: 22
+    CTV_firstframe: 25
+    CTV_lastframe: 45
+    SO_showROIs: 0
+    SO_fgColor: k
+
+    SO_individualScale: 0
+    SO_MV_scalemax: 0.2
+    SO_MV_scalemin: -0.2
+
+  # overviews are create in compressed PNG format by default. Here you can specify whether uncompressed TIFs should
+  # be additionally created
+  extra_formats: [tif]
+
+  # whether movies corresponding to the overviews are to be created
+  corresponding_movies: False
+
+# all values missing in this row will be taken from previous row
+
+row2: # row name can be arbitrary, but cannot be repeated
+# it is also possible to change flags for single rows
+  measus: [5,6,7,8,9]
+
+
