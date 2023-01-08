@@ -1,14 +1,15 @@
-from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
 from .file_selector_combobox import get_file_selector_combobox_using_settings
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 from ..python_core.p1_class import Default_P1_Getter, P1SingleWavelengthTIF, \
     P1SingleWavelengthLSM, P1DualWavelengthTill, P1SingleWavelengthTill, P1DualWavelengthTIFSingleFile, \
-        P1SingleWavelengthLIF
+    P1SingleWavelengthLIF, P1SingleWavelength666, get_empty_p1
 from view.python_core.flags import FlagsManager
 import pathlib as pl
 import traceback
 import sys
 from abc import abstractmethod
+import tempfile
 
 
 # modified version of solution from https://stackoverflow.com/questions/9374063/remove-all-items-from-a-layout
@@ -66,6 +67,7 @@ def get_an_lsm_combobox(parent):
                           file_type="LSM",
                           file_filter="LSM files(*.lsm)",
                           comment=None)
+
 
 def get_a_lif_combobox(parent):
     combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
@@ -133,7 +135,7 @@ class BaseLoaderInterface(QObject):
 
     def check_read_data(self, flags, filenames):
 
-        p1 = self.get_p1_class()()  # here p1 has not data, i.e. empty
+        p1 = get_empty_p1(LE_loadExp=flags["LE_loadExp"], odor_conc=10)  # here p1 has not data, i.e. empty
         self.write_status(f"[working] Loading raw data directly from {filenames} using {p1.__class__.__name__}")
         try:
             p1.load_without_metadata(filenames=filenames, flags=flags)
@@ -157,10 +159,23 @@ class BaseLoaderInterface(QObject):
     def refresh_layout(self, widget):
         pass
 
-    @abstractmethod
-    def get_p1_class(self):
 
-        pass
+class SampleData666LoaderInterface(BaseLoaderInterface):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.temp_sample_dir = pl.Path(tempfile.gettempdir()) / "SampleDataPyView"
+        self.temp_sample_dir.mkdir(exist_ok=True)
+
+    def load_list_fake(self):
+        self.load_list([str(self.temp_sample_dir / "Fake")])
+
+    def refresh_layout(self, widget):
+
+        clear_layout(widget.layout())
+        button = QPushButton("&Load sample Data", widget)
+        button.clicked.connect(self.load_list_fake)
+        widget.layout().addWidget(button)
 
 
 class VIEWTIFFLoaderInterface(BaseLoaderInterface):
@@ -177,9 +192,6 @@ class VIEWTIFFLoaderInterface(BaseLoaderInterface):
 
         widget.layout().addWidget(view_tif_combobox)
 
-    def get_p1_class(self):
-        return P1SingleWavelengthTIF
-
 
 class TillSingleLoaderInterface(BaseLoaderInterface):
 
@@ -194,9 +206,6 @@ class TillSingleLoaderInterface(BaseLoaderInterface):
         pst_combobox.return_filenames_signal.connect(self.load_list)
 
         widget.layout().addWidget(pst_combobox)
-
-    def get_p1_class(self):
-        return P1SingleWavelengthTill
 
 
 class TillDualLoaderInterface(BaseLoaderInterface):
@@ -234,10 +243,6 @@ class TillDualLoaderInterface(BaseLoaderInterface):
         else:
             return None
 
-    def get_p1_class(self):
-        
-        return P1DualWavelengthTill
-
 
 class LifSingleLoaderInterface(BaseLoaderInterface):
 
@@ -253,9 +258,6 @@ class LifSingleLoaderInterface(BaseLoaderInterface):
         lif_combobox.return_filenames_signal.connect(self.load_list)
 
         widget.layout().addWidget(lif_combobox)
-
-    def get_p1_class(self):
-        return P1SingleWavelengthLIF
 
 
 class ZeissSingleLoaderInterface(BaseLoaderInterface):
@@ -273,20 +275,6 @@ class ZeissSingleLoaderInterface(BaseLoaderInterface):
 
         widget.layout().addWidget(lsm_combobox)
 
-    def get_p1_class(self):
-        return P1SingleWavelengthLSM
-
-
-class OmeFuraTiffInterface(VIEWTIFFLoaderInterface):
-
-    def __init__(self, parent):
-
-        super().__init__(parent)
-
-    def get_p1_class(self):
-
-        return P1DualWavelengthTIFSingleFile
-
 
 def get_loader_interface_class(LE_loadExp):
 
@@ -299,7 +287,9 @@ def get_loader_interface_class(LE_loadExp):
     elif LE_loadExp == 33:
         return VIEWTIFFLoaderInterface
     elif LE_loadExp == 34:
-        return OmeFuraTiffInterface
+        return VIEWTIFFLoaderInterface
+    elif LE_loadExp in (665, 667, 676):
+        return SampleData666LoaderInterface
     else:
         raise NotImplementedError
 

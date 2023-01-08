@@ -2,6 +2,7 @@ import gc
 import logging
 import os
 import pathlib as pl
+import sys
 import traceback
 from inspect import currentframe, getframeinfo
 
@@ -298,8 +299,10 @@ class CentralWidget(QWidget):
                 lambda p1: [x / pd.Timedelta(seconds=1)
                             for x in p1.metadata["pulsed_stimuli_handler"].get_pulse_end_times()],
             "Measurement\nLabel": temp("ex_name"), "Raw File Name": temp("full_raw_data_path_str"),
-            "No. of frames": temp("frames"), "No. of Pixels along X": temp("format_x"),
-            "No. of Pixels along Y": temp("format_y")
+            "No. of frames": temp("frames"),
+            "Frames per second": lambda p1: p1.metadata.frequency,
+            "No. of Pixels along X": temp("format_x"),
+            "No. of Pixels along Y": temp("format_y"),
         }
 
         self.data_manager = DataManager(
@@ -310,7 +313,7 @@ class CentralWidget(QWidget):
                 "Stimulus", "Stimulus\nConcentration", "Component\nOdors",
                 "No. of pulses in stimuli", "Stimulus pulse start times\nrelative to imaging start (s)",
                 "Stimulus pulse end times\nrelative to imaging start (s)",
-                "No. of frames", "No. of Pixels along X", "No. of Pixels along Y",
+                "No. of frames", "Frames per second", "No. of Pixels along X", "No. of Pixels along Y",
                 "LE_loadExp", "LE_CalcMethod"]
         )
         self.data_manager.remove_data_signal.connect(self.remove_data)
@@ -858,7 +861,8 @@ class CentralWidget(QWidget):
             return
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            exception_formatted = traceback.format_exception(*sys.exc_info())
+            QMessageBox.critical(self, f"VIEW encountered an error!", "".join(exception_formatted))
 
         self.write_status(f"[failure] Save movie with new method")
 
