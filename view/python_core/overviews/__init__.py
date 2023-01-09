@@ -329,11 +329,6 @@ def pop_show_overview(flags, p1, label, stimulus_number=None, feature_number=Non
 
             overview_for_output = prep_overview_for_output(overview_frame_colorized_with_frame)
 
-            # deduplicate the label
-            label2use = dedupilicate(value=label, existing_values=get_current_pyplot_window_titles())
-
-            fig.canvas.set_window_title(label2use)
-
             ax.imshow(np.flip(overview_for_output, axis=0), origin="lower")
             legendfactor = flags["SO_scaleLegendFactor"]
             ax.set_title(

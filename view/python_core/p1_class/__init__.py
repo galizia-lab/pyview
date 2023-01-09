@@ -223,7 +223,7 @@ class P1SingleWavelengthAbstract(ABC):
         data_sampling_period = pd.to_timedelta(self.metadata['trial_ticks'], unit='ms')
         self.pulsed_stimuli_handler.initialize_stimulus_offset(flags["mv_correctStimulusOnset"], data_sampling_period)
 
-    def load_without_metadata(self, filenames, flags, sampling_rate=1e6):
+    def load_without_metadata(self, filenames, flags, sampling_rate=5):
         """
         load raw data in p1 structure directly, without other metadata
         :param sequence filenames: raw data file names, compatible with the flag `LE_loadExp`
@@ -353,6 +353,7 @@ class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
         data, _ = read_tif_2Dor3D(filename)
         return data
 
+
 class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
     """
     Load Leica .lif file data
@@ -379,7 +380,6 @@ class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
         """
         data = read_lif(filename, measu)
         return data
-
 
 
 class P1SingleWavelengthTill(P1SingleWavelengthAbstract):
@@ -440,7 +440,7 @@ class P1SingleWavelengthLSM(P1SingleWavelengthAbstract):
         # selection of the first row is required as this function returns a one-row DataFrame
         row = lsm_importer.parse_metadata(fle=filenames[0], fle_ind=-2).iloc[0]
         # revise index names to be lower case
-        row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
+        # row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
         p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(row)
         p1_metadata.dbb1 = filenames[0]
         label = pl.Path(filenames[0]).name.split(".")[0]
@@ -617,7 +617,7 @@ class P1DualWavelengthTill(P1DualWavelengthTIFTwoFiles):
 
 class P1SingleWavelength666(P1SingleWavelengthAbstract):
 
-    def __init__(self, peaksignal):
+    def __init__(self, peaksignal=10):
 
         super().__init__()
         self.peaksignal = peaksignal
@@ -633,9 +633,41 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
             raw_data: np.ndarray
         """
 
-        raw_data66 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
+        raw_data666 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
 
-        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data66
+        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data666
+
+    def load_without_metadata(self, filenames, flags, sampling_rate=5):
+        """
+        load raw data in p1 structure directly, without other metadata
+        :param sequence filenames: raw data file names, compatible with the flag `LE_loadExp`
+        :param FlagManager flags:
+        :param sampling_rate: unused, hardcoded below
+        """
+
+        # for all other cases, it is better to not override the current method and instead override
+        # get_p1_metadata_from_filenames. However, I am overriding the current method as an exception as
+        # I need to make sure that stimulus information gets added, without which "loading", i.e., creating synthetic
+        # data would fail.
+
+        label = pl.Path(filenames[0]).name.split(".")[0]
+        fake_measurement_list_row = MetadataDefinition().get_default_row()
+        fake_measurement_list_row.update(
+            {
+                    "DBB1": label,
+                    "Label": label,
+                    # need to add stimulus information here as it is later needed when loading data, i.e., in this
+                    # case, creating synthetic data
+                    "StimON": 25,
+                    "StimOFF": 35,
+                    "Stim2ON": 65,
+                    "Stim2OFF": 75
+                }
+            )
+
+        p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(fake_measurement_list_row)
+
+        self.load_from_metadata(p1_metadata=p1_metadata, flags=flags, extra_metadata=extra_metadata)
 
     def read_data(self, filename: str):
 
@@ -770,13 +802,13 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1DualWavelengthTIFTwoFiles()
     elif LE_loadExp == 35:
         empty_obj = P1DualWavelengthTIFSingleFile()
-    elif LE_loadExp == 665:
+    elif LE_loadExp == 665: # synthetic data set, response negative, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=-10)
-    elif LE_loadExp == 666:
+    elif LE_loadExp == 666: # synthetic data set, response magnitude taken from list
         empty_obj = P1SingleWavelength666(peaksignal=odor_conc)
-    elif LE_loadExp == 667:
+    elif LE_loadExp == 667: # synthetic data set, response positive, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=10)
-    elif LE_loadExp == 676:
+    elif LE_loadExp == 676: # synthetic data set 666, clipped
         empty_obj = P1SingleWavelength676(peaksignal=10)
     else:
         raise NotImplementedError
