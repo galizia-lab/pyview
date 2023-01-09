@@ -5,13 +5,16 @@ channels:
 dependencies:
   - python=3.10
   - pip
+  - scipy
+  - scikit-image
   - jinja2
   - seaborn
   - bokeh
   - xlrd
   - pyqtgraph
   - whoosh
-  - moviepy  # only available on conda-forge
   - openpyxl
   - jupyter
   - appdirs
+# only available on conda-forge
+  - moviepy
