@@ -3,6 +3,7 @@ Label,microscope,,label,"(“ScanInformation”, “Name)",ex_name,all,Measureme
 Measu,microscope,,measu,,messungszahl,all,Measurement index as recoreded by Till Vision,0
 Analyze,analysis,,analyze,,analyze,all,"boolean flag, manually editable, that indicates whether or not the measurement is to be included in anaslysis",-1
 Odour,stimulus,,odorants,,odor,,Odorant (no comma) or list of odorants that are part of the stimulus (comma separated),not set yet
+excludeChunk,stimulus,,excludeChunk,,excludeChunk,,Odorant (no comma) or list of odorants that should be excluded (comma separated),not set yet
 Stimulus,stimulus,,stim,,stimulus,,single name for stimulus applied (single odorant name or mix name),not set yet
 OConc,stimulus,,conc,,odor_nr,,,not set yet
 DBB1,paths,,dbb,,dbb1,all,path of first raw recording file relative to the data folder,not set yet
