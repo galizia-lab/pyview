@@ -162,8 +162,10 @@ class GDMFile:
 
             metadata_row, trace = gdm_row.get_ASCII_exportable_format()
             frame_values_s = pd.Series({f"Frame{k}": v for k, v in enumerate(trace)})
-            metadata_df = metadata_df.append(pd.DataFrame(metadata_row).T, ignore_index=True)
-            trace_df = trace_df.append(pd.DataFrame(frame_values_s).T, ignore_index=True)
+            # metadata_df = metadata_df.append(pd.DataFrame(metadata_row).T, ignore_index=True) # .append will be deprecated
+            # trace_df = trace_df.append(pd.DataFrame(frame_values_s).T, ignore_index=True)
+            metadata_df = pd.concat([metadata_df, pd.DataFrame(metadata_row).T], ignore_index=True)
+            trace_df = pd.concat([trace_df,pd.DataFrame(frame_values_s).T], ignore_index=True)
 
         metadata_df["PlaceHolder"] = "Trace begins->"
         columns_before_trace = \

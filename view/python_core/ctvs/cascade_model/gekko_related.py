@@ -101,7 +101,7 @@ class GekkoSolver(object):
             else:
                 raise e
 
-        sv_fit_dict = pd.Series()
+        sv_fit_dict = pd.Series(dtype='float64')
         sv_fit_dict["output"] = np.array(self.m.output)
         for sv_name, sv in self.state_variables.items():
             sv_fit_dict[sv_name] = np.array(sv.value)
@@ -175,7 +175,7 @@ class GekkoFitter(GekkoSolver):
             else:
                 raise e
 
-        sv_fit_dict = pd.Series()
+        sv_fit_dict = pd.Series(dtype='float64')
         sv_fit_dict["output"] = np.array(self.m.output)
         for sv_name, sv in self.state_variables.items():
             sv_fit_dict[sv_name] = np.array(sv.value)

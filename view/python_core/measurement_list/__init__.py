@@ -208,8 +208,10 @@ class MeasurementList(object):
 
             if col_name not in self.measurement_list_df.columns:
 
-                self.measurement_list_df.loc[:, col_name] = default_value
-
+                self.measurement_list_df = self.measurement_list_df.reindex(self.measurement_list_df.columns.tolist() + [col_name], axis=1)
+#creating column first avoids giving a warning in the next line: A value is trying to be set on a copy of a slice from a DataFrame
+                self.measurement_list_df.loc[:, col_name] = default_value 
+                
     def convert_to_numeric(self):
         self.measurement_list_df = \
             self.measurement_list_df.applymap(lambda x: pd.to_numeric(x, errors="ignore"))
