@@ -19,7 +19,7 @@ Please consult [this page](https://github.com/galizia-lab/pyview/wiki/Installati
 2. Try launching PyView with the command "view". 
 
 ## Tutorial
-A quick hands-on tour of the GUI and batch processing capabilities of PyView is provided by [View_Tutoral.pdf](https://github.com/galizia-lab/pyview/blob/master/synthetic_data/VIEW_Tutorial.pdf), using a synthetic dataset. Before you begin, make sure to
+A quick hands-on tour of the GUI and batch processing capabilities of PyView is provided by [this section of the wiki](https://github.com/galizia-lab/pyview/wiki/Tutorial), using a synthetic dataset. Before you begin, make sure to
 copy the folder "synthetic_data" into a place of your system where you keep data. (If you installed as a developer, the folder is part of the your local clone of the source code of PyView. If you installed as a simple user, get a ZIP or TARBALL of the source code of the lastest release of PyView [here](https://github.com/galizia-lab/pyview/releases)).
 
 
