@@ -19,7 +19,7 @@ tapestry_config_files = [
 # below the overview
 def text_below(row):
     # Example 1: the label below each overview will just be the odor  
-    return row['Label']+'_***_'+row['Odour']
+    return row['Label']+'_'+row['Odour']
 
     # Example 2: the label below each overview will be the odor and concentration separated by an underscore ("_")
     # return f"{row['Odour']}_{row['OConc']}"
