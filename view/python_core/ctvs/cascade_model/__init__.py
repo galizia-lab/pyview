@@ -103,7 +103,9 @@ def predict_into_future(fit_params, factor):
             state_variable_init_dict={k: fit_params[k][-2:] for k in gs.state_variables},
             output_init=output[-2:]
         )
-        predicted_trace = predicted_traces_dict["output"]
+        # in Or10a animal DK_210421a crashes because predicted_traces_dict is none
+        if predicted_traces_dict is not None:
+            predicted_trace = predicted_traces_dict["output"]
 
     predicted_trace_no_overlap = None
     predicted_time_trace_no_overlap = None
