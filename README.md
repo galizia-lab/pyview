@@ -25,7 +25,7 @@ copy the folder "synthetic_data" into a place of your system where you keep data
 
 ## More Resources and documentation
 - [Our Wiki](https://github.com/galizia-lab/pyview/wiki)
-- [Our JOSS Paper]()
+- Publication: [![DOI](https://joss.theoj.org/papers/10.21105/joss.04936/status.svg)](https://doi.org/10.21105/joss.04936)
 
 # License
 BSD 3 Clause, see file LICENSE-BSD-3-CLAUSE
@@ -38,4 +38,4 @@ Please consult [this page on the wiki](https://github.com/galizia-lab/pyview/wik
 
 
 # Citing
-Please consider citing our [JOSS paper]() if PyView was useful for your research, investigations or other intellectual work.
+Please consider citing our [JOSS paper](https://doi.org/10.21105/joss.04936) if PyView was useful for your research, investigations or other intellectual work.
