@@ -60,7 +60,8 @@ class BaseImporter(ABC):
             logging.getLogger("VIEW").info(f"Parsing metadata from {fle}")
             df = self.parse_metadata(fle, fle_ind, measurement_filter)
 
-            combined_df = combined_df.append(df, ignore_index=True)
+            # combined_df = combined_df.append(df, ignore_index=True) #append is deprecated
+            combined_df  = pd.concat([combined_df, df], ignore_index=True)
 
         return combined_df
 
@@ -234,7 +235,8 @@ class TillImporterOneWavelength(TillImporter):
                                                            default_row=self.get_default_row(),
                                                            )
             lst_line["MTime"] = self.get_mtime(utc=lst_line["UTC"][0], first_utc=first_utc)
-            this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+            #this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True) append is deprecated
+            this_lst_frame = pd.concat([this_lst_frame, lst_line], ignore_index=True)
 
         return this_lst_frame
 
