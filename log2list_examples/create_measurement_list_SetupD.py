@@ -6,6 +6,8 @@ Log2List for setupD
 created June2022, based on pervious VTK2021 log2list
 @author: galizia
 
+Opens a window, asks for till-photonics .log files
+
 Plan:
     1) read a .log file (Till Photonics), create a .lst file for this animal
     2) read a .txt file that comes from PAL/Chronos (Barcode Reader), add odor information to .lst file
@@ -14,9 +16,10 @@ Structure:
     Data should be in subfolder 01_DATA
     List file goes into subfolder 02_LISTS
     
-Naming:
+Naming of odorants/Stimuli:
     Within Till, names are ODOR-CONC_NUMBER,
     e.g. ISOE-5_10
+    Extract these name using function get_odor_info_from_label
 
 """
 
@@ -27,6 +30,12 @@ from view.python_core.flags import FlagsManager
 from collections import OrderedDict
 import pandas as pd
 import logging
+import datetime
+import matplotlib.pyplot as plt
+from numpy.polynomial.polynomial import polyfit
+import numpy as np
+import pathlib
+import sys
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,7 +51,7 @@ LE_loadExp = 3
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
 STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-
+#STG_MotherOfAllFolders = r'/Volumes/AG_Galizia/HannaSchnell/SetupD_Check/'
 
 # path of the "Data" folder in VIEW organization containing the data
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -60,6 +69,13 @@ measurement_output_extension = ".lst.xlsx"
 # ------------------- Only metadata included in this dictionary will be written ----------------------------------------
 # ----Note that columns of the output measeurement list files will have the same order as below.------------------------
 
+# ------------------ names of columns that will be overwritten by old values -------------------------------------------
+# ------ these will only be used if a measurement list file with the same name as current output file exists -----------
+
+overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
+                        "Comment", "Analyze", "Odour", "OConc"]
+
+
 default_values = OrderedDict()
 
 default_values['Measu'] = 0  # unique identifier for each line, corresponds to item in TILL photonics log file
@@ -73,8 +89,9 @@ default_values['Cycle'] = 0  # how many ms per frame
 default_values['DBB1'] = 'none'  # file name of raw data
 default_values['UTC'] = 0  # recording time, extracted from file
 
-default_values['PxSzX'] = '4.6'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
-default_values['PxSzY'] = '4.6'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
+default_values['PxSzX'] = '1.25'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
+default_values['PxSzY'] = '1.25'  # um per pixel, 1.5625 for 50x air objective, measured by Hanna Schnell July 2017 on Till vision system, with a binning of 8
+default_values['Comment']  = 'PixelSize for 20x binninb=4'
 
 default_values['Lambda'] = 0  # wavelength of stimulus. In TILL, from .log file, In Zeiss LSM, from .lsm file
 
@@ -137,17 +154,32 @@ def get_odorinfo_from_label(label):
         concentration = '0'
     return [odor, concentration]
 
+def get_odorinfo_from_chronos(label):
+    # format for label in chronosis:
+    # ROAI0HS223
+    # first 4 are the odor (exeption: MOL, which leads to a shift in all subsequent positions)
+    # position 5 is concentration
+    # position 6-7 is user
+    # positon 8-9 is year
+    # position 10 is month (all positions starting with 1)
+    odor = label[0:4]
+    concentration = label[4:5]
+    if odor == 'MOL0':
+        odor = 'MOL'
+        concentration = '0'
+    return [odor, concentration]
+
+
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
 
     list_row['StimON']   = 24
     list_row['StimLen']  = 1000 
     list_row['Stim2ON']  = 36
     list_row['Stim2Len'] = 1000 
-    list_row['Comment']  = 'AlarmPheromone'
     list_row['Line']     = 'bee'
     # Examples:
     # list_row["StimON"] = 25
-    (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_label(list_row["Label"])
+    (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_chronos(list_row["ChronosStimulus"])
     # if list_row["Measu"]
     # get Odor from another file based on the value of <animal_tag> and list_row["Label"]
     return list_row
@@ -176,13 +208,143 @@ def measurement_filter(s):
 
 
 # ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+# section for chronos specific routines, to be modified into object later
 
 
-# ------------------ names of columns that will be overwritten by old values -------------------------------------------
-# ------ these will only be used if a measurement list file with the same name as current output file exists -----------
+def get_chronos_filename(logfilename, str_pos=0, chronosfilename=None):
+    '''
 
-overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
-                        "Comment", "Analyze", "Odour", "OConc"]
+    Parameters
+    ----------
+    logfilename : TYPE
+        full path with filename for .log file from till photonics.
+    str_pos : TYPE, optional
+        DESCRIPTION. The default is 0.
+        used to go through the positions os all possible file names
+    chronosfilename : TYPE, optional
+        DESCRIPTION. The default is None.
+        list of all filenames in the directory, sequentially reduced to the only one
+
+    Returns
+    -------
+    chronosfilename : TYPE
+        DESCRIPTION.
+        the file name in the directory that has the longest equality to logfilename
+
+    '''
+    if isinstance(logfilename, (list, tuple)):
+        # logfilename is a list, with the only entry logfilename
+        # ask for the list, so it also works if logfilename is the filename only, i.e. in the iteration
+        logfilename = logfilename[0]
+    if not chronosfilename:
+        # first run, get list of all filenames in the directory that belongs to logfilename
+        logfilename_directory = pathlib.Path(logfilename).parents[0]
+        chronosfilename = [item.name for item in logfilename_directory.glob("*.txt")]
+        # keep only files that end in '.txt'
+
+    log_filename = pathlib.Path(logfilename).name
+    chronosfilename = [f for f in chronosfilename if f[str_pos] == log_filename[str_pos]]
+    str_pos += 1
+    # iterate if more than one solution
+    if len(chronosfilename) == 0:
+        print('')
+        print('ERROR:')
+        print('create_measurement_list_SetupD: no or more than one compatible chronos file found for: ')
+        print(logfilename)
+        return('')
+    if len(chronosfilename) > 1:
+        chronosfilename = get_chronos_filename(logfilename, str_pos, chronosfilename)
+    return chronosfilename
+
+
+def read_chronos_file(fle, path_to_fle):
+    '''
+ Reads a chronos file, returns information as a dataframe
+ 
+    '''
+    #fle = '/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022/01_DATA/HS_220607_ChronosLog.txt'
+    #line = '2022-06-07 12:26:12	Samplename Right arm (DoubleStim_RightArm.cam):  ISOE3HS225'
+    if isinstance(fle, (list, tuple)):
+        # logfilename is a list, with the only entry logfilename
+        # ask for the list, so it also works if logfilename is the filename only, i.e. in the iteration
+        fle = fle[0]
+    print('opening chronos file: ', fle)
+    fle = path_to_fle / fle
+    chronos_df = pd.DataFrame()
+    with open(fle, encoding='utf-8-sig') as f:
+        for line in f:
+            if len(line) <= 20: #if the line is too short, it cannot be
+            # for now, I take every line that is as long as the timestamp
+                pass
+            else: # there is something in the line.
+                linedict = {}
+                timestamp = line[0:20].strip() #e.g. '2022-06-07 12:26:12'
+                # convert datetime
+                fmt = "%Y-%m-%d %H:%M:%S"
+                measurementtime = datetime.datetime.strptime(timestamp, fmt)
+                linedict['ChronosTime'] = measurementtime
+
+                # take the reminder of the line
+                line = line[20:]
+                colon_split = line.split(':') 
+                linedict['Comment'] = colon_split[0].strip()
+                linedict['Stimulus'] = colon_split[1].strip() # e.g. 'ISOE3HS225'
+                
+                # Append this line to the dataframe
+                chronos_df = pd.concat([chronos_df, pd.DataFrame([linedict])], ignore_index=True)
+    # sort in ascending order, just in case chronos was not
+    chronos_df = chronos_df.sort_values(by='ChronosTime',ascending=True)
+
+    return chronos_df
+
+
+def integrate_chronosInfo(chronos_df, all_df, animal_tag):
+    '''
+    
+
+    Parameters
+    ----------
+    chronos_df : TYPE
+        dataframe with all chronos info.
+    all_df : TYPE
+        dataframe for output list, as created from till photonics data.
+
+    Returns
+    -------
+    updated all_df.
+
+    '''
+
+    #Chronos has columns 'ChronosTime' 'Comment' 'Stimulus'
+    all_df['ChronosTime'] = pd.Series(chronos_df['ChronosTime'])
+    all_df['ChronosComment'] = pd.Series(chronos_df['Comment'])
+    all_df['ChronosStimulus'] = pd.Series(chronos_df['Stimulus'])
+    all_df['ChronosUTC'] = pd.Series(chronos_df['ChronosTime'].apply(datetime.datetime.timestamp).apply(int))
+    #add animal tag to df
+    all_df['Animal'] = animal_tag
+
+    if len(all_df['UTC']) != len(pd.Series(chronos_df['ChronosTime'])):
+        print('')
+        print('Unequal length of data rows in: ', animal_tag)
+        sys.exit('ERROR: Unequal length of data rows')
+    else:
+        # give visual output to check that chronos and till times work together
+        # x = all_df['ChronosUTC'].to_list()
+        # y = all_df['UTC'].to_list()
+        x = np.array([float(i) for i in all_df['ChronosUTC']])
+        y = [float(i) for i in all_df['UTC']]
+        b, m = polyfit(x, y, 1) # fit a line
+    
+        fig, ax = plt.subplots()
+        ax.scatter(x, y,marker='.', c='green')
+        ax.plot(x, b + m * x, '-')
+        ax.set_xlabel("Chronos-time")
+        ax.set_ylabel("Till-time")
+        ax.set_title(animal_tag+'.  N ='+str(len(x)))
+        plt.show()
+    
+    return all_df
 
 # ______________________________________________________________________________________________________________________
 
@@ -206,7 +368,8 @@ if __name__ == "__main__":
     assert len(animal_tag_raw_data_mapping) > 0, IOError("No files were chosen!")
 
     for animal_tag, raw_data_files in animal_tag_raw_data_mapping.items():
-
+        print('running animal_tag: ', animal_tag)
+        
         # automatically parse metadata
         metadata_df = importer.import_metadata(raw_data_files=raw_data_files,
                                                measurement_filter=measurement_filter)
@@ -215,24 +378,36 @@ if __name__ == "__main__":
             logging.info(f"No usable measurements we found among the files "
                          f"chosen for the animal {animal_tag}. Not creating a list file")
         else:
-            # create a new Measurement list object from parsed metadata
-            measurement_list = MeasurementList.create_from_df(LE_loadExp=LE_loadExp,
-                                                              df=metadata_df)
-
-            # apply custom modifications
-            measurement_list.update_from_custom_func(custom_func=custom_func, animal_tag=animal_tag)
-
-            # set anaylze to 0 if raw data files don't exist
-            flags.update_flags({"STG_ReportTag": animal_tag})
-            measurement_list.sanitize(flags=flags,
-                                      data_file_extensions=importer.movie_data_extensions)
-
-            # construct the name of the output file
-            out_file = f"{flags.get_lst_file_stem()}{measurement_output_extension}"
-
-            # write measurement file to list
-            measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
-                                                overwrite_old_values=overwrite_old_values)
+# insert information from chronos
+            chronos_filename = get_chronos_filename(raw_data_files)
+            if len(chronos_filename) == 1: # a solution was found, i.e. chronos file exists
+                chronos_df = read_chronos_file(chronos_filename, pathlib.Path(raw_data_files[0]).parents[0])
+                metadata_df = integrate_chronosInfo(chronos_df, metadata_df, animal_tag)
+    
+    
+    
+                # create a new Measurement list object from parsed metadata
+                measurement_list = MeasurementList.create_from_df(LE_loadExp=LE_loadExp,
+                                                                  df=metadata_df)
+    
+                # apply custom modifications
+                measurement_list.update_from_custom_func(custom_func=custom_func, animal_tag=animal_tag)
+    
+                # set anaylze to 0 if raw data files don't exist
+                flags.update_flags({"STG_ReportTag": animal_tag})
+                measurement_list.sanitize(flags=flags,
+                                          data_file_extensions=importer.movie_data_extensions)
+    
+    
+    
+    
+    
+                # construct the name of the output file
+                out_file = f"{flags.get_lst_file_stem()}{measurement_output_extension}"
+    
+                # write measurement file to list
+                measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
+                                                    overwrite_old_values=overwrite_old_values)
 
 
 
