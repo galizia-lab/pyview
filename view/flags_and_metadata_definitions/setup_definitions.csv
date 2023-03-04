@@ -5,5 +5,8 @@ LE_loadExp,Description
 21,"Leica, .lif file"
 32,"Inga: single wavelength multi Tiff"
 33,"OME/generic TIF, single Wavelength"
-34,"Two TIF files, Dual Wavelength (FURA)"
 35,"Singe OME TIF file, Dual Wavelength (FURA)"
+665,"Synthetic data, type 665"
+667,"Synthetic data, type 667"
+676,"Synthetic data, type 676"
+

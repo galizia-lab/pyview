@@ -497,7 +497,7 @@ def create_raw_data666(p1_metadata, peaksignal):
     # glomerular locations for square glomeruli are (make sure to exclude rampwidth)
     # coordinates are x from left to right
     # y from bottom to top
-    glo1 = (50, 70, 90, 110)  # x,x - y,y
+    # glo1 = (50, 70, 90, 110)  # x,x - y,y
     # glo2 = (60, 80, 60, 80)  # x,x - y,y
     # glo3 = (65, 75, 45, 55)
     # glo4 = (70, 90, 30, 50)
@@ -542,7 +542,7 @@ def create_raw_data666(p1_metadata, peaksignal):
     # smoothBackground
     smoothBackground = 5
 
-    # smoooth some frames, to mimit out of focus movement
+    # smoooth some frames, to mimic out of focus movement
     smoothOutOfFocus = 5
     smoothOutOfFocus_frames = [4,5,34,35,36,37,50,51,52,53,53,55,70,71,72]
 

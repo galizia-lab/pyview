@@ -1,3 +1,4 @@
+import datetime
 import pathlib as pl
 from tillvisionio.vws import VWSDataManager
 import pandas as pd
@@ -104,15 +105,30 @@ class BaseImporter(ABC):
 
         pass
 
-    @abstractmethod
     def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
         """
-        Parses the animal tag from raw data file names (<file_chosen>). Revises the raw data file names if necessary.
         Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
-        :param list files_chosen: list of raw data file names
-        :rtype: dict
+
+        Parameters
+        ----------
+        files_chosen : list
+            list of lif files.
+
+        Returns
+        -------
+        dict
+            file names without path.
+
         """
-        pass
+        if len(files_chosen) == 0:
+            return {}
+        else:
+            dict2return = {}
+            for fle in files_chosen:
+                fle_path = pl.Path(fle)
+                dict2return[fle_path.name] = [fle]
+
+            return dict2return
 
     @abstractmethod
     def get_path_relative_to_data_dir(self, fle):
@@ -269,32 +285,6 @@ class LifImporter(BaseImporter):
         self.associated_extensions = [".lif"]  # possible extensions of files containing metadata
         self.movie_data_extensions = [".lif"]  # possible extension of file containing data (calcium imaging movies)
         self.LE_loadExp = 21  # associated value of the flag LE_loadExp
-
-    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
-        """
-        Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
-
-        Parameters
-        ----------
-        files_chosen : list
-            list of lif files.
-
-        Returns
-        -------
-        dict
-            file names without path.
-
-        """
-        if len(files_chosen) == 0:
-            return {}
-        else:
-            dict2return = {}
-            for fle in files_chosen:
-
-                fle_path = pl.Path(fle)
-                dict2return[fle_path.name] = [fle]
-
-            return dict2return
 
     def get_path_relative_to_data_dir(self, fle):
 

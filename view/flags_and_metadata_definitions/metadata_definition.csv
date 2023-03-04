@@ -16,8 +16,8 @@ Stim2ON,stimulus,,stim2on,,,,onset in frames for second odorant (used only when 
 Stim2ONms,stimulus,,stim2on_ms,,,,onset in ms for second odorant (used only when timings of one odorant has been given above),-1
 Stim2OFF,stimulus,,stim2off,,,,offset in frames for second odorant (used only when timings of one odorant has been given above),0
 Stim2Len,stimulus,,stim2Len,,,,length in ms for second odorant (used only when timings of one odorant has been given above),0
-Cycle,recording,ms,GDMfreq,"(“TimeIntervall”,)",trial_ticks,all,Sampling Period of the Ca imaging video data for the measurement (1000/Sampling frequency),1E-06
-SampFreq,recording,Hz,SampFreq,,frequency,,Sampling frequency of measurement,1000000
+Cycle,recording,ms,GDMfreq,"(“TimeIntervall”,)",trial_ticks,all,Sampling Period of the Ca imaging video data for the measurement (1000/Sampling frequency),200
+SampFreq,recording,Hz,SampFreq,,frequency,,Sampling frequency of measurement,5
 MTime,,,mtime,,m_time,,"time since first evidence that the animal is under the microscope, formatted as “HH:MM:SS.ssss”",“-00:00:00”
 Control,,,control,,kontrollmessung,,'Measu’ of the control measurement,0
 Pharma,treatment,,pharma,,treatment,,Pharmacological treatment applied,not set yet
