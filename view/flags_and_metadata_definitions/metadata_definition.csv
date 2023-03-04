@@ -1,11 +1,12 @@
 LST Name,Type,Units,Settings Name,LSM metadata name,p1,Requirement for List load,Description,Default values
 Label,microscope,,label,"(“ScanInformation”, “Name)",ex_name,all,Measurement label as recoreded by Till Vision,not set yet
-Measu,microscope,,measu,,messungszahl,all,Measurement index as recoreded by Till Vision,0
+Measu,microscope,,measu,,messungszahl,all,Measurement index as recoreded by Till Vision,-1
 Analyze,analysis,,analyze,,analyze,all,"boolean flag, manually editable, that indicates whether or not the measurement is to be included in anaslysis",-1
 Odour,stimulus,,odorants,,odor,,Odorant (no comma) or list of odorants that are part of the stimulus (comma separated),not set yet
 Stimulus,stimulus,,stim,,stimulus,,single name for stimulus applied (single odorant name or mix name),not set yet
 OConc,stimulus,,conc,,odor_nr,,,not set yet
 DBB1,paths,,dbb,,dbb1,all,path of first raw recording file relative to the data folder,not set yet
+DBB_Folder,paths,,dbb_folder,,dbb_folder,,folders relative to the data folder in which the file(s) of DBB1 are located,not set yet
 Lambda,microscope,nm,Lambda,"(“IlluminationChannels”, “Wavelength”)",lambda_nm,all,Monochromator wavelength,0
 StimON,stimulus,,stim_on,,,,onset in frames for first odorant (no comma) or multiple odorants (comma separated),-1
 StimONms,stimulus,,stim_on_ms,,,,onset in ms for first odorant (no comma) or multiple odorants (comma separated),-1
@@ -16,7 +17,7 @@ Stim2ONms,stimulus,,stim2on_ms,,,,onset in ms for second odorant (used only when
 Stim2OFF,stimulus,,stim2off,,,,offset in frames for second odorant (used only when timings of one odorant has been given above),0
 Stim2Len,stimulus,,stim2Len,,,,length in ms for second odorant (used only when timings of one odorant has been given above),0
 Cycle,recording,ms,GDMfreq,"(“TimeIntervall”,)",trial_ticks,all,Sampling Period of the Ca imaging video data for the measurement (1000/Sampling frequency),200
-SampFreq,recording,Hz,SampFreq,,frequency,,Sampling frequency of measurement,200
+SampFreq,recording,Hz,SampFreq,,frequency,,Sampling frequency of measurement,5
 MTime,,,mtime,,m_time,,"time since first evidence that the animal is under the microscope, formatted as “HH:MM:SS.ssss”",“-00:00:00”
 Control,,,control,,kontrollmessung,,'Measu’ of the control measurement,0
 Pharma,treatment,,pharma,,treatment,,Pharmacological treatment applied,not set yet

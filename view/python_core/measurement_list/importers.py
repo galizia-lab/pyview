@@ -8,9 +8,11 @@ import typing
 import easygui
 import logging
 import pprint
+import datetime
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 from view.python_core.io import LIFReaderGio
+from view.python_core.io import MultiTiffReaderInga
 
 
 def calculate_dt_from_timing_ms(timing_ms: str) -> float:
@@ -404,6 +406,89 @@ class LSMImporter(BaseImporter):
         return lst_row
 
 
+
+class IngaTif_Importer(BaseImporter):
+    # added Sept2022 to import single wavelength stored in separate tif files for each frame
+    # accompanied by a .txt file that structures the experiment
+    # data from Inga Petelski / Einat Couzin Fuchs
+    #
+
+    def __init__(self, default_values: typing.Mapping):
+
+        super().__init__(default_values)
+        self.associate_file_type = "Single Wavelength multi-frame Tif files with .txt info"  # short text describing raw data files
+        self.associated_extensions = [".txt"]  # possible extensions of files containing metadata
+        self.movie_data_extensions = [".tif"]  # possible extension of file containing data (calcium imaging movies)
+        self.LE_loadExp = 32  # associated value of the flag LE_loadExp
+
+
+
+    def parse_metadata(self, fle: str, fle_ind: int,
+                       measurement_filter: typing.Callable[[pd.Series], bool] = True) -> pd.DataFrame:
+        # load metadata from a .txt file, format defined by Inga Petelski, 2022
+
+        inga_reader = MultiTiffReaderInga(fle, measu=0) # initialize reader with the txt file, measu to first line
+        all_metadata = inga_reader.load_all_metadata() # get the dataframe
+
+        #this_lst_frame = pd.DataFrame()
+
+        # # iterate all measurements
+        # for fle_ind, lst_row in all_metadata.iterrows():
+
+        #     if lst_row["NumFrames"] > 1:
+
+        #         lst_line = self.convert_lif_metadata_to_lst_row(
+        #             fle, fle_ind, lst_row,
+        #             default_row=self.get_default_row()
+        #         )
+
+        #         this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+
+        return all_metadata
+
+    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
+        """
+        Returns a one-element dictionary with the animal tag as key and list of (revised) raw data files as value.
+
+        Parameters
+        ----------
+        files_chosen : list
+            list of lif files.
+
+        Returns
+        -------
+        dict
+            file names without path.
+
+        """
+        if len(files_chosen) == 0:
+            return {}
+        else:
+            dict2return = {}
+            for fle in files_chosen:
+
+                fle_path = pl.Path(fle)
+                # from /01_DATA/220609_Animal46_greg_socialmodulation/Trial01/protocol.txt
+                # extract folders between 01_DATA and protocol.txt
+                path_parts = fle_path.parts
+                assert ('01_DATA' in path_parts), ("path to data does not contain folder '01_DATA'")
+                path_parts = path_parts[path_parts.index('01_DATA')+1:-1]
+                experiment_name = str(pl.Path(*path_parts))
+                dict2return[experiment_name] = [fle]
+
+            return dict2return
+
+    def get_path_relative_to_data_dir(self, fle):
+
+        for movie_data_extension in self.movie_data_extensions:
+            if fle.endswith(movie_data_extension):
+                fle_path = pl.PureWindowsPath(fle)
+                return 1, str(fle_path.stem)
+        else:
+            return 0, -1
+
+
+
 class P1DualWavelengthTIFSingleFileImporter(BaseImporter):
     # added Dec2021, to import single tiff file with dual wavelength as used in Trondheim
     # or also single wavelength (e.g. Ratio) tif files
@@ -627,6 +712,10 @@ def get_importer_class(LE_loadExp):
 
         return LifImporter
     
+    elif LE_loadExp == 32:
+        # single wavelength TIFF, each frame stored separately, with .txt file format Inga Petelski 2022
+        return IngaTif_Importer         
+
     elif LE_loadExp == 33:
         # single wavelength TIFF
 

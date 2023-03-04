@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import logging
 import os
 import datetime
+import re
 from readlif.reader import LifFile
 
 
@@ -101,6 +102,174 @@ class LIFReaderGio(LifFile):
         return img_data
 # end LIFReaderGio
 
+class MultiTiffReaderInga():
+    '''
+    Inga Petelski, 2022, has the following format:
+    A .txt file with the metadata for a set of measurements,
+    and all measurements stored, frame by frame, as single tif files
+    Quite specific format, therefore quite specific reader
+    
+    Input: .txt file with metadata
+    '''
+
+    def __init__(self, txt_file: str, measu: int):
+        # I don't want measu up here, because I want to read multiple measurements without always re-reading the .txt file
+        # if that creates problems, change back and also change self.measu definition below (now to 0)
+    #def read_metadata_txt_file(fle):
+        '''
+        For multifile tif, Inga writes an info file as such:
+        Date			: 220609
+        Animal		: 46
+        Trial			: 01
+        Age			: adult
+        Phase			: gregarious
+        Duration		: 240
+        FPS			: 10
+        Stimuli		: N2, MOL, HEX3_COL, OC3L2_COL, HEX3, COL, ZHAE2, OC3L2, ZHAE2_HEX3, ZHAE2_OC3L2, ZHAE2_COL
+        N_presentation	: 2
+        S1_on			: 40
+        S1_off		: 44
+        S2_on			: 120
+        S2_off		: 124
+        Note			: socialmodulation
+        Laser			: 10
+        LED_transmission  : 5
+        Cam_Port		: CMOS
+        Cam_Speed		: 200
+        Cam_Gain		: Sensitivity
+        Cam_Exposure	: 5
+        Cam_Trigger		: Edge
+        Binning		: 2x2
+
+        read and return as dictionary
+
+        '''
+        #debug with fixed file
+        #txt_file = r'/Users/galizia/Documents/DATA/inga_calcium/01_DATA/220708_Animal66_greg_socialmodulation/Trial01/Protocol.txt'
+        lines = []
+        with open(txt_file, "r") as file_in:
+            lines = file_in.readlines()
+        meta_dict = dict(map(lambda s : map(str.strip, s.split(':')), lines))
+        self.meta_dict = meta_dict
+        self.data_path = pl.Path(txt_file).parent
+        self.data_txt = txt_file
+        self.measu = measu
+        self.all_meta_data = pd.DataFrame()
+
+
+
+    def load_all_metadata(self):
+        """
+        Load all metadata coded in the indicated .txt file
+        :return: pd.DataFrame with each row containing metadata of one measurement
+        """
+        # prepare the information: which measurements do I have?
+        measurements = self.meta_dict['Stimuli']
+        measurements_list = [t.strip() for t in measurements.split(',')] # now contains list of stimuli
+        measu_num = len(measurements_list)
+        # list all the .tif files in the directory
+        tif_files = list(self.data_path.glob('*.tif*'))
+        tif_files.sort() # 
+        tif_num = len(tif_files)
+        # check the numbers. There mus be
+        assert (measu_num * int(self.meta_dict['Duration']) == tif_num), ("io.py: Number of .tif file does not match info in .txt file")
+        
+        #now create the table with info about each measurement
+        all_metadata_df = pd.DataFrame()
+        measurementtime_first = None
+
+        # iterate all measurements
+        for stim_ind, stimulus in enumerate(measurements_list):
+            # load first tif image to get metadata in tif file
+            tif_ind = stim_ind * int(self.meta_dict['Duration']) #assumes sorted files
+            tif_file = tif_files[tif_ind]
+            
+            # single information from TIF fil
+            single_metadata = pd.Series(self.meta_dict, dtype = 'object') # all info from Inga is now also here
+            with tifffile.TiffFile(tif_file) as tif:
+                single_metadata["FrameSizeX"] = tif.pages[0].tags['ImageWidth'].value
+                single_metadata["FrameSizeY"] = tif.pages[0].tags['ImageLength'].value
+                
+                # now get time information - there must be a better way.
+                Meta_Imagetime = tif.pages[0].tags['ImageDescription'].value
+                Meta_Imagetime = Meta_Imagetime.split('meta.header.timeBof')[1]
+                Meta_Imagetime = Meta_Imagetime.split('meta.header.timeEof')[0]
+                # results in, for example '=1635500442\n'
+                Meta_Imagetime = re.sub(r'[^\d.]+', '', Meta_Imagetime) # remove non-numeric characters
+                # unfortunately, this time does not match. Take file time instead from self.data_txt
+                ti_c = os.path.getctime(tif_file) # created
+                ti_m = os.path.getmtime(tif_file) # modified
+                measurementtime = np.min([ti_c, ti_m])
+                # there is something strange here: creation time is later than modification time in some cases. Take the earlier one               
+                single_metadata["UTC"] = measurementtime
+                # time is thought to be linear, i.e. measurements are in temporal order.
+                # therefore, we can calculate time within the experiment here
+                if not stim_ind: #value 0 for the first loop
+                    measurementtime_first = measurementtime
+                # now calculate relative time of this measurements, with respect to the first measurement
+                # get time from first measurement in this block
+                MTime = measurementtime - measurementtime_first
+                MTime = datetime.timedelta(seconds=MTime)
+                # format this timedelta
+                minutes, seconds = divmod(MTime.seconds + MTime.days * 86400, 60)
+                hours, minutes = divmod(minutes, 60)
+                single_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
+                #now analyze the file names. 
+                # I want the path above the main data folder '01_DATA'
+                path_parts = tif_file.parts
+                # check that '01_DATA' is part of the path
+                assert ('01_DATA' in path_parts), ("path to data does not contain folder '01_DATA'")
+                path_parts = path_parts[path_parts.index('01_DATA')+1:-1]
+                single_metadata["DBB_Folder"] = str(pl.Path(*path_parts))
+                # now for DBB1, list all single TIF files. 
+                single_metadata["dbb2"] = list(map(os.path.basename , tif_files[ tif_ind : (tif_ind+int(self.meta_dict['Duration']))] ))
+
+            # other information
+            single_metadata["Comment"]    = "Inga .tiff file series .txt file"
+            single_metadata["Lambda"] = 0  # excitation wavelength not known 
+            single_metadata['SampFreq'] = self.meta_dict['FPS'] # frames per second?
+            single_metadata['Cycle'] = 1000.0 / float(self.meta_dict['FPS']) # frames per second?
+            single_metadata["Label"] = self.meta_dict['Animal'] + '_' + self.meta_dict['Trial'] #Animal_Trial
+            # now, Label and DBB_Folder should be identical, but gotten in different ways
+            # convert from meters to micrometers
+            single_metadata["Analyze"] = -1
+            single_metadata["PxSzX"] = -1
+            single_metadata["PxSzY"] = -1  # pixel size not known
+            single_metadata['NumFrames'] = self.meta_dict['Duration']
+
+            # copy info from Inga's .txt file
+            single_metadata["Stimulus"]= stimulus
+            single_metadata["Measu"]= stim_ind
+            
+            # done this measurement, add it as a line
+
+            all_metadata_df = all_metadata_df.append(pd.DataFrame(single_metadata).T, ignore_index=True)
+            self.all_meta_data = all_metadata_df
+        return all_metadata_df
+
+    def load_data(self, measu):
+#    def load_data(self, datadirectory, measu):
+        #load measurement measu into a NumPy Array stack
+        #assumes load_all_metadata was run, so that self.all_meta_data exists
+        #if no measurement is selected, take the first one (for debugging, Oct. 2022)
+
+        #datadirectory = r'/Users/galizia/Documents/DATA/inga_calcium/01_DATA/'
+        
+        metadata = self.load_all_metadata() # getting info from Inga .txt file
+        thisline = metadata.loc[measu] # self.measu
+        which_directory = self.data_path
+        directory = pl.Path(which_directory)
+        filenames =  [directory / fln for fln in thisline["dbb2"]]
+        img_data = tifffile.imread(filenames)
+        # format is now TXY
+        print('io.py: transposed data array - adjust syntax if needed')
+        img_data = img_data.transpose([1,2,0])  # TYX to XYT format
+
+        return img_data
+# end MultiTiffReaderInga
+
+
 
 def read_lif(lif_file, measu):
     """
@@ -127,18 +296,7 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
     :return: data, metadata
     data: numpy.ndarray in XY or XYT format
     metadata: dictionary if present, else None
-    
-    # if tif_file is str, convert it to path
-    Read a TIF file into numpy array. TIF file axes are assumed to be TYX or YX. Also works for OME Tiff files,
-    e.g. Live Acquisition, or FIJI
-    :param str tif_file: path of tif file
-    :param bool flip_y: whether to flip Y axis
-    :param bool return_3D: whether to convert 2D to 3D if required
-    :param bool load_data: if True loads data and returns else first return value is None
-    :return: data, metadata
-    data: numpy.ndarray in XY or XYT format
-    metadata: dictionary if present, else None
-    
+        
     """
     # if tif_file is str, convert it to path
     # a476b63c975103c2cd6357311bbcd521129766f9
@@ -250,6 +408,21 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
 
     return imagej_hyperstack, meta_info
 # end read_ometif_metadict
+
+def read_SingleWavelengthTif_MultiFileInga(txt_file, measu):
+    """
+    Read FURA frames from elements in <tif_file_list>. 
+    Assume input file has the format YX
+    :param str tif_file: absolute path of the file on file system
+    returns numpy array
+
+    """
+    print('/view/python_core/io.py: reading MultiFile tiff in read_SingleWavelengthTif_MultiFile.')
+    print('use object MultiTiffReaderInga directly')
+    #return tifffile.imread(tif_file_list)  # return in format XYT
+    inga_reader_wrapper = MultiTiffReaderInga(txt_file, measu)
+    return inga_reader_wrapper.load_data(measu)
+
 
 
 def read_single_file_fura_tif(tif_file):

@@ -1,0 +1,111 @@
+
+# entries 'animal' and 'measus' mandatory for the first row
+row1: # row name can be arbitrary, but cannot be repeated
+
+
+  # animal whose data will be used
+  animal: '46_01'
+
+  # values from the column "Measu" of the measurement list for this animal
+  measus: ['HEX3','HEX3','ZHAE2','ZHAE2','OC3L2']
+  # if measu_order_column is set to 'Stimulus', measus needs to contain entries from that column
+  # similarly, measu_order_column can be set to any column of the list file
+  # however, the values for measus need to be unique: if there are two rows (measurements) with the same value
+  # the program will stop
+  measu_order_column: 'Odour'
+
+  # flags to be set/overwritten before creating overviews
+  flags:
+    CTV_Method: 22
+    CTV_firstframe: 47
+    CTV_lastframe: 64
+    SO_individualScale: 3
+    SO_showROIs: 0
+    SO_fgColor: k
+
+  # overviews are create in compressed PNG format by default. Here you can specify whether uncompressed TIFs should
+  # be additionally created
+  extra_formats: [tif]
+
+  # whether movies corresponding to the overviews are to be created
+  corresponding_movies: False
+
+  # values of all "SO_..." flags above will be used to update analogous "mv_..." flags
+  # if any additional flags need to be set before creating movies, they can be specified here
+  extra_movie_flags:
+    mv_ygap: 30
+    mv_xgap: 30
+    mv_exportFormat: libx264
+
+# all values missing in this row will be taken from previous row
+
+row2: # row name can be arbitrary, but cannot be repeated
+  measus: ['HEX3_COL','ZHAE2_HEX3','ZHAE2_OC3L2','ZHAE2_COL','OC3L2_COL']
+  measu_order_column: 'Odour'
+row3: # row name can be arbitrary, but cannot be repeated
+  measus: ['COL','ZHAE2','OC3L2','COL','COL']
+  measu_order_column: 'Odour'
+
+
+row4: # row name can be arbitrary, but cannot be repeated
+#now look at second peak
+  # flags to be set/overwritten before creating overviews
+  flags:
+    CTV_Method: 22
+    CTV_firstframe: 127
+    CTV_lastframe: 140
+
+  measus: ['HEX3','HEX3','ZHAE2','ZHAE2','OC3L2']
+  measu_order_column: 'Odour'
+row5: # row name can be arbitrary, but cannot be repeated
+  measus: ['HEX3_COL','ZHAE2_HEX3','ZHAE2_OC3L2','ZHAE2_COL','OC3L2_COL']
+  measu_order_column: 'Odour'
+row6: # row name can be arbitrary, but cannot be repeated
+  measus: ['COL','ZHAE2','OC3L2','COL','COL']
+  measu_order_column: 'Odour'
+
+
+# first peak, fixed values
+row7: # row name can be arbitrary, but cannot be repeated
+  # flags to be set/overwritten before creating overviews
+  flags:
+    CTV_Method: 22
+    CTV_firstframe: 47
+    CTV_lastframe: 64
+    SO_individualScale: 0
+    SO_MV_scalemax: 0.05
+    SO_MV_scalemin: 0.0
+
+
+
+  measus: ['HEX3','HEX3','ZHAE2','ZHAE2','OC3L2']
+  measu_order_column: 'Odour'
+row8: # row name can be arbitrary, but cannot be repeated
+  measus: ['HEX3_COL','ZHAE2_HEX3','ZHAE2_OC3L2','ZHAE2_COL','OC3L2_COL']
+  measu_order_column: 'Odour'
+row9: # row name can be arbitrary, but cannot be repeated
+  measus: ['COL','ZHAE2','OC3L2','COL','COL']
+  measu_order_column: 'Odour'
+
+
+row10: # row name can be arbitrary, but cannot be repeated
+#now look at second peak
+  # flags to be set/overwritten before creating overviews
+  flags:
+    CTV_Method: 22
+    CTV_firstframe: 127
+    CTV_lastframe: 140
+    SO_individualScale: 0
+    SO_MV_scalemax: 0.05
+    SO_MV_scalemin: 0.0
+
+
+
+  measus: ['HEX3','HEX3','ZHAE2','ZHAE2','OC3L2']
+  measu_order_column: 'Odour'
+row11: # row name can be arbitrary, but cannot be repeated
+  measus: ['HEX3_COL','ZHAE2_HEX3','ZHAE2_OC3L2','ZHAE2_COL','OC3L2_COL']
+  measu_order_column: 'Odour'
+row12: # row name can be arbitrary, but cannot be repeated
+  measus: ['COL','ZHAE2','OC3L2','COL','COL']
+  measu_order_column: 'Odour'

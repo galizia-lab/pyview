@@ -4,9 +4,9 @@ from .filters import apply_filter
 from view.python_core.bleach_corr import get_bleach_compensator
 from view.python_core.background import get_background_frames
 from view.python_core.areas import get_area_for_p1, get_area_for_bleach_correction
-from view.python_core.measurement_list.importers import LSMImporter
+from view.python_core.measurement_list.importers import LSMImporter, IngaTif_Importer
 from view.python_core.foto import calc_foto1
-from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif
+from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif, read_SingleWavelengthTif_MultiFileInga
 from view.python_core.paths import get_existing_raw_data_filename
 from view.python_core.stimuli import PulsedStimuliiHandler
 from view.python_core.calc_methods import get_calc_method
@@ -260,10 +260,12 @@ class P1SingleWavelengthAbstract(ABC):
             filename = get_existing_raw_data_filename(flags=flags, dbb=metadata.dbb1, extensions=current_extensions)
             if pl.Path(filename).suffix in current_extensions:
                 logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Reading raw data from {filename}")
-                if '.lif' in current_extensions:
+                if ('.txt' in current_extensions) or ('.lif' in current_extensions):
                     #a .lif file containse several measurement, read_data for measu only
+                    #similarly a .txt file in INGA multi tiff format
                     return filename, self.read_data(filename, flags.flags['STG_Measu'])
                 else:
+                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Cannot read raw data from {filename}")
                     return filename, self.read_data(filename)
             else:
                 raise FileNotFoundError()
@@ -277,6 +279,7 @@ class P1SingleWavelengthAbstract(ABC):
                     data, _ = read_tif_2Dor3D(filename)
                     return filename, data
                 else:
+                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 2) Cannot read raw data from {filename}")
                     raise FileNotFoundError()
             except FileNotFoundError as fnfe:
                 raise FileNotFoundError(f"{repr(fnfe)}.\n "
@@ -352,6 +355,62 @@ class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
         """
         data, _ = read_tif_2Dor3D(filename)
         return data
+
+
+class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
+    '''
+    Measurement XYT is stored in separate Tiff file for each frame/timepoint
+    '''
+    
+    def __init__(self):
+        
+        super().__init__()
+    
+    def get_extensions(self):
+        """
+        list of allowed file extensions. E.g.: [".tif"]
+        :rtype: list
+        """
+        return [".txt", "/protocol.txt"] #this is the filename of Inga's information about the data
+    
+    def read_data(self, filename: str, measu: int):
+        """
+        read and return data in <filename_list>. Data is expected to be a numpy.ndarray of format XYT
+        :param list filename_list: absolute path of raw data files for each frame on file system
+        :rtype: numpy.ndarray
+        """
+        if measu is None:
+            measu = 0 # default to the first measurement
+            print('p1_class/__init__.py: P1SintleWavelength_multiTIFInga.read_data defaulted to measurement 0')
+        
+        data = read_SingleWavelengthTif_MultiFileInga(filename, measu)
+        return data
+
+    def get_p1_metadata_from_filename(self, filename, measu):
+        """
+        Create a p1_metadata object from Inga's .txt file that is written with the data for each experiment
+        filename is this .txt file
+        
+        Create a p1_metadata object only using raw data filenames in <filenames>. Use defaults or guesses
+        for metadata not directly deducible from raw data filenames
+        :param list filenames: list of raw data file names
+        :return: p1_metadata, extra_metadata
+        p1_metadata: pandas.Series object,
+        extra_metadata: dict
+        (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
+        """
+
+        Inga_Importer = IngaTif_Importer(default_values=MetadataDefinition().get_default_row())
+        # selection of the first row is required as this function returns a one-row DataFrame
+        rows = Inga_Importer.parse_metadata(fle=filename, fle_ind=measu)
+        row = rows['Measu'] == measu # select teh row for this measurement
+        # revise index names to be lower case
+        row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
+        
+        p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(row)
+        p1_metadata.ex_name = p1_metadata.label
+
+        return p1_metadata, extra_metadata
 
 
 class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
@@ -796,6 +855,8 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1SingleWavelengthLSM()
     elif LE_loadExp == 21:
         empty_obj = P1SingleWavelengthLIF()
+    elif LE_loadExp == 32:
+        empty_obj = P1SingleWavelength_multiTIFInga()
     elif LE_loadExp == 33:
         empty_obj = P1SingleWavelengthTIF()
     elif LE_loadExp == 34:
