@@ -7,6 +7,7 @@ created June2022, based on pervious VTK2021 log2list
 @author: galizia
 
 Opens a window, asks for till-photonics .log files
+In the same folder, we expect the .txt file from Chronos/PAL
 
 Plan:
     1) read a .log file (Till Photonics), create a .lst file for this animal
@@ -20,6 +21,10 @@ Naming of odorants/Stimuli:
     Within Till, names are ODOR-CONC_NUMBER,
     e.g. ISOE-5_10
     Extract these name using function get_odor_info_from_label
+    
+    BUT
+    
+    Odor name and other information is taken from the Chronos file, not from Till!
 
 """
 
@@ -30,12 +35,13 @@ from view.python_core.flags import FlagsManager
 from collections import OrderedDict
 import pandas as pd
 import logging
-import datetime
+import datetime as dt
 import matplotlib.pyplot as plt
 from numpy.polynomial.polynomial import polyfit
 import numpy as np
 import pathlib
 import sys
+import re
 
 logging.basicConfig(level=logging.INFO)
 
@@ -158,28 +164,43 @@ def get_odorinfo_from_chronos(label):
     # format for label in chronosis:
     # ROAI0HS223
     # first 4 are the odor (exeption: MOL, which leads to a shift in all subsequent positions)
-    # position 5 is concentration
-    # position 6-7 is user
-    # positon 8-9 is year
-    # position 10 is month (all positions starting with 1)
-    odor = label[0:4]
-    concentration = label[4:5]
-    if odor == 'MOL0':
-        odor = 'MOL'
-        concentration = '0'
-    return [odor, concentration]
+    # next position is concentration if only single digit, else two positions is concentration
+    # next two positions is user
+    # next two positions is year
+    # next position or two positions is month (all positions starting with 1)
+    # examples: 
+    # label = 'M2HN10HS2312'
+    # label = 'M2HN9HS231'
+    # label = 'MOL0HS231'
+    #extract beginning: odor
+    pattern = r"^(MOL|.{1,4})(\d{1,2})([a-zA-Z]{1,2})(\d{2})(.*)"
+    matches = re.match(pattern, label)
+    odor = matches.group(1)
+    concentration = matches.group(2)
+    Experimenter = matches.group(3)
+    SampleDate = '/'.join([matches.group(5),matches.group(4)]) #format: 5/21
+    return [odor, concentration, Experimenter, SampleDate]
 
 
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
 
-    list_row['StimON']   = 24
-    list_row['StimLen']  = 1000 
-    list_row['Stim2ON']  = 36
-    list_row['Stim2Len'] = 1000 
     list_row['Line']     = 'bee'
-    # Examples:
+
+    #when stimuli are controlled by Till-System, adjust frame number accordingly
+    if list_row['StimON']   == 'TTLOut2':
+        list_row['StimON']   = '24'
+    if list_row['Stim2ON']   == 'TTLOut2':
+        list_row['Stim2ON']   = '36'
+    # list_row['StimLen']  = 1000 
+    # list_row['Stim2ON']  = 36
+    # list_row['Stim2Len'] = 1000 
+    # list_row['Line']     = 'bee'
+    # # Examples:
     # list_row["StimON"] = 25
-    (list_row["Odour"],list_row["OConc"]) = get_odorinfo_from_chronos(list_row["ChronosStimulus"])
+    (list_row["Odour"],list_row["OConc"],list_row["OdorCook"],list_row["OdorDate"]) = get_odorinfo_from_chronos(list_row["Barcode"])
+    
+    if list_row['DualArm']   == 'Yes':
+        (list_row["Odour_2"],list_row["OConc_2"],list_row["OdorCook_2"],list_row["OdorDate_2"]) = get_odorinfo_from_chronos(list_row["Barcode_2"])
     # if list_row["Measu"]
     # get Odor from another file based on the value of <animal_tag> and list_row["Label"]
     return list_row
@@ -258,9 +279,11 @@ def get_chronos_filename(logfilename, str_pos=0, chronosfilename=None):
     return chronosfilename
 
 
-def read_chronos_file(fle, path_to_fle):
+def read_chronos_file_old(fle, path_to_fle):
     '''
  Reads a chronos file, returns information as a dataframe
+ This is the obsolete old program, where Chronos information was in a single line
+ can be deleted, for now (Mar 23) I keep it in case I would need some info from it
  
     '''
     #fle = '/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022/01_DATA/HS_220607_ChronosLog.txt'
@@ -282,7 +305,7 @@ def read_chronos_file(fle, path_to_fle):
                 timestamp = line[0:20].strip() #e.g. '2022-06-07 12:26:12'
                 # convert datetime
                 fmt = "%Y-%m-%d %H:%M:%S"
-                measurementtime = datetime.datetime.strptime(timestamp, fmt)
+                measurementtime = dt.datetime.strptime(timestamp, fmt)
                 linedict['ChronosTime'] = measurementtime
 
                 # take the reminder of the line
@@ -297,6 +320,99 @@ def read_chronos_file(fle, path_to_fle):
     chronos_df = chronos_df.sort_values(by='ChronosTime',ascending=True)
 
     return chronos_df
+
+def read_chronos_file(fle, path_to_fle):
+    """
+    Parse text at given filepath
+    from: https://www.vipinajayakumar.com/parsing-text-with-python/
+    
+    for more complex regex, see
+    https://stackoverflow.com/questions/47982949/how-to-parse-complex-text-files-using-python
+
+    Parameters
+    ----------
+    fle, path_to_fle
+        Filepath for file to be parsed
+
+    File is a Chronos .txt file. Information is in blocks,
+    Block starts with a timestamp at the beginning of the line
+    Block ends with <End Of Measurement> line
+
+    Returns
+    -------
+    data : pd.DataFrame
+        Parsed data
+
+    """
+    #fle = '/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022/01_DATA/HS_220607_ChronosLog.txt'
+    #line = '2022-06-07 12:26:12	Samplename Right arm (DoubleStim_RightArm.cam):  ISOE3HS225'
+    if isinstance(fle, (list, tuple)):
+        # logfilename is a list, with the only entry logfilename
+        # ask for the list, so it also works if logfilename is the filename only, i.e. in the iteration
+        fle = fle[0]
+    print('opening chronos file: ', fle)
+    filepath = path_to_fle / fle
+
+    data = []
+    dict_of_data = dict()
+    with open(filepath, 'r', encoding='utf-8-sig') as file:
+        SecondTimestamp = False #first group is a new group
+        line = file.readline()
+        while line:
+            reg_match = _RegExLib(line)
+
+            if reg_match.TimeStampLine:
+                dict_of_data.update({'ChronosTimeStamp' : reg_match.TimeStampLine.group(1).strip()})
+                # fmt = "%Y-%m-%d %H:%M:%S"
+                # measurementtime = dt.datetime.strptime(reg_match.TimeStampLine.group(1).strip(), fmt)
+                # dict_of_data.update({'ChronosTime' : measurementtime})
+
+                for i in range(2,6): #ranges from 2 to 5 included
+                    items   = reg_match.TimeStampLine.group(i).split(':')
+                    items = [x.strip() for x in items] # remove blanks
+                    print(items)
+                    if SecondTimestamp: items[0] = items[0] + '_2'
+                    dict_of_data.update({items[0]:':'.join(items[1:])})
+                SecondTimestamp = True # next one will be a second timestamp                    
+
+            elif reg_match.VariableInfo:
+                value_type = reg_match.VariableInfo.group(1).strip()
+                value      = reg_match.VariableInfo.group(2).strip()
+                dict_of_data.update({value_type : value})
+
+            elif reg_match.Endblock:
+                SecondTimestamp = False #block ends here, so next one is a new group
+                data.append(dict_of_data) # add all values to the list
+                dict_of_data = dict() # delete the dictionary
+
+            line = file.readline()
+
+    data_df = pd.DataFrame(data)
+    # data.set_index(['School', 'Grade', 'Student number'], inplace=True)
+    #     # consolidate df to remove nans
+    # data = data.groupby(level=data.index.names).first()
+    #     # upgrade Score from float to integer
+    # data = data.apply(pd.to_numeric, errors='ignore')
+    return data_df
+
+
+class _RegExLib:
+    """Set up regular expressions"""
+    # use https://regexper.com to visualise these if required
+    #line = '2023-03-15 10:39:39	Barcode:  ISOE2HS231; Tool: HS 1; Position: Tray Holder 2:Slot1:9;' 
+    _reg_TimeStampLine = re.compile(r'^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\t(.+);(.+);(.+);(.+)$')
+    #end of block
+    #line = '<End Of Measurement>'
+    _reg_EndBlock = re.compile(r'<End Of Measurement>')
+    # any entry in between, syntax is:  'Label : Value'
+    # line = 'StimON: TTLOut2'
+    _reg_VariableInfo = re.compile(r'^(.+?):(.+)$') #.+? is non-gready, therefore first colon is used
+   
+    def __init__(self, line):
+        # check whether line has a positive match with all of the regular expressions
+        self.TimeStampLine = self._reg_TimeStampLine.match(line)
+        self.Endblock = self._reg_EndBlock.match(line)
+        self.VariableInfo = self._reg_VariableInfo.match(line)
 
 
 def integrate_chronosInfo(chronos_df, all_df, animal_tag):
@@ -316,15 +432,23 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
 
     '''
 
-    #Chronos has columns 'ChronosTime' 'Comment' 'Stimulus'
-    all_df['ChronosTime'] = pd.Series(chronos_df['ChronosTime'])
-    all_df['ChronosComment'] = pd.Series(chronos_df['Comment'])
-    all_df['ChronosStimulus'] = pd.Series(chronos_df['Stimulus'])
-    all_df['ChronosUTC'] = pd.Series(chronos_df['ChronosTime'].apply(datetime.datetime.timestamp).apply(int))
+    # convert date_string to datetime object
+    chronos_df['ChronosTimeStamp'] = pd.to_datetime(chronos_df['ChronosTimeStamp'], format='%Y-%m-%d %H:%M:%S')
+    chronos_df['ChronosUTC'] = pd.Series(chronos_df['ChronosTimeStamp'].apply(dt.datetime.timestamp).apply(int))
     #add animal tag to df
     all_df['Animal'] = animal_tag
+    
+    #move all columns from chronos into the main df; but crashes because some columns have same name. 
+    #but first, rename 'Comment' because it exists in both all_df and chronos_df
+    chronos_df = chronos_df.rename(columns={'Comment': 'ChronosComment'})
 
-    if len(all_df['UTC']) != len(pd.Series(chronos_df['ChronosTime'])):
+    all_df = pd.concat([all_df, chronos_df], axis=1)
+    
+    # merge the dataframes, taking columns with the same name from df2
+    #all_df = all_df.merge(chronos_df, on=all_df.columns.intersection(chronos_df.columns).tolist(), how='left')
+
+
+    if len(all_df['UTC']) != len(pd.Series(all_df['ChronosTimeStamp'])):
         print('')
         print('Unequal length of data rows in: ', animal_tag)
         sys.exit('ERROR: Unequal length of data rows')
