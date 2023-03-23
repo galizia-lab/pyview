@@ -181,7 +181,8 @@ def show_fitlogdecay(lineIn, fittedout_blue, fittedout_green, t, weights, opt_pa
 
     A, K, C = opt_parms #extract function parameters
     fig = plt.figure()
-    fig.canvas.set_window_title(measurement_label)
+#    fig.canvas.set_window_title(measurement_label)
+    fig.canvas.setWindowTitle(measurement_label)
     ax1 = fig.add_subplot(2,1,1) # (2,1,1)
     ax2 = fig.add_subplot(2,1,2)
     ax1.set_title('Fitlogdecay: ' + measurement_label)
