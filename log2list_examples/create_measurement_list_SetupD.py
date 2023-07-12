@@ -177,9 +177,9 @@ def get_odorinfo_from_chronos(label):
     matches = re.match(pattern, label)
     odor = matches.group(1)
     concentration = matches.group(2)
-    Experimenter = matches.group(3)
+    OdorUser = matches.group(3)
     SampleDate = '/'.join([matches.group(5),matches.group(4)]) #format: 5/21
-    return [odor, concentration, Experimenter, SampleDate]
+    return [odor, concentration, OdorUser, SampleDate]
 
 
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
@@ -197,10 +197,10 @@ def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
     # list_row['Line']     = 'bee'
     # # Examples:
     # list_row["StimON"] = 25
-    (list_row["Odour"],list_row["OConc"],list_row["OdorCook"],list_row["OdorDate"]) = get_odorinfo_from_chronos(list_row["Barcode"])
+    (list_row["Odour"],list_row["OConc"],list_row["OdorUser"],list_row["OdorDate"]) = get_odorinfo_from_chronos(list_row["Barcode"])
     
     if list_row['DualArm']   == 'Yes':
-        (list_row["Odour_2"],list_row["OConc_2"],list_row["OdorCook_2"],list_row["OdorDate_2"]) = get_odorinfo_from_chronos(list_row["Barcode_2"])
+        (list_row["Odour_2"],list_row["OConc_2"],list_row["OdorUser_2"],list_row["OdorDate_2"]) = get_odorinfo_from_chronos(list_row["Barcode_2"])
     # if list_row["Measu"]
     # get Odor from another file based on the value of <animal_tag> and list_row["Label"]
     return list_row
