@@ -415,6 +415,7 @@ def ctv_chunk_magnitude_basic(
         time_trace, sampling_period=None,
         first_frame=None, last_frame=None,
         stimulus_number=None, stim_on_times=None, stim_off_times=None,
+        stim_frame=None,
         flags=None, p1=None):
     """
 
@@ -434,7 +435,7 @@ def ctv_chunk_magnitude_basic(
     peak_ind, int, index corresponding to the value used as peak
     """
 
-    return ctv_for_FIDOR_chunks_with_minmax_indices(time_trace)
+    return ctv_for_FIDOR_chunks_with_minmax_indices(time_trace, stim_frame)
 
 
 def get_custom_ctv_method(file, function_name):
