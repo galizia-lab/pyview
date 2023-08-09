@@ -347,9 +347,9 @@ def read_tif_2Dor3D(tif_file, flip_y=True, return_3D=False, load_data=True):
         # relative time of secoond image (first image looks unsafe - often it is blanck. Therefore use frames 2 and 3)
         time_frame1 = root.find("./d:Image/d:Pixels/d:Plane[2]", ns).attrib["DeltaT"]
         # relative time of third image
-        time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[3]", ns).attrib["DeltaT"]
+        time_frame2 = root.find("./d:Image/d:Pixels/d:Plane[12]", ns).attrib["DeltaT"]
         GDMfreq = (float(time_frame2) - float(time_frame1))
-        GDMfreq = int(GDMfreq*1000 + 0.5) # unit is ms, rounded
+        GDMfreq = int(GDMfreq*100 + 0.5) # unit is ms, rounded
         meta_info.update({'GDMfreq':str(GDMfreq)})
     # exposure time for frame 2 - expecting that to be uniform
         ExposureTime_ms = float(root.find("./d:Image/d:Pixels/d:Plane[2]", ns).attrib["ExposureTime"])

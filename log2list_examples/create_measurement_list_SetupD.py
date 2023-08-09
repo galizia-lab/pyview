@@ -5,26 +5,34 @@ Log2List for setupD
 
 created June2022, based on pervious VTK2021 log2list
 @author: galizia
+last work: August 2023
 
 Opens a window, asks for till-photonics .log files
 In the same folder, we expect the .txt file from Chronos/PAL
 
-Plan:
+
     1) read a .log file (Till Photonics), create a .lst file for this animal
     2) read a .txt file that comes from PAL/Chronos (Barcode Reader), add odor information to .lst file
 
+    If there are more measurements in Chronos than in Till: fail
+    If there are more measurements in Till than in Chronos: try to find the "hand-stimulus"
+
 Structure:
-    Data should be in subfolder 01_DATA
+    Set STG_MotherOfAllFolders first!
+    
+    Data (.log and .txt files) should be in subfolder 01_DATA
     List file goes into subfolder 02_LISTS
     
 Naming of odorants/Stimuli:
-    Within Till, names are ODOR-CONC_NUMBER,
+    Within Till, names were ODOR-CONC_NUMBER,
     e.g. ISOE-5_10
-    Extract these name using function get_odor_info_from_label
+    Extract these name using function get_odor_info_from_label_standard
     
     BUT
     
     Odor name and other information is taken from the Chronos file, not from Till!
+    IF there are handgiven stimuli, change the label in TILL to odor_hand or odor_handgiven
+    Program searches for 'hand' in the name, and extracts before underscore as odor
 
 """
 
@@ -56,8 +64,8 @@ LE_loadExp = 3
 #STG_STG_STG_MotherOfAllFolders = r"/home/ajay/Nextcloud/VTK_2021/bee/HS_210521_test"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
-STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-#STG_MotherOfAllFolders = r'/Volumes/AG_Galizia/HannaSchnell/SetupD_Check/'
+#STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
+STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/AnlageD'
 
 # path of the "Data" folder in VIEW organization containing the data
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -78,8 +86,8 @@ measurement_output_extension = ".lst.xlsx"
 # ------------------ names of columns that will be overwritten by old values -------------------------------------------
 # ------ these will only be used if a measurement list file with the same name as current output file exists -----------
 
-overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
-                        "Comment", "Analyze", "Odour", "OConc"]
+overwrite_with_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
+                         "Comment", "Analyze", "Odour", "OConc"]
 
 
 default_values = OrderedDict()
@@ -121,6 +129,7 @@ default_values['dbb2'] = 'none'  # file name of raw data in dual wavelength reco
 # default_values['Sex'] = 'o'
 # default_values['Side'] = 'none'
 # default_values['Comment'] = 'none'
+default_values['Line'] = 'bee'
 # #
 # default_values['MTime'] = 0
 # default_values['Control'] = 0
@@ -141,7 +150,7 @@ default_values['dbb2'] = 'none'  # file name of raw data in dual wavelength reco
 # ----------------- This function indicates what needs to be done for a row --------------------------------------------
 # ----------------- The same is internally applied to all rows of the measurement list----------------------------------
 
-def get_odorinfo_from_label(label):
+def get_odorinfo_from_label_standard(label):
     # format for label is: concentration to the right, with a minus sign
     # Odor next to it, separated by underscore
     # IMPERARIVE: only ONE "-"
@@ -159,6 +168,15 @@ def get_odorinfo_from_label(label):
     else:
         concentration = '0'
     return [odor, concentration]
+
+def get_odorinfo_from_label(label):
+    # for hand given stimuli only ODOR is given, no concentration
+    # e.g. "NONL_hand"
+    parts = label.split("_")
+# take first part
+    odor = parts[0]
+    #concentration = 0
+    return odor # [odor, concentration]
 
 def get_odorinfo_from_chronos(label):
     # format for label in chronosis:
@@ -183,21 +201,22 @@ def get_odorinfo_from_chronos(label):
 
 
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
-
-    list_row['Line']     = 'bee'
-
     #when stimuli are controlled by Till-System, adjust frame number accordingly
     if list_row['StimON']   == 'TTLOut2':
         list_row['StimON']   = '24'
-    if list_row['Stim2ON']   == 'TTLOut2':
-        list_row['Stim2ON']   = '36'
+    if 'Stim2ON' in list_row:
+        if list_row['Stim2ON']   == 'TTLOut2':
+            list_row['Stim2ON']   = '36'
     # list_row['StimLen']  = 1000 
     # list_row['Stim2ON']  = 36
     # list_row['Stim2Len'] = 1000 
     # list_row['Line']     = 'bee'
     # # Examples:
     # list_row["StimON"] = 25
-    (list_row["Odour"],list_row["OConc"],list_row["OdorUser"],list_row["OdorDate"]) = get_odorinfo_from_chronos(list_row["Barcode"])
+    if 'hand' in list_row['Label'].lower(): # hand stimulus, and TILL label contains hand
+        list_row["Odour"] = get_odorinfo_from_label(list_row["Label"])        
+    else:
+        (list_row["Odour"],list_row["OConc"],list_row["OdorUser"],list_row["OdorDate"]) = get_odorinfo_from_chronos(list_row["Barcode"])
     
     if list_row['DualArm']   == 'Yes':
         (list_row["Odour_2"],list_row["OConc_2"],list_row["OdorUser_2"],list_row["OdorDate_2"]) = get_odorinfo_from_chronos(list_row["Barcode_2"])
@@ -323,6 +342,8 @@ def read_chronos_file_old(fle, path_to_fle):
 
 def read_chronos_file(fle, path_to_fle):
     """
+    Written March 2023 
+    
     Parse text at given filepath
     from: https://www.vipinajayakumar.com/parsing-text-with-python/
     
@@ -414,10 +435,41 @@ class _RegExLib:
         self.Endblock = self._reg_EndBlock.match(line)
         self.VariableInfo = self._reg_VariableInfo.match(line)
 
+def plotTill_vs_Chronos_times(inDF, tillColumn, chronosColumn):
+    '''
+
+    Parameters
+    ----------
+    tillColumn : TYPE
+        DESCRIPTION. column name for UTC times
+    chronosColumn : TYPE
+        DESCRIPTION. column name for UTC times
+
+    Returns
+    -------
+    Plot on screen, to check that the time follow a linear shape.
+
+    '''
+    x = np.array([float(i) for i in inDF[chronosColumn]])
+    y = np.array([float(i) for i in inDF[tillColumn]]) #'UTC
+    starttime = min(np.nanmin(x),np.nanmin(y))
+    x = (x-starttime)/60.0
+    y = (y-starttime)/60
+    idx = np.isfinite(x) & np.isfinite(y) #drop NaN
+    b, m = polyfit(x[idx], y[idx], 1) # fit a line
+
+    fig, ax = plt.subplots()
+    ax.scatter(x, y,marker='.', c='green')
+    ax.plot(x, b + m * x, '-')
+    ax.set_xlabel("Chronos-time (minutes)")
+    ax.set_ylabel("Till-time (minutes)")
+    ax.set_title(animal_tag+'.  N ='+str(len(x)))
+    plt.show()
+
 
 def integrate_chronosInfo(chronos_df, all_df, animal_tag):
     '''
-    
+    Integrates Till and Chronos information about the measurements
 
     Parameters
     ----------
@@ -442,33 +494,49 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
     #but first, rename 'Comment' because it exists in both all_df and chronos_df
     chronos_df = chronos_df.rename(columns={'Comment': 'ChronosComment'})
 
-    all_df = pd.concat([all_df, chronos_df], axis=1)
     
     # merge the dataframes, taking columns with the same name from df2
     #all_df = all_df.merge(chronos_df, on=all_df.columns.intersection(chronos_df.columns).tolist(), how='left')
 
 
-    if len(all_df['UTC']) != len(pd.Series(all_df['ChronosTimeStamp'])):
-        print('')
-        print('Unequal length of data rows in: ', animal_tag)
-        sys.exit('ERROR: Unequal length of data rows')
-    else:
+    if len(all_df['UTC']) == len(pd.Series(chronos_df['ChronosTimeStamp'])):
+        # the two sources TILL and Chronos have equal length, so join them into one
+        new_df = pd.concat([all_df, chronos_df], axis=1)
         # give visual output to check that chronos and till times work together
         # x = all_df['ChronosUTC'].to_list()
         # y = all_df['UTC'].to_list()
-        x = np.array([float(i) for i in all_df['ChronosUTC']])
-        y = [float(i) for i in all_df['UTC']]
-        b, m = polyfit(x, y, 1) # fit a line
-    
-        fig, ax = plt.subplots()
-        ax.scatter(x, y,marker='.', c='green')
-        ax.plot(x, b + m * x, '-')
-        ax.set_xlabel("Chronos-time")
-        ax.set_ylabel("Till-time")
-        ax.set_title(animal_tag+'.  N ='+str(len(x)))
-        plt.show()
-    
-    return all_df
+        plotTill_vs_Chronos_times(new_df, 'UTC', 'ChronosUTC')
+        
+    elif len(all_df['UTC']) < len(pd.Series(chronos_df['ChronosTimeStamp'])):
+        print('')
+        print('More Chronos entries than Till-Imaging entries in: ', animal_tag)
+        sys.exit('ERROR: Incompatible length of data rows')
+
+    else: #if len(all_df['UTC']) > len(pd.Series(chronos_df['ChronosTimeStamp'])):
+        print('')
+        print('Less Chronos entries than Till-Imaging entries in: ', animal_tag)
+        print('Trying to find the hand-stimulus measurements')
+        
+        #check if the Labels in TILL contain 'hand' in some places
+        if sum(~all_df['Label'].str.contains('hand')) == len(pd.Series(chronos_df['ChronosTimeStamp'])):
+            print('Number of "hand" measurements matches the overnumerary measurements - use labels')
+            # join all those measurements that do not contain 'hand'
+            Till_noHand = all_df[~all_df['Label'].str.contains('hand')]
+            Till_noHand.reset_index(drop=True, inplace=True)  # reset index for concat                  
+            chronos_df.reset_index( drop=True, inplace=True)  # reset index for concat                  
+            new_df = pd.concat([Till_noHand, chronos_df], axis=1, join='inner')
+            #new_df now contains all measurements done with Chronos
+
+            # join those that contain 'hand' as rows
+            new_df = pd.concat([all_df[all_df['Label'].str.contains('hand')], new_df], axis=0)
+            new_df.sort_values(by='UTC', inplace=True)
+            new_df.reset_index(drop=True, inplace=True)  # reset index for concat                  
+            plotTill_vs_Chronos_times(new_df, 'UTC', 'ChronosUTC') #visual feedback
+        else:
+            print('More TILL than Chronos measurements found - change label in Till adding the string "hand"')
+            print('Alternative, develop program to spot the hand-given measurements in create_measurement_list_SetupD.py')
+
+    return new_df
 
 # ______________________________________________________________________________________________________________________
 
@@ -531,7 +599,7 @@ if __name__ == "__main__":
     
                 # write measurement file to list
                 measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
-                                                    overwrite_old_values=overwrite_old_values)
+                                                    overwrite_old_values=overwrite_with_old_values)
 
 
 
