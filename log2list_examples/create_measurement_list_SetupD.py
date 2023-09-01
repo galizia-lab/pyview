@@ -203,7 +203,10 @@ def get_odorinfo_from_chronos(label):
 def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
     #when stimuli are controlled by Till-System, adjust frame number accordingly
     if list_row['StimON']   == 'TTLOut2':
-        list_row['StimON']   = '24'
+        list_row['StimON']   = 24
+        # calculate frame of stimOFF
+        list_row['StimOFF'] = int(int(list_row['StimON'])+int(list_row['StimLEN'])/list_row['Cycle'])
+        
     if 'Stim2ON' in list_row:
         if list_row['Stim2ON']   == 'TTLOut2':
             list_row['Stim2ON']   = '36'
