@@ -209,7 +209,9 @@ def custom_func(list_row: pd.Series, animal_tag: str) -> pd.Series:
         
     if 'Stim2ON' in list_row:
         if list_row['Stim2ON']   == 'TTLOut2':
-            list_row['Stim2ON']   = '36'
+            list_row['Stim2ON']   = 36
+        # calculate frame of stimOFF
+        list_row['Stim2OFF'] = int(int(list_row['Stim2ON'])+int(list_row['Stim2LEN'])/list_row['Cycle'])
     # list_row['StimLen']  = 1000 
     # list_row['Stim2ON']  = 36
     # list_row['Stim2Len'] = 1000 
