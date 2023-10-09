@@ -16,7 +16,7 @@ dependencies:
   - openpyxl
   - jupyter
   - appdirs
-# Pandas 2.0 is currently not compatible to the code
-  - pandas=1.5.3
+# Pandas 2.0  should now be compatible to the code - if not, force to pandas=1.5.3
+#  - pandas=1.5.3
 # only available on conda-forge
   - moviepy
