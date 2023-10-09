@@ -82,7 +82,8 @@ class DataManager(QObject):
         self.ui_table.add_row(row)
 
         row.name = label
-        self.df = self.df.append(row)
+        #self.df = self.df.append(row)
+        self.df = pd.concat([self.df, row])
 
         le = QLineEdit(label)
         self.ui_table.setCellWidget(self.ui_table.rowCount() - 1, 0, le)

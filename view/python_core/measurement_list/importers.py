@@ -269,8 +269,8 @@ class TillImporterTwoWavelength(TillImporter):
             lst_line_wl380["Analyze"] = 0
             lst_line_wl380["MTime"] = self.get_mtime(utc=lst_line_wl380["UTC"][0], first_utc=first_utc)
 
-            this_lst_frame = this_lst_frame.append(lst_line_wl340, ignore_index=True)
-            this_lst_frame = this_lst_frame.append(lst_line_wl380, ignore_index=True)
+            this_lst_frame = pd.concat([this_lst_frame, lst_line_wl340], ignore_index=True)
+            this_lst_frame = pd.concat([this_lst_frame, lst_line_wl380], ignore_index=True)
 
         return this_lst_frame
 
@@ -345,7 +345,8 @@ class LifImporter(BaseImporter):
                     default_row=self.get_default_row()
                 )
 
-                this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+                #this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+                this_lst_frame = pd.concat([this_lst_frame, lst_line], ignore_index=True)
 
         return this_lst_frame
 

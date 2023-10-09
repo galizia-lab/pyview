@@ -390,7 +390,8 @@ def log2settings(in_logFile, out_trunc, animal):
 
         lst_line = convert_vws_names_to_lst_names(vws_measurement_series=measurement_row,
                                                   default_line=get_default_line())
-        this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+#        this_lst_frame = this_lst_frame.append(lst_line, ignore_index=True)
+        this_lst_frame = pd.concat([this_lst_frame,lst_line], ignore_index=True)
 
 
     labels_not_initialzed = set(lst_labels) - set(this_lst_frame)

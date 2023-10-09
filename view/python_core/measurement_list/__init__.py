@@ -509,7 +509,8 @@ class MeasurementList(object):
 
         incoming_ml.loc[:, "Label"] = [f"{x}{label_suffix}" for x in incoming_ml["Label"].values]
 
-        new_ml.measurement_list_df = self.measurement_list_df.append(incoming_ml, ignore_index=True)
+        #new_ml.measurement_list_df = self.measurement_list_df.append(incoming_ml, ignore_index=True)
+        new_ml.measurement_list_df = pd.concat([self.measurement_list_df,incoming_ml], ignore_index=True)
 
         return new_ml
 

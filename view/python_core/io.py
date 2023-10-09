@@ -85,7 +85,8 @@ class LIFReaderGio(LifFile):
             hours, minutes = divmod(minutes, 60)
             lif_metadata['MTime'] = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
 
-            all_metadata_df = all_metadata_df.append(pd.DataFrame(lif_metadata).T, ignore_index=True)
+            #all_metadata_df = all_metadata_df.append(pd.DataFrame(lif_metadata).T, ignore_index=True)
+            all_metadata_df = pd.concat([all_metadata_df, pd.DataFrame(lif_metadata).T], ignore_index=True)
         return all_metadata_df
 
     def load_data(self, measu):
@@ -244,7 +245,8 @@ class MultiTiffReaderInga():
             
             # done this measurement, add it as a line
 
-            all_metadata_df = all_metadata_df.append(pd.DataFrame(single_metadata).T, ignore_index=True)
+            #all_metadata_df = all_metadata_df.append(pd.DataFrame(single_metadata).T, ignore_index=True)
+            all_metadata_df = pd.concat([all_metadata_df, pd.DataFrame(single_metadata).T], ignore_index=True)
             self.all_meta_data = all_metadata_df
         return all_metadata_df
 

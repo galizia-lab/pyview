@@ -389,7 +389,9 @@ class FlagsManager(object):
                 temp_s["Flag Subgroup"] = row["Flag Subgroup"]
                 temp_s["Flag Value"] = self.flags[row["Flag Name"]]
 
-                df = df.append(temp_s, ignore_index=True)
+                #df = df.append(temp_s, ignore_index=True)
+                df = pd.concat([df,temp_s], ignore_index=True)
+                
 
         df.set_index("Flag name", inplace=True)
         return df

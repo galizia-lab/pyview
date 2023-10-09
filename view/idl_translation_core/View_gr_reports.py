@@ -455,7 +455,8 @@ def ExportGlomeruli(flags, p1, measurement_row):
             tempS["num_glo"] = roi_ind
             tempS["pixel_count"] = roi_mask.sum()
             tempS.name = roi_ind + 1
-            gloList = gloList.append(tempS)
+            #gloList = gloList.append(tempS)
+            gloList = pd.concat([gloList, tempS])
 
 
 

@@ -70,6 +70,7 @@ if __name__ == '__main__':
             # accumulate
             gdm_file.append_from_a_gdm_file(gdm_file_this_measu)
 
+
         # compose output file name and create parent directory if needed
         output_file = view_obj.flags.get_gloDatamix_file_for_current_animal()
         pl.Path(output_file).parent.mkdir(exist_ok=True)
