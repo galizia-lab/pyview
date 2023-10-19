@@ -1,4 +1,4 @@
-name: view_py310
+name: view_py310_231017
 channels:
   - defaults
   - conda-forge

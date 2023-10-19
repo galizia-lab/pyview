@@ -538,8 +538,12 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
             new_df.reset_index(drop=True, inplace=True)  # reset index for concat                  
             plotTill_vs_Chronos_times(new_df, 'UTC', 'ChronosUTC') #visual feedback
         else:
-            print('More TILL than Chronos measurements found - change label in Till adding the string "hand"')
+            print('More TILL than Chronos measurements found - change label in Till adding the string "hand" or check for old chronos entries')
             print('Alternative, develop program to spot the hand-given measurements in create_measurement_list_SetupD.py')
+            print('Here are the Till measurements and the chronos times:')
+            print(all_df['Label'])
+            print(pd.Series(chronos_df['ChronosTimeStamp']))
+            sys.exit('ERROR in integrate_Chronosinfo: Incompatible length of data rows')
 
     return new_df
 
