@@ -34,7 +34,10 @@ def get_maximum_font_size_by_width(font_name, text, maximum_width):
 
     font = ImageFont.truetype(font=font_name, size=10)
 
-    w, h = font.getsize(text)
+    try: #getsize is deprecated in newer pillow versions
+        w, h = font.getsize(text)
+    except (AttributeError):
+        w = font.getlength(text)
 
     return int(10 * maximum_width / w)
 
