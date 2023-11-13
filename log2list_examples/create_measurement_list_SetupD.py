@@ -303,6 +303,7 @@ def get_chronos_filename(logfilename, str_pos=0, chronosfilename=None):
     return chronosfilename
 
 
+
 def read_chronos_file_old(fle, path_to_fle):
     '''
  Reads a chronos file, returns information as a dataframe
@@ -344,6 +345,7 @@ def read_chronos_file_old(fle, path_to_fle):
     chronos_df = chronos_df.sort_values(by='ChronosTime',ascending=True)
 
     return chronos_df
+
 
 def read_chronos_file(fle, path_to_fle):
     """
@@ -581,7 +583,7 @@ if __name__ == "__main__":
         else:
 # insert information from chronos
             chronos_filename = get_chronos_filename(raw_data_files)
-            if len(chronos_filename) == 1: # a solution was found, i.e. chronos file exists
+            if len(chronos_filename) == 1: # a solution was found, i.e. a single chronos file exists
                 chronos_df = read_chronos_file(chronos_filename, pathlib.Path(raw_data_files[0]).parents[0])
                 metadata_df = integrate_chronosInfo(chronos_df, metadata_df, animal_tag)
     

@@ -88,7 +88,8 @@ class BaseImporter(ABC):
             animal_tag_raw_data_mapping = self.get_animal_tag_raw_data_mapping(files_chosen)
             logging.getLogger("VIEW").info(
                 f"Working on the following animal tags and their corresponding files:\n"
-                f"{pprint.pformat(animal_tag_raw_data_mapping)}")
+                f"{animal_tag_raw_data_mapping}")
+#                f"{pprint.pformat(animal_tag_raw_data_mapping)}")
             return animal_tag_raw_data_mapping
 
     @abstractmethod
@@ -366,9 +367,52 @@ class LSMImporter(BaseImporter):
         for movie_data_extension in self.movie_data_extensions:
             if fle.endswith(movie_data_extension):
                 fle_path = pl.PureWindowsPath(fle)
-                return 1, str(pl.Path(fle_path.parts[-3]) / fle_path.parts[-2] / fle_path.stem)
+                # next line if data is in two subfolders of 01_DATA
+                # return_path = str(pl.Path(fle_path.parts[-3]) / fle_path.parts[-2] / fle_path.stem)
+                # next line if data is in one subfolders of 01_DATA (i.e. one subfolder for one animal)
+                return_path = str(pl.Path(fle_path.parts[-2])  / fle_path.stem)
+                logging.info(f"importers: one subfolder for one animal with measurement: {return_path}")
+                return 1, return_path
+
         else:
             return 0, -1
+
+    def get_last_directory_name(self, fle):
+        for movie_data_extension in self.movie_data_extensions:
+            if fle.endswith(movie_data_extension):
+                fle_path = pl.PureWindowsPath(fle)
+                # next line if data is in two subfolders of 01_DATA
+                # return_path = str(pl.Path(fle_path.parts[-3]) / fle_path.parts[-2] / fle_path.stem)
+                # next line if data is in one subfolders of 01_DATA (i.e. one subfolder for one animal)
+                return_directory = str(pl.Path(fle_path.parts[-2]) )
+                return return_directory
+
+        else:
+            return 0, -1
+
+
+    def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
+        #animal tag is measurement tag
+        if len(files_chosen) == 0:
+            return {}
+        else:
+            dict2return = {}
+            for fle in files_chosen:
+
+                fle_path = pl.Path(fle)
+            # from /01_DATA/220609_AnimalMyMeasurement.lsm
+                # extract foldername after 01_DATA, which is the animal name
+                # path_parts = fle_path.parts
+                # assert ('01_DATA' in path_parts), ("path to data does not contain folder '01_DATA'")
+                # path_parts = path_parts[path_parts.index('01_DATA')+1:-1]
+                # experiment_name = str(pl.Path(*path_parts))
+                # dict2return[experiment_name] = [fle]
+                
+        # file name is myfile.lsm, tag should be myfile, i.e. remove extension by splitting at the first period
+                fle_path = pl.Path(fle)
+                dict2return[fle_path.name.split(".")[0]] = [fle]
+
+            return dict2return
 
     def convert_lsm_metadata_to_lst_row(self, measu, fle, lsm_metadata, default_row):
         """
@@ -379,7 +423,9 @@ class LSMImporter(BaseImporter):
         """
 
         lst_line = default_row.copy()
+        # label not from file name, but from within the .lsm file
         lst_line["Label"] = lsm_metadata["ScanInformation"]["Name"]
+        lst_line["Animal"] = self.get_last_directory_name(fle)
         # converting from seconds to milliseconds
         lst_line["Cycle"] = lsm_metadata["TimeIntervall"] * 1000
         lst_line["Lambda"] = lsm_metadata["ScanInformation"]["Tracks"][0]["IlluminationChannels"][0]["Wavelength"]

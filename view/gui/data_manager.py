@@ -70,7 +70,7 @@ class DataManager(QObject):
 
     def add_data(self, flags, p1, label_suggestion):
 
-        row = pd.Series()
+        row = pd.Series(dtype='float64')
 
         for k, v in self.p1_values_to_use.items():
             row[k] = str(v(p1))

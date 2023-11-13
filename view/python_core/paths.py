@@ -42,7 +42,18 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
     if dbb1_path.is_absolute() and dbb1_path.is_file():
         possible_filenames.append(str(dbb))
 
-    if not flags.is_flag_state_default("STG_ReportTag"):
+    if  flags.is_flag_state_default("STG_ReportTag"):
+        # flags["STG_ReportTag"] has not been set yet
+        # this section introduced for several .lst measurements in subfolder of each animal
+        # dbb is complete, but lacks extension
+        data_dir_path = pl.Path(flags["STG_Datapath"])
+        for extension in extensions:
+            # check if dbb1 can be interpreted relative to data directory
+            possible_existing_filename = check_for_existing_dbb1(
+                data_dir_path=data_dir_path, dbb1=dbb, extension=extension, animal_tag='')
+            possible_filenames.append(possible_existing_filename)
+        
+    else: #gio nov 2023: this was the only section here
         animal_tag = flags["STG_ReportTag"]
 
         if not flags.is_flag_state_default("STG_Datapath"):

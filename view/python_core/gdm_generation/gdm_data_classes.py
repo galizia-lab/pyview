@@ -114,7 +114,9 @@ class GDMFile:
         return gdm_file
 
     def append_from_a_gdm_file(self, gdm_file):
-
+        # switch off warning "A value is trying to be set on a copy of a slice from a DataFrame"
+        pd.options.mode.chained_assignment = None  # default='warn'
+        
         if self.metadata_df.shape[0] == 0:
             self.metadata_df = gdm_file.metadata_df
             self.data_dict = gdm_file.data_dict
