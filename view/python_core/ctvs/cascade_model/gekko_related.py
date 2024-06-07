@@ -33,6 +33,9 @@ class GekkoSolver(object):
         # Equations
         self.equations = equations
         eval(f"self.m.Equations({equations.replace('m.', 'self.m.')})")
+        
+        #set timeout to 5 minutes - by hand here. Later use .yml file
+        self.gio_max_timeout_in_seconds = 600
 
     @classmethod
     def init_from_model(cls, model):
@@ -83,7 +86,7 @@ class GekkoSolver(object):
         self.m.options.imode = 6  # sequential dynamic simulation
 
         # set timeout to 5 minutes
-        self.m.options.max_time = 60
+        self.m.options.max_time = self.gio_max_timeout_in_seconds
 
         # solve
         try:
@@ -158,7 +161,7 @@ class GekkoFitter(GekkoSolver):
             self.m.options.meas_gap = dead_band
 
         # set timeout to 5 minutes
-        self.m.options.max_time = 60
+        self.m.options.max_time = self.gio_max_timeout_in_seconds
 
         try:
             self.m.solve(disp=False)
