@@ -8,7 +8,7 @@ from subprocess import TimeoutExpired
 
 class GekkoSolver(object):
 
-    def __init__(self, state_variables, parameters, equations):
+    def __init__(self, state_variables, parameters, equations, max_timeout_in_seconds=600):
 
         self.m = GEKKO(remote=False)
 
@@ -35,7 +35,7 @@ class GekkoSolver(object):
         eval(f"self.m.Equations({equations.replace('m.', 'self.m.')})")
         
         #set timeout to 5 minutes - by hand here. Later use .yml file
-        self.gio_max_timeout_in_seconds = 600
+        self.gio_max_timeout_in_seconds = max_timeout_in_seconds
 
     @classmethod
     def init_from_model(cls, model):
