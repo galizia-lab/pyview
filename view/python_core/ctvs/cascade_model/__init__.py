@@ -150,7 +150,8 @@ def fit_cascade_model(
 
         fit_params = fit_compare_models(
             time_vec=time_trace_to_fit,
-            input_vec=stimulus_trace_to_fit, output_vec=factor * output_trace_to_fit,
+            input_vec=stimulus_trace_to_fit, 
+            output_vec=factor * output_trace_to_fit,
             model2consider=model_one_comp
         )
 
