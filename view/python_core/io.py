@@ -94,7 +94,7 @@ class LIFReaderGio(LifFile):
         this_measurement = self.get_image(measu)
         dims = this_measurement.dims
         # dimensions are x, y, z, t, m. We are interested in x, y, t
-        img_data = np.zeros((dims.x, dims.y, dims.t), dtype=np.float)
+        img_data = np.zeros((dims.x, dims.y, dims.t), dtype=float)
 
         frame_list = [i for i in this_measurement.get_iter_t(c=0, z=0)]
         for count, frame in enumerate(frame_list):
