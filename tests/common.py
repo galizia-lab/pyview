@@ -16,13 +16,13 @@ def get_example_data_root_path():
         else:
             raise FileNotFoundError(
                 f"Could not find the following folder, to which VIEW is configured for storing test data."
-                f"\n\n{existing_test_data_path_str}.\n\nPlease run the script 'setup_testing.py' in the root "
-                f"directory of VIEW source code again to download view test data and configure view test path")
+                f"\n\n{existing_test_data_path_str}.\n\nPlease download and register test data with VIEW "
+                f"as described in https://github.com/galizia-lab/pyview/wiki/Download-and-register-test-data")
 
     else:
         raise ValueError(
-            "pyVIEW needs some data for testing. Please run the script 'setup_testing.py' in the root "
-            "directory of VIEW source code again to download view test data and configure view test path")
+            "pyVIEW needs some data for testing. Please download and register test data with VIEW "
+            "as described in https://github.com/galizia-lab/pyview/wiki/Download-and-register-test-data")
 
 
 def get_example_dataset_roots():

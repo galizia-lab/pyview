@@ -21,7 +21,8 @@ def add_string(image, position, font_size: int, text, fill_color_for_pil: str, f
     corrected_font_size = 8 * round(font_size / 8)
 
     font = ImageFont.truetype(font=font_file, size=corrected_font_size)
-    text_width, text_height = font.getsize(text)
+    left, top, right, bottom = font.getbbox(text)
+    text_width, text_height = right - left, bottom - top
 
     x_pos, y_pos = position
     if horizontal_alignment == "right":
@@ -69,7 +70,7 @@ def pil_image_to_numpy(image_PIL):
     """
 
     # convert frame back to numpy.ndarray, float in range [0, 1]
-    frame_data = np.array(np.array(image_PIL) / 255, dtype=np.float)
+    frame_data = np.array(np.array(image_PIL) / 255, dtype=float)
 
     # swap the axes as PIL return YX
     frame_dataXY = frame_data.swapaxes(0, 1)

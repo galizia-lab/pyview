@@ -32,7 +32,7 @@ def main():
     if existing_test_data_path_str is None:
         msgbox(
             title="Info",
-            msg="Please choose a folder in the next dialog for storing VIEW test data. Since it is ~3.3GiB is size, "
+            msg="Please choose a folder in the next dialog for storing VIEW test data. Since its size is ~3.3GiB, "
                 "we recommend creating a new folder for it")
         file = diropenbox(title="Please choose a folder for storing VIEW test data")
 

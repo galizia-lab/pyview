@@ -1,10 +1,13 @@
 import logging
 from dataclasses import dataclass, field
+
 import pandas as pd
 from typing import Dict, Mapping, Sequence
+
 from neo import AnalogSignal
 import quantities as pq
 import numpy as np
+from typing_extensions import Self
 
 
 @dataclass
@@ -13,7 +16,7 @@ class GDMRow:
     metadata: pd.Series
     time_series: AnalogSignal
 
-    def copy(self):
+    def copy(self) -> Self:
 
         return GDMRow(metadata=self.metadata.copy(), time_series=self.time_series.copy())
 
@@ -72,21 +75,45 @@ class GDMFile:
     metadata_df: pd.DataFrame = field(default_factory=pd.DataFrame)
     data_dict: Dict = field(default_factory=dict)
 
-    def copy(self):
+    def copy(self) -> Self:
 
         return GDMFile(metadata_df=self.metadata_df.copy(), data_dict={k: v.copy() for k, v in self.data_dict.items()})
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> GDMRow:
         return GDMRow(time_series=self.data_dict[item], metadata=self.metadata_df.loc[item])
+
+    def __eq__(self, other):
+
+        if not isinstance(other, type(self)):
+            return False
+
+        if not self.metadata_df.astype(str).equals(other.metadata_df.astype(str)):
+            # using `astype` above to avoid potential issues due to type mismatches
+            return False
+
+        for ind in self.metadata_df.index.values:
+            if not ind in other.data_dict:
+                return False
+
+            as_self = self.data_dict[ind]
+            as_other = other.data_dict[ind]
+            if as_self.t_start != as_other.t_start or as_self.sampling_rate != as_other.sampling_rate:
+                return False
+
+            if not np.isclose(as_self.magnitude, as_other.magnitude).all():
+                return False
+
+        return True
+
 
     def indices_iterator(self):
         return iter(self.data_dict.keys())
 
-    def get_trace(self, index):
+    def get_trace(self, index) -> AnalogSignal:
 
         return self.data_dict[index]
 
-    def subset_based_on_indices(self, indices):
+    def subset_based_on_indices(self, indices) -> Self:
         """
         Return a new GDMFile object with only those metadata and time series whose index is in indices
         :param Sequence indices: sequence of indices
@@ -99,7 +126,7 @@ class GDMFile:
 
         return gdm_file
 
-    def subset_based_on_callable(self, metadata_filter):
+    def subset_based_on_callable(self, metadata_filter) -> Self:
         """
         Return a new GDMFile object with only those metadata and time series whose index is in indices
         :param Callable metadata_filter: a callable that can be used to select rows of metadata df
@@ -138,7 +165,7 @@ class GDMFile:
         self.data_dict[new_index] = gdm_row.time_series
 
     @classmethod
-    def load_from_csv(cls, csv_file, metadata_only=False):
+    def load_from_csv(cls, csv_file, metadata_only=False) -> Self:
         """
         Load data and metadata from a csv file
         :param csv_file: absolute path of CSV file on file system
@@ -181,7 +208,7 @@ class GDMFile:
         df.to_csv(filename, sep=';', header=True, index=False)
         logging.getLogger("VIEW").info(f"Finished writing {filename}")
 
-    def get_data_as_numpy2D(self):
+    def get_data_as_numpy2D(self) -> np.ndarray:
         """
 
         If all data have the same length, return them as a 2D numpy array containing one time series per row
@@ -191,6 +218,95 @@ class GDMFile:
             return np.array([x.magnitude for x in self.data_dict.values()])[:, :, 0]
         else:
             raise ValueError("GDMFile has data of different lengths. Cannot create a numpy array")
+
+    def _get_data_as_numpy2D_align_starts(self) -> np.ndarray:
+        """
+        Aligns data of all rows at their first data points and fills nans to the end so as to create a return a 2D
+        numpy.ndarray
+        :rtype: numpy.ndarray
+        :returns: numpy.ndarray of the same number of rows as self and number of columns equal to the length of row with
+        the longest data
+        """
+
+        max_len = self.metadata_df["NumFrames"].max()
+        padded_arrays = np.full((self.metadata_df.shape[0], max_len), np.nan)
+
+        for ind, analog_signal in enumerate(self.data_dict.values()):
+            padded_arrays[ind, :analog_signal.shape[0]] = analog_signal.magnitude.T
+
+        return padded_arrays
+
+    def collapse_GDM_data_only(self, collapse_using="nanmedian", temporal_alignment="align_starts") -> np.ndarray:
+        """
+        Temporally aligns the data of rows based on the parameter "temporal_alignment" and
+        then applies a function based on the parameter "collapse_using" to reduce the data of all rows into one
+        numpy ndarray
+        :rtype: numpy.ndarray
+        :returns: data of all rows collapsed into a single numpy array
+        """
+        if temporal_alignment == 'align_starts':
+            gdm_data_aligned = self._get_data_as_numpy2D_align_starts()
+        else:
+            raise NotImplementedError(
+                f"A value of {temporal_alignment} was specified for 'temporal_alignment', which is implemented.")
+
+        if collapse_using == "nanmedian":
+            return np.nanmedian(gdm_data_aligned, axis=0)
+        else:
+            raise NotImplementedError(
+                f"A value of {collapse_using} was specified for 'collapse_using', which is implemented.")
+
+
+    def collapse_GDM(self, groupby: list, collapse_using: str, temporal_alignment: str) -> Self:
+        """
+        Groups rows based on the metadata in the parameter `groupby`. For each group, checks if all rows have the
+        same sampling rate, else raises and error. Else aligns the data in the rows based on the parameter
+        `temporal_alignment` and collapses the data into a single time series based on the parameter `collapse_using`.
+        The metadata of each group is collapsed by retaining indentical metadata in a group while replacing
+        non-identical metadata with "unequal values".
+        :param list groupby: list of column values for grouping where each group then gets collapsed/reduced
+        :param str collapse_using: string, see documentation of `collapse_GDM_data_only`
+        :param str temporal_alignment: string, see documentation of `collapse_GDM_data_only`
+        :rtype: GDMFile
+        :returns: a GDMFile object with one row per unique combination of metadata specified in `groupby`
+        """
+
+        def collapse_metadata_column(metadata_column: pd.Series):
+
+            # if all values in the column are equal
+            if metadata_column.eq(metadata_column.values[0]).all():
+                return metadata_column.values[0]
+            else:
+                return "unequal_values"
+
+        collapsed_gdm_file = GDMFile()
+
+        for grouping_indices, group_metadata_df in self.metadata_df.groupby(groupby):
+            collapsed_metadata = group_metadata_df.apply(collapse_metadata_column, axis=0)
+            if "Animal" in collapsed_metadata:
+                collapsed_metadata["Animal"] = f"{collapse_using}-{temporal_alignment}"
+            if "TraceOffset" in collapsed_metadata:
+                collapsed_metadata["TraceOffset"] = 0.0
+            all_sampling_rates = [self.data_dict[x].sampling_rate for x in group_metadata_df.index.values]
+
+            if not all(all_sampling_rates[0] == x for x in all_sampling_rates):
+                raise ValueError(
+                    f"When grouping based on {groupby}, for the group with values {grouping_indices}, found"
+                    f"time traces with unequal sampling rates ({all_sampling_rates})")
+            else:
+                temp_gdm_file = GDMFile()
+                temp_gdm_file.metadata_df["NumFrames"] = group_metadata_df["NumFrames"].copy()
+                temp_gdm_file.data_dict = {k: self.data_dict[k] for k in group_metadata_df.index.values}
+                collapsed_data = temp_gdm_file.collapse_GDM_data_only(
+                    collapse_using=collapse_using, temporal_alignment=temporal_alignment)
+                collapsed_metadata["NumFrames"] = collapsed_data.shape[0]
+                collapsed_gdm_row = GDMRow.from_data_and_metadata(
+                    metadata_dict=collapsed_metadata, trace=collapsed_data,
+                    sampling_period_ms= (1 / all_sampling_rates[0]) / (1 * pq.ms)
+                )
+                collapsed_gdm_file.append_gdm_row(collapsed_gdm_row)
+
+        return collapsed_gdm_file
 
 
 def read_chunks_gdm_csv(input_csv, metadata_only=False):

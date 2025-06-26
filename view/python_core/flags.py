@@ -37,9 +37,8 @@ If you need attribute access, convert it to a pandas series using
 flags_series = flags.to_series()
 '''
 
-import pkg_resources
+import importlib.resources
 import pandas as pd
-import yaml
 import pathlib as pl
 from ast import literal_eval
 from matplotlib.colors import is_color_like, to_rgba
@@ -58,11 +57,13 @@ def get_internal_flags_def():
     """
 
     # get the internal flag checks file depending on flags_type
-    flags_def_XL = pkg_resources.resource_filename('view',
-                                                   "flags_and_metadata_definitions/view_flags_definition.csv")
+    flags_def_XL = (importlib.resources
+                    .files('view')
+                    .joinpath("flags_and_metadata_definitions/view_flags_definition.csv"))
 
     # read and return flag definitions
-    flags_def_df = pd.read_csv(flags_def_XL, comment="#")
+    with importlib.resources.as_file(flags_def_XL) as fle:
+        flags_def_df = pd.read_csv(fle, comment="#", keep_default_na=False, na_values=[""])
 
     # initialize descriptions with empty string if it has no entry
     flags_def_df["Flag Description"] = flags_def_df["Flag Description"].apply(lambda x: "" if pd.isna(x) else x)

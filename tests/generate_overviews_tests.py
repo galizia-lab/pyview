@@ -29,7 +29,7 @@ class OverviewsGenerator(object):
 
         op_file_name = test_folder / f"{self.view.flags['STG_ReportTag']}_{self.view.p1.metadata.ex_name}{suffix}.tif"
 
-        tifffile.imsave(op_file_name, data=frame_data2write, photometric="rgb")
+        tifffile.imwrite(op_file_name, data=frame_data2write, photometric="rgb")
 
 
 def get_default_overview_flags_hack():
@@ -259,9 +259,9 @@ def test_showROIs():
 
 
 if __name__ == '__main__':
-    # test_defaults()
+    test_defaults()
     # test_thresholdOn()
     # test_scale_flags()
-    test_showROIs()
+    # test_showROIs()
 
 
