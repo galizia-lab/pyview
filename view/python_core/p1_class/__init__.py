@@ -1,6 +1,7 @@
 from view.idl_translation_core.ViewLoadData import create_raw_data666
 from .metadata_related import MetadataDefinition, parse_p1_metadata_from_measurement_list_row
 from .filters import apply_filter
+from .add_trace import add_MS_trace
 from view.python_core.bleach_corr import get_bleach_compensator
 from view.python_core.background import get_background_frames
 from view.python_core.areas import get_area_for_p1, get_area_for_bleach_correction
@@ -161,6 +162,12 @@ class P1SingleWavelengthAbstract(ABC):
 
         bleach_corrected_raw_data, bleach_fit_params = bleach_compensator.apply(
             stack_xyt=corrected_raw_data, area_mask=area_mask_for_bleach_correction)
+        
+        # if this is a dataset taken together with another trace, e.g. MS or FID measurement
+        # or single cell electrophysiology
+        # add that trace to the top left corner
+        bleach_corrected_raw_data = add_MS_trace(bleach_corrected_raw_data, p1_metadata, flags, self.extra_metadata)
+
 
         return area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params
 
