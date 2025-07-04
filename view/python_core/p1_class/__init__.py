@@ -166,7 +166,9 @@ class P1SingleWavelengthAbstract(ABC):
         # if this is a dataset taken together with another trace, e.g. MS or FID measurement
         # or single cell electrophysiology
         # add that trace to the top left corner
-        bleach_corrected_raw_data = add_MS_trace(bleach_corrected_raw_data, p1_metadata, flags, self.extra_metadata)
+        if flags["LE_AddMSTrace"]:
+            # add MS trace to the top
+            bleach_corrected_raw_data = add_MS_trace(bleach_corrected_raw_data, p1_metadata, flags, self.extra_metadata)
 
 
         return area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params

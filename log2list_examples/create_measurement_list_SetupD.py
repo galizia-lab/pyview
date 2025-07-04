@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+# Mother of all Folders of your dataset
+# On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
+#STG_STG_STG_MotherOfAllFolders = r"/home/ajay/Nextcloud/VTK_2021/bee/HS_210521_test"
+#STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
+#STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
+#STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
+STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/Daniela'
+
 """
 Log2List for setupD
 
+
 created June2022, based on pervious VTK2021 log2list
 @author: galizia
-last work: August 2023
+last work: July 2025
 
 Opens a window, asks for till-photonics .log files
 In the same folder, we expect the .txt file from Chronos/PAL
@@ -34,6 +44,15 @@ Naming of odorants/Stimuli:
     IF there are handgiven stimuli, change the label in TILL to odor_hand or odor_handgiven
     Program searches for 'hand' in the name, and extracts before underscore as odor
 
+    Barcode reader (Chronos) gives information about the odor, concentration, user and date
+    e.g. ISOE2HS2312
+    where ISOE2 is the odor, HS23 is the user, 12 is the month
+    If the odor is MOL, then the next two digits are the concentration, otherwise it
+    is the next digit.
+
+    New format for Chronos is (as of 2025)
+    ISOE12-250612 or MOL12-250612 or ISOE2-250612
+    where ISOE is the odor, then 1 or 2 digits concentration, then '-', then 250612 is the date in format YYMMDD
 """
 
 
@@ -59,13 +78,7 @@ logging.basicConfig(level=logging.INFO)
 # 20 for Zeiss Confocal Measurements
 LE_loadExp = 3
 
-# Mother of all Folders of your dataset
-# On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
-#STG_STG_STG_MotherOfAllFolders = r"/home/ajay/Nextcloud/VTK_2021/bee/HS_210521_test"
-#STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
-#STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
-#STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/elisabeth'
+
 
 # path of the "Data" folder in VIEW organization containing the data
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -191,12 +204,35 @@ def get_odorinfo_from_chronos(label):
     # label = 'M2HN9HS231'
     # label = 'MOL0HS231'
     #extract beginning: odor
-    pattern = r"^(MOL|.{1,4})(\d{1,2})([a-zA-Z]{1,2})(\d{2})(.*)"
-    matches = re.match(pattern, label)
-    odor = matches.group(1)
-    concentration = matches.group(2)
-    OdorUser = matches.group(3)
-    SampleDate = '/'.join([matches.group(5),matches.group(4)]) #format: 5/21
+
+# new format for chronos is:
+    # New format for Chronos is (as of 2025)
+    # ISOE12-250612 or MOL12-250612 or ISOE2-250612
+    # where ISOE is the odor, then 1 or 2 digits concentration, then '-', then 250612 is the date in format YYMMDD
+
+
+    new_re = re.compile(r"^(?P<odor>MOL|.{4})(?P<conc>\d{1,2})-(?P<date>\d{6})(?P<rest>.*)")
+    old_re = re.compile(r"^(?P<odor>MOL|.{4})(?P<conc>\d{1,2})(?P<user>[a-zA-Z]{1,2})(?P<date1>\d{2})(?P<rest>.*)")
+
+
+    match = new_re.match(label) or old_re.match(label)
+
+    if not match:
+        raise ValueError("Unrecognized label format")
+
+# Access using match.group('prefix'), etc.
+    odor = match.group('odor')
+    concentration = '-' + str(match.group('conc'))
+    # not all values are in all label formats, so use get to avoid KeyError
+    result = match.groupdict()
+    OdorUser = result.get('user', 'unknown')  # user is not always present, e.g. in MOL
+    SampleDate = result.get('date', None)
+    if not SampleDate:
+        # if SampleDate is not present, it is in the old format, so use date1+rest
+        SampleDate = result.get('date1', None)
+        if SampleDate:
+            SampleDate =  SampleDate + '/' + result.get('rest', '')
+
     return [odor, concentration, OdorUser, SampleDate]
 
 
@@ -611,6 +647,5 @@ if __name__ == "__main__":
                 # write measurement file to list
                 measurement_list.write_to_list_file(lst_fle=out_file, columns2write=default_values.keys(),
                                                     overwrite_old_values=overwrite_with_old_values)
-
-
-
+                # inform user about the output file
+                print(f"Measurement list file for {animal_tag} was created: {out_file}")
