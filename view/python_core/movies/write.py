@@ -66,14 +66,23 @@ class MovieWriter(object):
         if self.codec == "libx264":
             ffmpeg_params = ["-crf", '1']
 
-        clip.write_videofile(filename=out_name,
-                             codec=self.codec,
-                             ffmpeg_params=ffmpeg_params,
-                             preset="veryslow",
-                             threads=multiprocessing.cpu_count() - 1,
-                             logger="bar",
-                             bitrate=self.bitrate
-                             )
+        # clip.write_videofile(filename=out_name,
+        #                      codec=self.codec,
+        #                      ffmpeg_params=ffmpeg_params,
+        #                      preset="veryslow",
+        #                      threads=multiprocessing.cpu_count() - 1,
+        #                      logger="bar",
+        #                      bitrate=self.bitrate
+        #                      )
+        # the upper part was AJs code, does not work on windows, so using the following instead
+        clip.write_videofile(
+                            filename=out_name,
+                            codec=self.codec,
+                            ffmpeg_params=["-preset", "veryslow"],
+                            threads=multiprocessing.cpu_count() - 1,
+                            logger="bar",
+                            bitrate=self.bitrate
+                            )
         logging.getLogger("VIEW").info(f"Wrote a movie: {out_name}")
         return out_name
 
