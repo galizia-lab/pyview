@@ -14,6 +14,9 @@ import xml.etree.ElementTree as ET
 from view.python_core.io import LIFReaderGio
 from view.python_core.io import MultiTiffReaderInga
 
+import tkinter as tk
+from tkinter import filedialog
+
 
 def calculate_dt_from_timing_ms(timing_ms: str) -> float:
 
@@ -67,12 +70,20 @@ class BaseImporter(ABC):
 
         return combined_df
 
-    def get_filetype_info_string(self):
+    def get_filetype_info_string(self): # needed for easygui file dialog
 
         return [f"*{x}" for x in self.associated_extensions] + [self.associate_file_type]
 
-    def ask_for_files(self, default_dir, multiple: bool = True) -> dict:
+    def get_filetype_info_tuple(self): #needed for tkinter file dialog
+        parts = [f"*{x}" for x in self.associated_extensions] + [self.associate_file_type]
+        # Assume last item is description, rest are patterns
+        description = parts[-1]
+        pattern = ';'.join(parts[:-1])  # Combine if multiple extensions
+        return [(description, pattern)]
 
+    def ask_for_files_easygui(self, default_dir, multiple: bool = True) -> dict:
+# the easygui version causes crashes on macOS
+# replacement from Chat below
         default_dir_str = str(pl.Path(default_dir) / "*")
         files_chosen = easygui.fileopenbox(
             title=f"Choose one or more files for LE_loadExp={self.LE_loadExp}",
@@ -91,6 +102,56 @@ class BaseImporter(ABC):
                 f"{animal_tag_raw_data_mapping}")
 #                f"{pprint.pformat(animal_tag_raw_data_mapping)}")
             return animal_tag_raw_data_mapping
+        
+
+
+    def ask_for_files(self, default_dir, multiple: bool = True) -> dict:
+        # Initialize tkinter without showing the root window
+        root = tk.Tk()
+        root.withdraw()
+
+        # Set initial directory and filetypes
+        initial_dir = str(pl.Path(default_dir))
+        filetypes = self.get_filetype_info_tuple()
+
+        # Convert filetype string to list of tuples (if needed)
+        # If your function returns a string like "*.txt", convert it to [("All files", "*.txt")]
+        if isinstance(filetypes, str):
+            filetypes = [("All files", filetypes)]
+
+        # Show dialog
+        if multiple:
+            files_chosen = filedialog.askopenfilenames(
+                title=f"Choose one or more files for LE_loadExp={self.LE_loadExp}",
+                filetypes=filetypes,
+                initialdir=initial_dir
+            )
+        else:
+            file_chosen = filedialog.askopenfilename(
+                title=f"Choose a file for LE_loadExp={self.LE_loadExp}",
+                filetypes=filetypes,
+                initialdir=initial_dir
+            )
+            files_chosen = [file_chosen] if file_chosen else None
+
+        # User cancelled
+        if not files_chosen:
+            raise IOError("User Abort while choosing files.")
+
+        # Ensure selected files are in expected directory
+        assert str(files_chosen[0]).startswith(str(default_dir)), (
+            f"The data selected is not in the expected data directory of the current tree:\n"
+            f"{default_dir}. Please copy your data there and try again!"
+        )
+
+        # Proceed as before
+        animal_tag_raw_data_mapping = self.get_animal_tag_raw_data_mapping(files_chosen)
+        logging.getLogger("VIEW").info(
+            f"Working on the following animal tags and their corresponding files:\n"
+            f"{animal_tag_raw_data_mapping}"
+        )
+        return animal_tag_raw_data_mapping
+
 
     @abstractmethod
     def parse_metadata(self, fle: str, fle_ind: int,
@@ -149,7 +210,7 @@ class TillImporter(BaseImporter, ABC):
 
         super().__init__(default_values)
         self.associate_file_type = "VWS Log Files"
-        self.associated_extensions = [".vws.log"]
+        self.associated_extensions = [".log"] #for .vws.log
         self.movie_data_extensions = [".pst", ".ps"]
 
     def get_animal_tag_raw_data_mapping(self, files_chosen: list) -> dict:
@@ -192,7 +253,7 @@ class TillImporter(BaseImporter, ABC):
         expected_data_file = vws_measurement_series["Location"]
         if expected_data_file[-2:] == 'ps':
             # there is one version of the macro in tillVision that "eats" the last t of the file name
-            logging.getLogger("VIEW").warning('adding a t to the .ps file name to make it .pst')
+            #logging.getLogger("VIEW").warning('adding a t to the .ps file name to make it .pst')
             expected_data_file += 't'
 
         analyze, dbb1_relative = self.get_path_relative_to_data_dir(expected_data_file)

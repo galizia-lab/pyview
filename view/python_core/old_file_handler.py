@@ -46,6 +46,11 @@ class OldFileHandler(OldFileHandlerBlank):
         lst_fle_path = pl.Path(self.fle)
         backup_path = \
             lst_fle_path.with_suffix(f".{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{lst_fle_path.suffix}")
+# add a subdirectory for backups
+        backup_path = lst_fle_path.parent / "backups" / backup_path.name
+
+        if not backup_path.parent.is_dir():
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
 
         if backup_path.is_file():
             backup_path.unlink()

@@ -247,6 +247,24 @@ class MeasurementList(object):
 
         row_index = np.where(rows_mask.values)[0][0]
         return row_index
+    
+    def get_row_measu_by_column_value(self, column_name, column_value):
+        # You want to find a row where a column (column_name)
+        # matches a given value (column_value) —
+        # and return the value in that row's 'measu' column.
+        df = self.measurement_list_df
+
+        # Create a boolean mask for the matching row(s)
+        rows_mask = df[column_name] == column_value
+
+        # Check for exactly one match
+        assert rows_mask.sum() == 1, (
+            f"Expected exactly one row in {self.last_measurement_list_fle} with {column_name}={column_value}, "
+            f"found {rows_mask.sum()}."
+        )
+
+        # Return the 'measu' value from the matching row
+        return df.loc[rows_mask, 'Measu'].values[0]
 
     def get_row_by_column_value(self, column_name, column_value):
 

@@ -7,7 +7,9 @@
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
 #STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/Daniela'
+STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/elisabeth'
+create_animal_list_file = True
+show_correlation_plot = True
 
 """
 Log2List for setupD
@@ -16,6 +18,7 @@ Log2List for setupD
 created June2022, based on pervious VTK2021 log2list
 @author: galizia
 last work: July 2025
+Gio: environment ms_fid_2024
 
 Opens a window, asks for till-photonics .log files
 In the same folder, we expect the .txt file from Chronos/PAL
@@ -59,6 +62,8 @@ Naming of odorants/Stimuli:
 from view.python_core.measurement_list import MeasurementList
 from view.python_core.measurement_list.importers import get_importer_class
 from view.python_core.flags import FlagsManager
+from view.python_core.measurement_list.io import XLSIO
+
 from collections import OrderedDict
 import pandas as pd
 import logging
@@ -69,6 +74,7 @@ import numpy as np
 import pathlib
 import sys
 import re
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -501,14 +507,16 @@ def plotTill_vs_Chronos_times(inDF, tillColumn, chronosColumn):
     idx = np.isfinite(x) & np.isfinite(y) #drop NaN
     b, m = polyfit(x[idx], y[idx], 1) # fit a line
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.scatter(x, y,marker='.', c='green')
     ax.plot(x, b + m * x, '-')
     ax.set_xlabel("Chronos-time (minutes)")
     ax.set_ylabel("Till-time (minutes)")
     ax.set_title(animal_tag+'.  N ='+str(len(x)))
-    plt.show()
-
+    if show_correlation_plot: plt.show()
+    # on my mac environment, this crashes often, so I use show_correlation_plot
+    plt.close()
+    
 
 def integrate_chronosInfo(chronos_df, all_df, animal_tag):
     '''
@@ -579,13 +587,130 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
             print('More TILL than Chronos measurements found - change label in Till adding the string "hand" or check for old chronos entries')
             print('Alternative, develop program to spot the hand-given measurements in create_measurement_list_SetupD.py')
             print('Here are the Till measurements and the chronos times:')
-            print(all_df['Label'])
-            print(pd.Series(chronos_df['ChronosTimeStamp']))
+            for label, mtime in zip(all_df['Label'], all_df['MTime']):
+                print(label, mtime)
+#str(time_since_first_utc).split(" days ")[1]
+            for mtime in pd.Series(chronos_df['ChronosTimeStamp']):
+                exp_time = mtime - pd.Series(chronos_df['ChronosTimeStamp']).min()
+                print(mtime, exp_time)
+            #print(pd.Series(chronos_df['ChronosTimeStamp']))
             sys.exit('ERROR in integrate_Chronosinfo: Incompatible length of data rows')
 
     return new_df
 
 # ______________________________________________________________________________________________________________________
+
+
+def add_to_AnimalListFile(list_filepath, settings_df):
+    """
+    Adds a line for this animal to the excel file that lists all animals.
+    Done Aug. 2025, Giovanni. Based on gerstel2settings in the FID folder
+    Unlike gerstel2settings, uses info in memory 
+    """
+    
+    settings_first_row = settings_df.iloc[0]
+    # settings file loaded. Extract info
+    this_Animal   = settings_first_row["Animal"]
+    this_refOdor  = 'unknown'
+    this_Sex      = 'unknown' # settings_first_row['sex']  # take from first line
+    this_Age      = 'unknown' # settings_first_row['age']
+    this_Bodyside = 'unknown' # settings_first_row['side']
+    this_Version  = 'unknown' # settings_first_row['version']
+    this_Line     = settings_first_row['Line']
+    this_Setup    = 'D' # settings_first_row['Setup'] # flags["default_setup"]  # variable from outside
+    # now the empty entries, to be filled with comments
+    this_Analyze          = -1  # default is 1, needs to be changed to 1 in excel for animals to consider,
+                                # can be changed to 0 in excel for animals to ignore
+    this_RefOdorComment   =  'none'
+    this_AreaComment      =  'none'
+    this_MovementComment  =  'none'
+    this_CheckComment     =  'none'
+    this_CheckComplete    =  0 # no check done yet, set to 1 when done
+    this_DateComplete     = '08.03.1997'
+
+    # date taken from "UTC" entry of first measurement
+    this_Date = pd.to_datetime(settings_first_row["UTC"], unit='s').strftime("%y%m%d")
+
+    #when movement correction is done, include info here
+    this_MovementSize = 0
+    this_MovementComment = 'not implemented'
+    
+    
+    # animal list file name
+    # open the file, get content into a dataframe. Or initialize if not there
+        #initialize if not there
+        # dataframe version
+    # what is to be saved? Create labels for DF
+    animals_labels = [
+        "Animal",         # which animal is this
+        "Analyze",        # set to 0 if this animal should not be considered further
+        "RefOdor",        # which odor is the reference odor
+        "MovementSize",   # once we'll have automatic movement correction, there should be a magnitude of the necessary correction
+        "MovementComment",# text comment, by opearator
+        "CheckComment",   # text comment, by opearator
+        "CheckComplete",  # text comment, by opearator
+        "DateComplete",   # text comment, by opearator
+        #"Stimuli",       # format: odor,odor,odor
+        #"StimuliConc",   # concentrations, format: -2,-4,-6
+        "Sex",            # m/f
+        "Age",            #
+        "BodySide",       # l/r
+        "Version",        # e.g. 'oct18'
+        "Line",           #
+        "Setup",          #
+        "Date",
+        #"blankOdors",
+        ]
+    animals_lst = pd.DataFrame(columns=animals_labels)        
+    animals_lst.loc[len(animals_lst)] = \
+        [
+            this_Animal, this_Analyze, this_refOdor,
+            this_MovementSize, this_MovementComment,
+            this_CheckComment, this_CheckComplete,
+            this_DateComplete,
+            this_Sex, this_Age, this_Bodyside,
+            this_Version, this_Line, this_Setup,
+            this_Date 
+         ]
+
+    # create new df line for current animal
+    # check if this animal already exists, if so, overwrite line
+    # save file 
+    # where do we write the animal file? Same directory as settings file
+    animal_file = pathlib.Path(list_filepath).parent / 'AnimalListFile.xlsx'
+    # does the file already exist? If yes, act accordingly
+    if os.path.exists(animal_file):
+        #read old file
+        old_animals_lst = XLSIO.read(animal_file)
+        # maybe that analyze existed already? In that case, keep the ANALYZE info
+        old_info = old_animals_lst[old_animals_lst.Animal == animals_lst.Animal[0]]
+        if (len(old_info) == 1):
+            animals_lst.loc[0,'Analyze'] = old_info.iloc[0]['Analyze']
+
+        # # if any column specified in <animals_labels> above is not found in the old animal list file, add it and fill
+        # # old rows with value "unknown"
+        # for col in animals_labels:
+        #     if col not in animals_lst.columns:
+        #         animals_lst[col] = "unkown"
+
+        # remove this animal from the old list, if it had been included before already
+        old_animals_lst = old_animals_lst[old_animals_lst.Animal != animals_lst.Animal[0]]
+        # add this new animal to the old list
+        animals_lst = pd.concat([old_animals_lst, animals_lst], ignore_index=True)
+
+    # now save (overwrite)
+    XLSIO.write(animals_lst, animal_file, index=False)  # save without index column
+
+    possibly_remaining_xls = animal_file.with_suffix(".xls")
+    if possibly_remaining_xls.is_file():
+        possibly_remaining_xls.rename(possibly_remaining_xls.with_suffix(".xls.bak"))
+    # add_to_AnimalListFile done. 
+    logging.getLogger("FID").info(f"add_to_AnimalListFile done, written to {animal_file}")
+#end function add_to_AnimalListFile
+
+
+
+
 
 if __name__ == "__main__":
 
@@ -649,3 +774,7 @@ if __name__ == "__main__":
                                                     overwrite_old_values=overwrite_with_old_values)
                 # inform user about the output file
                 print(f"Measurement list file for {animal_tag} was created: {out_file}")
+
+                # add line to animal list file
+                if create_animal_list_file:
+                    add_to_AnimalListFile(out_file, measurement_list.measurement_list_df)

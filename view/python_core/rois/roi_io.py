@@ -359,6 +359,10 @@ def get_roi_io_class(RM_ROITrace):
         io_class = NonFileUniformROIIO
 
     else:
-        raise NotImplementedError(f"RM_ROITrace={RM_ROITrace}")
+        io_class = NonFileUniformROIIO
+        # raise NotImplementedError(f"RM_ROITrace={RM_ROITrace}")
+        # Aug 2025: do not raise an error, just return the non-file based IO class
+
+    logging.getLogger("VIEW").info(f"Using {io_class.__name__} for RM_ROITrace={RM_ROITrace}")
 
     return io_class

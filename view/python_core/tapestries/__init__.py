@@ -44,7 +44,7 @@ class TapestryCreater(object):
             #row['Measus'] contains the values
             new_measus = []
             for old_measu in current_measus:
-               c = self.view.measurement_list.get_row_index_by_column_value(row['measu_order_column'], old_measu)
+               c = self.view.measurement_list.get_row_measu_by_column_value(row['measu_order_column'], old_measu)
                new_measus.append(c)
             # overwrite current_measus with index value of those measurements
             current_measus = new_measus                
