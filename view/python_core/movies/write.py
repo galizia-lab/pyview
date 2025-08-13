@@ -78,7 +78,7 @@ class MovieWriter(object):
         clip.write_videofile(
                             filename=out_name,
                             codec=self.codec,
-                            ffmpeg_params=["-preset", "veryslow"],
+#                            ffmpeg_params=["-preset", "veryslow"],
                             threads=multiprocessing.cpu_count() - 1,
                             logger="bar",
                             bitrate=self.bitrate
