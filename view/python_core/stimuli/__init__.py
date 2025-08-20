@@ -39,7 +39,7 @@ class BaseStimuliiHandler(object):
                        on_ms: float = None,
                        off_frame: int = None, duration_ms: float = None):
         """
-        Add an odor pulse stimlus, applying correction based on mv_correctOnsetStimulus.
+        Add an odor pulse stimulus, applying correction based on mv_correctOnsetStimulus.
         One of the following needs to specified to define stimulus pulse onset
         1. on_frame and data_sampling_period
         2. on_ms
@@ -50,7 +50,7 @@ class BaseStimuliiHandler(object):
         :param concentration: float, logarithm to base 10 of the concentration of the odor applied
         :param on_frame: int, frame number of stimulus pulse onset
         :param float data_sampling_period: data sampling period in ms, i.e., 600 for 100 frames per minute
-        :param on_ms: float, time of stimlus onset in milliseconds
+        :param on_ms: float, time of stimulus onset in milliseconds
         :param off_frame: int, frame number of stimulus pulse offset
         :param duration_ms: float, stimulus duration in milliseconds
         :return:

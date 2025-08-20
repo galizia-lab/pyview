@@ -93,9 +93,9 @@ if __name__ == '__main__':
     #     yml_file="/home/aj/SharedWithWindows/SS_LSM/usage_lsm.yml",
     #     animal="2019_08_09_locust_calcium green")
 
-    load_calc_data(
-        yml_file="/home/ajay/pyview_test_data/Bente_Test/Bente_Test_2021.yml",
-        animal="190815_h2_El_test")
+    # load_calc_data(
+    #     yml_file="/home/ajay/pyview_test_data/Bente_Test/Bente_Test_2021.yml",
+    #     animal="190815_h2_El_test")
 
-    # test_loading_data_without_measurement_list()
+    test_loading_data_without_measurement_list()
 

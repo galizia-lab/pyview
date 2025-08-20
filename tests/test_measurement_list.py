@@ -103,7 +103,8 @@ def test_lstxls2p1():
 
 if __name__ == "__main__":
 
-    test_reading_lst()
+    # test_reading_lst()
+    test_lstxls2p1()
 
     # print all lists in all test data sets
     # print("Legacy LST files")

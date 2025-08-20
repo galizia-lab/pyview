@@ -726,10 +726,10 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
                     "Label": label,
                     # need to add stimulus information here as it is later needed when loading data, i.e., in this
                     # case, creating synthetic data
-                    "StimON": 25,
-                    "StimOFF": 35,
-                    "Stim2ON": 65,
-                    "Stim2OFF": 75
+                    "StimON": '25',
+                    "StimOFF": '35',
+                    "Stim2ON": '65',
+                    "Stim2OFF": '75'
                 }
             )
 

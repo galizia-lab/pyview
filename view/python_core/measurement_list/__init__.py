@@ -116,7 +116,7 @@ class MeasurementList(object):
 
         measurement_list.revise_dbbs_for_current_OS()
         measurement_list.add_missing_defaults()
-        measurement_list.convert_to_numeric()
+        measurement_list.convert_to_required_data_types()
         measurement_list.check_minimum_requirements()
 
         return measurement_list
@@ -127,7 +127,7 @@ class MeasurementList(object):
         measurement_list = cls(LE_loadExp)
 
         measurement_list.measurement_list_df = df
-        measurement_list.convert_to_numeric()
+        measurement_list.convert_to_required_data_types()
         measurement_list.check_minimum_requirements()
 
         return measurement_list
@@ -204,17 +204,24 @@ class MeasurementList(object):
 
     def add_missing_defaults(self):
 
-        for col_name, default_value in self._metadata_def_df["Default values"].items():
+        for col_name, row in self._metadata_def_df.iterrows():
 
             if col_name not in self.measurement_list_df.columns:
 
-                self.measurement_list_df = self.measurement_list_df.reindex(self.measurement_list_df.columns.tolist() + [col_name], axis=1)
-#creating column first avoids giving a warning in the next line: A value is trying to be set on a copy of a slice from a DataFrame
-                self.measurement_list_df.loc[:, col_name] = default_value 
+                column_to_insert = pd.Series(
+                    index=self.measurement_list_df.index,
+                    dtype=row['Data Type'],
+                    data=row['Default values']
+                )
+                self.measurement_list_df.insert(
+                    loc=self.measurement_list_df.shape[1], column=col_name, value=column_to_insert
+                )
                 
-    def convert_to_numeric(self):
+    def convert_to_required_data_types(self):
+
+        type_spec = self._metadata_def_df['Data Type']
         self.measurement_list_df = \
-            self.measurement_list_df.applymap(lambda x: pd.to_numeric(x, errors="ignore"))
+            self.measurement_list_df.astype(type_spec)
 
     def revise_dbbs_for_current_OS(self):
 
