@@ -7,7 +7,7 @@
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
 #STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/elisabeth'
+STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/Daniela'
 create_animal_list_file = True
 show_correlation_plot = True
 
@@ -517,6 +517,22 @@ def plotTill_vs_Chronos_times(inDF, tillColumn, chronosColumn):
     # on my mac environment, this crashes often, so I use show_correlation_plot
     plt.close()
     
+def print_debug_info(all_df, chronos_df, animal_tag):
+        print('Here are the Till measurements and the chronos times:')
+        inspection_df = pd.DataFrame({
+            "Till_Label": all_df["Label"],
+            "Till_MTime": all_df["MTime"],
+            "Chronos_Timestamp": chronos_df["ChronosTimeStamp"],
+            "Barcode": chronos_df["Barcode"]
+        })
+
+        inspection_df["Chronos_ExpTime"] = (
+            inspection_df["Chronos_Timestamp"] - chronos_df["ChronosTimeStamp"].min()
+        )
+
+        print("\nSide-by-side DataFrame:\n")
+        print(inspection_df.to_string(index=False))  # no row index for cleaner debug view
+
 
 def integrate_chronosInfo(chronos_df, all_df, animal_tag):
     '''
@@ -561,6 +577,7 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
     elif len(all_df['UTC']) < len(pd.Series(chronos_df['ChronosTimeStamp'])):
         print('')
         print('More Chronos entries than Till-Imaging entries in: ', animal_tag)
+        print_debug_info(all_df, chronos_df, animal_tag)
         sys.exit('ERROR: Incompatible length of data rows')
 
     else: #if len(all_df['UTC']) > len(pd.Series(chronos_df['ChronosTimeStamp'])):
@@ -586,14 +603,7 @@ def integrate_chronosInfo(chronos_df, all_df, animal_tag):
         else:
             print('More TILL than Chronos measurements found - change label in Till adding the string "hand" or check for old chronos entries')
             print('Alternative, develop program to spot the hand-given measurements in create_measurement_list_SetupD.py')
-            print('Here are the Till measurements and the chronos times:')
-            for label, mtime in zip(all_df['Label'], all_df['MTime']):
-                print(label, mtime)
-#str(time_since_first_utc).split(" days ")[1]
-            for mtime in pd.Series(chronos_df['ChronosTimeStamp']):
-                exp_time = mtime - pd.Series(chronos_df['ChronosTimeStamp']).min()
-                print(mtime, exp_time)
-            #print(pd.Series(chronos_df['ChronosTimeStamp']))
+            print_debug_info(all_df, chronos_df, animal_tag)
             sys.exit('ERROR in integrate_Chronosinfo: Incompatible length of data rows')
 
     return new_df
