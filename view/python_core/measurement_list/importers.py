@@ -140,6 +140,8 @@ class BaseImporter(ABC):
 
         # Ensure selected files are in expected directory
         assert str(files_chosen[0]).startswith(str(default_dir)), (
+            f"You selected:\n"
+            f"{files_chosen[0]}\n"
             f"The data selected is not in the expected data directory of the current tree:\n"
             f"{default_dir}. Please copy your data there and try again!"
         )
