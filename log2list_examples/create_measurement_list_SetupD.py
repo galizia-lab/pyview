@@ -7,7 +7,7 @@
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/VTK_test/YT_VTK"
 #STG_STG_STG_MotherOfAllFolders = r"/Users/galizia/Documents/DATA/HS_210521_test"
 #STG_MotherOfAllFolders = r"/Users/galizia/Nextcloud/VTK_2021/Bee_alarm_2022" # 01_DATA
-STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/elisabeth'
+STG_MotherOfAllFolders = r'/Users/galizia/Documents/DATA/Elisabeth'
 create_animal_list_file = True
 show_correlation_plot = True
 

@@ -7,8 +7,6 @@ from view.python_core.misc import excel_datetime
 import typing
 import easygui
 import logging
-import pprint
-import datetime
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 from view.python_core.io import LIFReaderGio
@@ -137,9 +135,11 @@ class BaseImporter(ABC):
         # User cancelled
         if not files_chosen:
             raise IOError("User Abort while choosing files.")
+        
+        #files
 
         # Ensure selected files are in expected directory
-        assert str(files_chosen[0]).startswith(str(default_dir)), (
+        assert str(pl.Path(files_chosen[0])).startswith(str(default_dir)), (
             f"You selected:\n"
             f"{files_chosen[0]}\n"
             f"The data selected is not in the expected data directory of the current tree:\n"
