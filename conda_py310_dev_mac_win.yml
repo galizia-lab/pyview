@@ -1,6 +1,5 @@
 name: view_dev_py310
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.10
@@ -22,3 +21,5 @@ dependencies:
 # only available on conda-forge
   - moviepy
   - ipdb
+    # ensure consistent BLAS/LAPACK stack
+  - blas=*=openblas

@@ -1,6 +1,5 @@
-name: view_py310_231017
+name: view_py310_250910
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.10
@@ -17,5 +16,6 @@ dependencies:
   - openpyxl
   - jupyter
   - appdirs
-# only available on conda-forge
   - moviepy
+  # ensure consistent BLAS/LAPACK stack
+  - blas=*=openblas
