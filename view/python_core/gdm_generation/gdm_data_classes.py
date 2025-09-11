@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 
 import pandas as pd
-from typing import Dict, Mapping, Sequence
+from typing import Dict, Mapping, Sequence, Hashable
 from neo import AnalogSignal
 import quantities as pq
 import numpy as np
@@ -36,6 +36,9 @@ class GDMRow:
 
         return GDMRow(metadata=self.metadata.copy(), time_series=self.time_series.copy())
 
+    def set_index(self, index: Hashable):
+        self.metadata.name = index
+
     @classmethod
     def from_data_and_metadata(
             cls, metadata_dict: Mapping, trace: Sequence=None, sampling_period_ms: float=None,
@@ -66,9 +69,7 @@ class GDMRow:
             cls, csv_df_row: pd.Series,
             source_csv_file: str=None, source_csv_row_index: int=None):
 
-        sampling_period = csv_df_row.get("Cycle", None)
-        t_start = csv_df_row.get("TraceOffset", 0)
-
+        sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(csv_df_row)
 
         trace, metadata = parse_data_metadata_from_csv_row(csv_df_row)
 
@@ -192,6 +193,10 @@ class GDMFile:
         return gdm_file
 
     def append_from_a_gdm_file(self, gdm_file):
+        # note: current implementation ignores indices in `gdm_file` above.
+        # idea: implement a flag to incorporate or ignore indices of 'gdm_file'
+
+
         # switch off warning "A value is trying to be set on a copy of a slice from a DataFrame"
         pd.options.mode.chained_assignment = None  # default='warn'
         
@@ -199,20 +204,31 @@ class GDMFile:
             self.metadata_df = gdm_file.metadata_df
             self.data_dict = gdm_file.data_dict
         else:
+
             current_max_ind = self.metadata_df.index.values.max()
             for enum_ind, (ind, metadata_row) in enumerate(gdm_file.metadata_df.iterrows()):
                 new_ind = current_max_ind + enum_ind + 1
                 self.metadata_df.loc[new_ind] = metadata_row
                 self.data_dict[new_ind] = gdm_file.data_dict[ind]
 
-    def append_gdm_row(self, gdm_row):
+    def append_gdm_row(self, gdm_row, ignore_index=True):
 
-        new_index = self.metadata_df.shape[0]
-        if new_index == 0:
-            self.metadata_df = pd.DataFrame(gdm_row.metadata).T
-            self.metadata_df.index = [0]  # set index to 0 for the first row
+        if (not ignore_index) and gdm_row.metadata.name:
+            assert gdm_row.metadata.name not in self.metadata_df.index, \
+                'Index of the row to be appended already exists!'
+            new_index = gdm_row.metadata.name
         else:
+            if self.metadata_df.shape[0]:
+                new_index = self.metadata_df.index.max() + 1
+            else:
+                new_index = 0
+
+        if self.metadata_df.shape[0]:
             self.metadata_df.loc[new_index] = gdm_row.metadata
+        else:
+            self.metadata_df = pd.DataFrame(gdm_row.metadata).T
+            self.metadata_df.index = [new_index]  # set index as needed for the first row
+
         self.data_dict[new_index] = gdm_row.time_series
 
     @classmethod
@@ -267,9 +283,15 @@ class GDMFile:
             metadata_df = pd.concat([metadata_df, pd.DataFrame(metadata_row).T], ignore_index=True)
             trace_df = pd.concat([trace_df,pd.DataFrame(frame_values_s).T], ignore_index=True)
 
-        del metadata_df["source_csv_file"]
-        del metadata_df["source_csv_row_index"]
-        # delete these two metadata column added internally to keep track of csv file and row index
+        try:
+            del metadata_df["source_csv_file"]
+            del metadata_df["source_csv_row_index"]
+            # delete these two metadata column that were added internally to keep track of csv file and row index
+        except KeyError:
+            pass
+            # if either of the fields doesn't exist, this error will be raised above.
+            # So catch here and do nothing, as we don't need to worry about deleting thoses columns
+            # if they don't exist
 
 
         metadata_df["PlaceHolder"] = "Trace begins->"
@@ -432,9 +454,46 @@ def get_place_holder_index(headers):
 
     return next(i for i, x in enumerate(headers) if x == "PlaceHolder")
 
+def get_sampling_period_offset_from_metadata(metadata_row: pd.Series) -> tuple[float, float, int]:
+    """
+    Parses and returns sampling period and offset from metadata
+    :param pd.Series metadata_row:
+    :returns (sampling_period_ms, t_start_s):
+    """
+    sampling_period_ms = metadata_row.get("Cycle", None)
+    t_start_s = metadata_row.get("TraceOffset", 0)
+    n_frames = metadata_row["NumFrames"]
+
+    return sampling_period_ms, t_start_s, n_frames
 
 
-def parse_stim_info(gdm_row_metadata, sort=True):
+def parse_odors_to_exclude(odor_to_exclude_str: str) -> Sequence[str]:
+
+    # this could be 'LIOL1', i.e. single odor,
+    # or multiple, either 'LIOL1, LIOL2' or "'LIOL1', 'LIOL2'"
+    # therefore, convert into list
+    exclude = odor_to_exclude_str.split(',')
+    return [item.strip().strip("'") for item in exclude]
+
+def parse_stim_info(
+        gdm_row_metadata: pd.Series, sort: bool = True, odors_to_exclude_str: str = None
+) -> tuple[tuple[str, ...], tuple[float, ...], tuple[float, ...]]:
+    """
+    parses stimulus info from metadata columns "Odour", "StimONms" and "StimLen" to create and return lists of
+    stimulus component names, times and durations
+    :param gdm_row_metadata: metadata row with the columns
+    :param sort: if True, stimulus times are sorted in ascending order and stimulus components and durations are
+    correspondingly reordered
+    :param odors_to_exclude_str: excludes odors specified here
+    :returns (stimulus_components, stimulus_times, stimulus_durations)
+    stimulus_times: in ms
+    stimulus_durations: in ms
+    """
+
+    if odors_to_exclude_str:
+        odors_to_exclude = parse_odors_to_exclude(odors_to_exclude_str)
+    else:
+        odors_to_exclude = []
 
     stimulus_components = eval(gdm_row_metadata["Odour"])
     if type(gdm_row_metadata["StimONms"]) is str:
@@ -452,10 +511,18 @@ def parse_stim_info(gdm_row_metadata, sort=True):
         stimulus_components = stimulus_components,
         stimulus_durations = stimulus_durations,
 
-    if sort:
-        arg_sort = np.argsort(stimulus_times)
-        stimulus_times = [stimulus_times[x] for x in arg_sort]
-        stimulus_components = [stimulus_components[x] for x in arg_sort]
-        stimulus_durations = [stimulus_durations[x] for x in arg_sort]
+    data = {"stim_comps": stimulus_components, "stim_times": stimulus_times, "stim_durs": stimulus_durations}
+    temp_df = pd.DataFrame(data=data)
 
-    return stimulus_components, stimulus_times, stimulus_durations
+    indices_good = [i for i, x in temp_df["stim_comps"].items() if x not in odors_to_exclude]
+
+    temp_df_good = temp_df.loc[indices_good, :]
+
+    if sort:
+        temp_df_good = temp_df_good.sort_values("stim_times")
+
+    return (
+        tuple(temp_df_good["stim_comps"].values),
+        tuple(temp_df_good["stim_times"].values),
+        tuple(temp_df_good["stim_durs"].values)
+    )
