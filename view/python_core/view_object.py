@@ -5,7 +5,7 @@ import sys
 import tempfile
 import time
 
-from pkg_resources import get_distribution
+import importlib
 from .flags import FlagsManager
 from view.python_core.gdm_generation import get_roi_gdm_traces_dict, get_gdm_file
 from .measurement_list import MeasurementList
@@ -34,7 +34,7 @@ class VIEW(object):
         self.p1 = None
         self.log_file = self.setup_logging(terminal_output_verbose)
         logging.getLogger("VIEW").info(
-            f"VIEW object initialized for offline use. Version: {get_distribution('view').version}")
+            f"VIEW object initialized for offline use. Version: {importlib.metadata.version('view')}")
 
     def __del__(self):
 

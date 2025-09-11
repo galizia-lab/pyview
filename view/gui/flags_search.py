@@ -1,10 +1,10 @@
 from whoosh import index as windex
 from whoosh import fields as wfields
 from whoosh import qparser as wqparser
-import view
 from ..python_core.appdirs import get_app_usr_data_dir
 import pathlib as pl
 from ..python_core.flags import FlagsManager
+import importlib
 
 
 def get_index_dir():
@@ -21,7 +21,7 @@ def get_indexname():
     Returns the index name corresponding to the current version of VIEW
     """
 
-    return view.__version__.replace("+", "_")
+    return importlib.metadata.version("view").replace("+", "_")
 
 
 def check_if_index_is_correct(index_dir: pl.Path):

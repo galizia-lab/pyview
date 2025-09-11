@@ -1,8 +1,9 @@
+import importlib
+
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QAction
 from PyQt5.QtGui import QIcon
 from .central_widget import CentralWidget
 from view.python_core.get_internal_files import get_internal_icons
-import pkg_resources
 
 
 class VIEWMainWindow(QMainWindow):
@@ -43,7 +44,7 @@ class VIEWMainWindow(QMainWindow):
 
     def show_version(self):
 
-        view_version = pkg_resources.get_distribution("view").version
+        view_version = importlib.metadata.version("view")
         QMessageBox.information(self, "Version", view_version)
 
     def closeEvent(self, event):
