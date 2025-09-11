@@ -1,6 +1,6 @@
 from view.python_core.flags import FlagsManager
 from view.python_core.utils.colors import interpret_flag_SO_MV_colortable
-from common import get_example_data_root_path
+from tests.common import get_example_data_root_path
 from view.idl_translation_core.IDL import createPalette
 import numpy as np
 from matplotlib.colors import Colormap

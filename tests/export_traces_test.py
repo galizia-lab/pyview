@@ -1,4 +1,4 @@
-from common import initialize_test_yml_list_measurement
+from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 import pathlib as pl
 import shutil

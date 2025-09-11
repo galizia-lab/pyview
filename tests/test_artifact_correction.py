@@ -1,6 +1,6 @@
 from view import VIEW
 from view.python_core.io import write_tif_2Dor3D
-from common import initialize_test_yml_list_measurement
+from tests.common import initialize_test_yml_list_measurement
 import numpy as np
 
 

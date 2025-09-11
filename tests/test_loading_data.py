@@ -1,4 +1,4 @@
-from common import get_example_data_root_path, initialize_test_yml_list_measurement
+from tests.common import get_example_data_root_path, initialize_test_yml_list_measurement
 
 from view.python_core.flags import FlagsManager
 from view.python_core.paths import get_existing_raw_data_filename

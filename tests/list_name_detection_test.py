@@ -1,5 +1,5 @@
 from view.python_core.flags import FlagsManager
-from common import get_example_data_root_path
+from tests.common import get_example_data_root_path
 
 
 def check_list_name_detection(yml_name, animal, expected_list_name):

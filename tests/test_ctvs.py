@@ -1,4 +1,4 @@
-from common import initialize_test_yml_list_measurement
+from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 from view.python_core import ctvs
 from view.python_core.overviews import generate_overview_frame
