@@ -1,9 +1,9 @@
 name: view_py310
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.10
+  - pyqt=5
   - pip
   - scipy
   - scikit-image
@@ -19,3 +19,5 @@ dependencies:
 # only available on conda-forge
   - moviepy
   - libstdcxx-ng
+  - # ensure consistent BLAS/LAPACK stack
+  - blas=*=openblas

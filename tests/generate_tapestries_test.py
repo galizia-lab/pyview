@@ -1,4 +1,4 @@
-from common import initialize_test_yml_list_measurement
+from tests.common import initialize_test_yml_list_measurement
 from view import create_tapestry
 from view.python_core.flags import FlagsManager
 import pathlib as pl

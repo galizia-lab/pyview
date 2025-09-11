@@ -1,7 +1,8 @@
-import pkg_resources
+import importlib
 import pandas as pd
 from collections import OrderedDict
-from .io import read_check_yml_file
+from view import flags_and_metadata_definitions, jinja_templates, fonts
+from view.graphics import icons
 
 
 def get_metadata_definition():
@@ -9,11 +10,14 @@ def get_metadata_definition():
     Read and return internal metadata definition as a DataFrame with internal metadata names as indices
     :return: pandas.DataFrame
     """
-    metadta_def_csv = pkg_resources.resource_filename('view',
-                                                      "flags_and_metadata_definitions/metadata_definition.csv")
-    metadta_def_df = pd.read_csv(metadta_def_csv, index_col=0)
+    with importlib.resources.path(
+            flags_and_metadata_definitions,
+            "metadata_definition.csv"
+    ) as metadata_def_csv:
 
-    return metadta_def_df
+        metadata_def_df = pd.read_csv(metadata_def_csv, index_col=0)
+
+    return metadata_def_df
 
 
 def get_internal_flags_def():
@@ -23,11 +27,13 @@ def get_internal_flags_def():
     """
 
     # get the internal flag checks file depending on flags_type
-    flags_def_XL = pkg_resources.resource_filename('view',
-                                                   "flags_and_metadata_definitions/view_flags_definition.csv")
+    with importlib.resources.path(
+            flags_and_metadata_definitions,
+            "view_flags_definition.csv"
+    ) as flags_def_XL:
 
-    # read and return flag definitions
-    return pd.read_csv(flags_def_XL, comment="#")
+        # read and return flag definitions
+        return pd.read_csv(flags_def_XL, comment="#")
 
 
 def get_internal_fonts_dir():
@@ -36,9 +42,7 @@ def get_internal_fonts_dir():
     :return: string
     """
 
-    fonts_dir = pkg_resources.resource_filename("view", "fonts")
-
-    return fonts_dir
+    return fonts.__path__[0]
 
 
 def get_internal_icons(icon_name):
@@ -48,7 +52,11 @@ def get_internal_icons(icon_name):
     :return: string
     """
 
-    return pkg_resources.resource_filename("view", f"graphics/icons/{icon_name}")
+    with importlib.resources.path(
+            icons,
+            icon_name
+    ) as fle:
+        return str(fle)
 
 
 def get_internal_jinja_template(template_name):
@@ -58,7 +66,10 @@ def get_internal_jinja_template(template_name):
     :return: str
     """
 
-    return pkg_resources.resource_filename("view", f"jinja_templates/{template_name}")
+    with importlib.resources.path(
+           jinja_templates, template_name
+    ) as jinja2_template_filename:
+        return jinja2_template_filename
 
 
 def get_setup_info_df():
@@ -67,10 +78,11 @@ def get_setup_info_df():
     :return: pandas.DataFrame
     """
 
-    internal_setup_info_csv = pkg_resources.resource_filename(
-        'view', "flags_and_metadata_definitions/setup_definitions.csv")
-
-    return pd.read_csv(internal_setup_info_csv, comment="#")
+    with importlib.resources.path(
+            flags_and_metadata_definitions,
+            "setup_definitions.csv"
+    ) as internal_setup_info_csv:
+        return pd.read_csv(internal_setup_info_csv, comment="#")
 
 
 def get_setup_description_dict():
@@ -95,8 +107,7 @@ def get_gdm_doc_df():
     """
     Reads and returns pandas.Dataframe containing the descriptions of GDM columns
     """
-
-    gdm_doc_csv = pkg_resources.resource_filename(
-        "view", "flags_and_metadata_definitions/glodatamix_columns_doc.csv")
-
-    return pd.read_csv(gdm_doc_csv)
+    with importlib.resources.path(
+            flags_and_metadata_definitions, "glodatamix_columns_doc.csv"
+    ) as gdm_doc_csv:
+        return pd.read_csv(gdm_doc_csv)

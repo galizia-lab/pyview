@@ -1,4 +1,4 @@
-from common import get_example_dataset_roots
+from tests.common import get_example_dataset_roots
 from view.python_core.measurement_list import MeasurementList
 from view.python_core.flags import FlagsManager
 import pathlib as pl
@@ -103,7 +103,8 @@ def test_lstxls2p1():
 
 if __name__ == "__main__":
 
-    test_reading_lst()
+    # test_reading_lst()
+    test_lstxls2p1()
 
     # print all lists in all test data sets
     # print("Legacy LST files")

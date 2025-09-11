@@ -67,12 +67,16 @@ class MetadataDefinition(object):
 
     def get_default_row(self):
         """
-        returns a pandas Series representing a row of a measurement, with all default values
+        returns a pandas Series representing a row of a measurement, with all default values and correct data types
         :return: pandas Series
         """
 
         default_row = self._def_df["Default values"]
-        return default_row.apply(lambda x: pd.to_numeric(x, errors="ignore"))
+        type_spec = self._def_df['Data Type']
+        default_row_df = pd.DataFrame(default_row).T
+        default_row_df_correct_data_types = default_row_df.astype(type_spec)
+
+        return default_row_df_correct_data_types.T['Default values']
 
     def is_value_default(self, metadata_name, value):
 
@@ -80,6 +84,11 @@ class MetadataDefinition(object):
 
         assert metadata_name in def_df2use.index.values, f"Unknown metadata name {metadata_name}"
 
-        default_value = def_df2use.loc[metadata_name, "Default values"]
+        data_type_this_metadata = def_df2use.loc[metadata_name, 'Data Type']
+        fake_ml_df = pd.DataFrame(data={"Default value": def_df2use.loc[metadata_name, 'Default values']}, index=[0])
+        fake_ml_df_typecasted = fake_ml_df.astype(data_type_this_metadata)
+        # ideal solution would be to cast only the default value of this metadata. However, I couldn't
+        # find an easy way to cast only one value. Hence, creating a dataframe of one row and one column and using it.
 
-        return value == pd.to_numeric(default_value, errors="ignore")
+        return fake_ml_df_typecasted.loc[0, 'Default value'] == value
+

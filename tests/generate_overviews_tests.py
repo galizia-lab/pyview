@@ -1,4 +1,4 @@
-from common import initialize_test_yml_list_measurement
+from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 import tifffile
 import pathlib as pl

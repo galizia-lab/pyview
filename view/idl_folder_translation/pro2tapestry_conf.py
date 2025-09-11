@@ -1,9 +1,10 @@
-import pkg_resources
+import importlib
 import pathlib as pl
 import re
 import pandas as pd
 import textfsm
 import yaml
+from view import idl_folder_translation
 
 
 def get_template():
@@ -11,10 +12,11 @@ def get_template():
     Read and return internal metadata definition as a DataFrame with internal metadata names as indices
     :return: pandas.DataFrame
     """
-    pro_template_file = pkg_resources.resource_filename(
-        'view', "idl_folder_translation/pro_fsm_template.txt")
 
-    return pro_template_file
+    with importlib.resources.path(
+            idl_folder_translation, "pro_fsm_template.txt"
+    ) as pro_fsm_template_filename:
+        return pro_fsm_template_filename
 
 
 def parse_pro_file(pro_file):
