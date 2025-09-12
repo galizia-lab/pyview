@@ -57,12 +57,12 @@ def get_glodatamix_row_boiler_plate(p1, animal_name=None):
 
     # add stimulus timing information
     stim_starts_ms = [
-        x / np.timedelta64(1, 'ms')
+        float(x / np.timedelta64(1, 'ms'))
         for x in p1.pulsed_stimuli_handler.get_pulse_start_times()]
     metadata_boiler_plate["StimONms"] = str(stim_starts_ms)[1:-1]
     
     stim_durations_ms = [
-        x / np.timedelta64(1, 'ms')
+        float(x / np.timedelta64(1, 'ms'))
         for x in p1.pulsed_stimuli_handler.get_pulse_durations()]
     metadata_boiler_plate["StimLen"] = str(stim_durations_ms)[1:-1]
 
