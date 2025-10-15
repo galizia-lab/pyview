@@ -169,9 +169,10 @@ class GekkoFitter(GekkoSolver):
             print(fnfe)
             return None
         except Exception as e:
-            poss1 = str(e).find("@error: Solution Not Found") >= 0
-            poss2 = str(e).find("Time Limit Exceeded:") >= 0
-            poss3 = str(e).find("name 'TimeoutExpired' is not defined") >= 0
+            error_string_lower = str(e).lower()
+            poss1 = error_string_lower.find("@error: solution not found") >= 0
+            poss2 = error_string_lower.find("time limit exceeded:") >= 0
+            poss3 = error_string_lower.find("name 'timeoutexpired' is not defined") >= 0
             if poss1 or poss2 or poss3:
                 print(e)
                 return None

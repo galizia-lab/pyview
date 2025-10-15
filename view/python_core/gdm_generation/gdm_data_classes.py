@@ -2,12 +2,28 @@ import logging
 from dataclasses import dataclass, field
 
 import pandas as pd
-from typing import Dict, Mapping, Sequence
-
+from typing import Dict, Mapping, Sequence, Hashable
 from neo import AnalogSignal
 import quantities as pq
 import numpy as np
 from typing_extensions import Self
+from os import PathLike
+
+
+def parse_data_metadata_from_csv_row(csv_df_row: pd.Series) -> (Sequence[float], pd.Series):
+
+    try:
+        place_holder_column_index = get_place_holder_index(csv_df_row.index)
+    except StopIteration as se:
+        return None, csv_df_row.to_dict()
+
+    try:
+        trace_start_pos = place_holder_column_index + 1
+        n_samples = csv_df_row.get("NumFrames", None)
+        trace = [float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
+        return trace, csv_df_row.iloc[:trace_start_pos].to_dict()
+    except Exception as e:
+        logging.debug(f'Problem creating a trace', exc_info=e)
 
 
 @dataclass
@@ -19,6 +35,9 @@ class GDMRow:
     def copy(self) -> Self:
 
         return GDMRow(metadata=self.metadata.copy(), time_series=self.time_series.copy())
+
+    def set_index(self, index: Hashable):
+        self.metadata.name = index
 
     @classmethod
     def from_data_and_metadata(
@@ -46,27 +65,47 @@ class GDMRow:
         return signal_metadata, self.time_series.magnitude.T[0]
 
     @classmethod
-    def parse_from_csv_df_row(cls, csv_df_row):
+    def parse_from_csv_df_row(
+            cls, csv_df_row: pd.Series,
+            source_csv_file: str=None, source_csv_row_index: int=None):
 
-        try:
-            sampling_period = csv_df_row["Cycle"]
-            t_start = csv_df_row["TraceOffset"]
-            n_samples = csv_df_row["NumFrames"]
+        sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(csv_df_row)
 
-            trace_start_pos = next(iter(i for i, x in enumerate(csv_df_row.index.values) if x == "PlaceHolder")) + 1
-            trace = [float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
-        except (KeyError, StopIteration) as e:
-            sampling_period = None
-            t_start = 0
-            trace_start_pos = len(csv_df_row)
-            trace = None
+        trace, metadata = parse_data_metadata_from_csv_row(csv_df_row)
+
+        metadata["source_csv_row_index"] = source_csv_row_index
+        metadata["source_csv_file"] = source_csv_file
 
         return cls.from_data_and_metadata(
-            metadata_dict=csv_df_row.iloc[:trace_start_pos],
+            metadata_dict=metadata,
             sampling_period_ms=sampling_period,
             starting_time_s=t_start,
             trace=trace
         )
+
+    @classmethod
+    def check_read_data_if_missing(cls, gdm_row: Self):
+        """
+        Checks if `gdm_row` has time_series data in it, if yes, return it. Else create a new GDMRow object by using
+        metadata in `gdm_row` and time_series data pointed to by it.
+        """
+
+        if gdm_row.time_series is not None:
+            # either time series for this row has already been initialized for this GDMRow
+            # so do nothing and return
+            return gdm_row
+        else:
+            # time series has not been initialized for this row
+
+            csv_df_row = read_chunks_gdm_csv(
+                input_csv=gdm_row.metadata["source_csv_file"],
+                only_one_row_at_index=gdm_row.metadata["source_csv_row_index"]).iloc[0, :]
+
+            gdm_row_with_data = cls.parse_from_csv_df_row(csv_df_row)
+            gdm_row_with_data.metadata = gdm_row.metadata
+            # replace metadata of `gdm_row` in case any metadata was added after loading from csvfile
+
+            return gdm_row_with_data
 
 
 @dataclass
@@ -87,8 +126,21 @@ class GDMFile:
         if not isinstance(other, type(self)):
             return False
 
-        if not self.metadata_df.astype(str).equals(other.metadata_df.astype(str)):
-            # using `astype` above to avoid potential issues due to type mismatches
+        def clean_generate_as_str(df):
+
+            df_copy = df.copy()
+            del df_copy["source_csv_file"]
+            del df_copy["source_csv_row_index"]
+            # delete these two metadata column added internally to keep track of csv file and row index
+
+            return df_copy.astype(str)
+
+        cleaned_str_rep_self_metadata = clean_generate_as_str(self.metadata_df)
+        cleaned_str_rep_other_metadata = clean_generate_as_str(other.metadata_df)
+        # using string representations above using `astype` to avoid potential issues due to type mismatches
+
+        if not cleaned_str_rep_self_metadata.equals(cleaned_str_rep_other_metadata):
+
             return False
 
         for ind in self.metadata_df.index.values:
@@ -141,6 +193,10 @@ class GDMFile:
         return gdm_file
 
     def append_from_a_gdm_file(self, gdm_file):
+        # note: current implementation ignores indices in `gdm_file` above.
+        # idea: implement a flag to incorporate or ignore indices of 'gdm_file'
+
+
         # switch off warning "A value is trying to be set on a copy of a slice from a DataFrame"
         pd.options.mode.chained_assignment = None  # default='warn'
         
@@ -148,20 +204,31 @@ class GDMFile:
             self.metadata_df = gdm_file.metadata_df
             self.data_dict = gdm_file.data_dict
         else:
+
             current_max_ind = self.metadata_df.index.values.max()
             for enum_ind, (ind, metadata_row) in enumerate(gdm_file.metadata_df.iterrows()):
                 new_ind = current_max_ind + enum_ind + 1
                 self.metadata_df.loc[new_ind] = metadata_row
                 self.data_dict[new_ind] = gdm_file.data_dict[ind]
 
-    def append_gdm_row(self, gdm_row):
+    def append_gdm_row(self, gdm_row, ignore_index=True):
 
-        new_index = self.metadata_df.shape[0]
-        if new_index == 0:
-            self.metadata_df = pd.DataFrame(gdm_row.metadata).T
-            self.metadata_df.index = [0]  # set index to 0 for the first row
+        if (not ignore_index) and gdm_row.metadata.name:
+            assert gdm_row.metadata.name not in self.metadata_df.index, \
+                'Index of the row to be appended already exists!'
+            new_index = gdm_row.metadata.name
         else:
+            if self.metadata_df.shape[0]:
+                new_index = self.metadata_df.index.max() + 1
+            else:
+                new_index = 0
+
+        if self.metadata_df.shape[0]:
             self.metadata_df.loc[new_index] = gdm_row.metadata
+        else:
+            self.metadata_df = pd.DataFrame(gdm_row.metadata).T
+            self.metadata_df.index = [new_index]  # set index as needed for the first row
+
         self.data_dict[new_index] = gdm_row.time_series
 
     @classmethod
@@ -177,9 +244,29 @@ class GDMFile:
         csv_df = read_chunks_gdm_csv(csv_file, metadata_only=metadata_only)
 
         for i, row in csv_df.iterrows():
-            gdm_file.append_gdm_row(GDMRow.parse_from_csv_df_row(row))
+            gdm_row = GDMRow.parse_from_csv_df_row(row, source_csv_file=csv_file, source_csv_row_index= i + 1)
+            gdm_file.append_gdm_row(gdm_row)
 
         return gdm_file
+
+    def check_load_data_if_missing(self, indices_to_check: Sequence[int]= None):
+        """
+        Loads data for each row in the sequence `indices_to_check` if available and not loaded
+        (probably because GDMFile was loaded in "metadata_only" mode).
+        :param Sequence[ind] indices_to_check: data will be loaded rows corresponding to these indices; if None,
+                                               data will be loaded for all rows
+        """
+
+        if indices_to_check is None:
+            indices_to_check = self.data_dict.keys()
+
+        for ind in indices_to_check:
+
+            if self.data_dict[ind] is None:
+
+                gdm_row_with_time_series = GDMRow.check_read_data_if_missing(self[ind])
+                self.data_dict[ind] = gdm_row_with_time_series.time_series
+
 
     def write_to_csv(self, filename):
 
@@ -195,6 +282,17 @@ class GDMFile:
             # trace_df = trace_df.append(pd.DataFrame(frame_values_s).T, ignore_index=True)
             metadata_df = pd.concat([metadata_df, pd.DataFrame(metadata_row).T], ignore_index=True)
             trace_df = pd.concat([trace_df,pd.DataFrame(frame_values_s).T], ignore_index=True)
+
+        try:
+            del metadata_df["source_csv_file"]
+            del metadata_df["source_csv_row_index"]
+            # delete these two metadata column that were added internally to keep track of csv file and row index
+        except KeyError:
+            pass
+            # if either of the fields doesn't exist, this error will be raised above.
+            # So catch here and do nothing, as we don't need to worry about deleting thoses columns
+            # if they don't exist
+
 
         metadata_df["PlaceHolder"] = "Trace begins->"
         columns_before_trace = \
@@ -309,28 +407,38 @@ class GDMFile:
         return collapsed_gdm_file
 
 
-def read_chunks_gdm_csv(input_csv, metadata_only=False):
+def read_chunks_gdm_csv(
+        input_csv: PathLike, metadata_only: bool=False, only_one_row_at_index: int=None
+    ):
     """
     Read a csv containing gdm and FID chunks, parsing date and time columns properly
     :param str input_csv: path to the input csv
     :param bool metadata_only: whether to only read metadata, i.e., skip reading data
+    :param int only_one_row_at_index: read only one row at the given index
     :return: pandas.DataFrame
     """
 
     print(f"Reading {input_csv}")
-    
-    if metadata_only:
-        gdm_df = pd.read_csv(input_csv, sep=";", nrows=1, header=0)
-        columns2read = []
-        for x in gdm_df.columns:
-            if x == "PlaceHolder":
-                break
-            else:
-                columns2read.append(x)
 
-        gdm_df = pd.read_csv(input_csv, sep=";", usecols=columns2read)
+    # read column headers (first line of csv)
+    headers_df = pd.read_csv(input_csv, sep=";", nrows=1, header=0)
+    try:
+        place_holder_column_index = get_place_holder_index(headers_df.columns)
+    except StopIteration as ste:
+        raise f'Could not read {input_csv} as no column with header "PlaceHolder" was found'
+
+    basic_kwargs = dict(sep=";", header=0)
+
+    if only_one_row_at_index:
+        basic_kwargs["skiprows"] = range(1, only_one_row_at_index)
+        basic_kwargs["nrows"] = 1
+
+    if metadata_only:
+        gdm_df = pd.read_csv(
+            input_csv, **basic_kwargs, usecols=range(place_holder_column_index)
+        )
     else:
-        gdm_df = pd.read_csv(input_csv, sep=";")
+        gdm_df = pd.read_csv(input_csv, **basic_kwargs)
 
     def revise_line(line):
         if "_" in line:
@@ -342,8 +450,50 @@ def read_chunks_gdm_csv(input_csv, metadata_only=False):
 
     return gdm_df
 
+def get_place_holder_index(headers):
 
-def parse_stim_info(gdm_row_metadata, sort=True):
+    return next(i for i, x in enumerate(headers) if x == "PlaceHolder")
+
+def get_sampling_period_offset_from_metadata(metadata_row: pd.Series) -> tuple[float, float, int]:
+    """
+    Parses and returns sampling period and offset from metadata
+    :param pd.Series metadata_row:
+    :returns (sampling_period_ms, t_start_s):
+    """
+    sampling_period_ms = metadata_row.get("Cycle", None)
+    t_start_s = metadata_row.get("TraceOffset", 0)
+    n_frames = metadata_row["NumFrames"]
+
+    return sampling_period_ms, t_start_s, n_frames
+
+
+def parse_odors_to_exclude(odor_to_exclude_str: str) -> Sequence[str]:
+
+    # this could be 'LIOL1', i.e. single odor,
+    # or multiple, either 'LIOL1, LIOL2' or "'LIOL1', 'LIOL2'"
+    # therefore, convert into list
+    exclude = odor_to_exclude_str.split(',')
+    return [item.strip().strip("'") for item in exclude]
+
+def parse_stim_info(
+        gdm_row_metadata: pd.Series, sort: bool = True, odors_to_exclude_str: str = None
+) -> tuple[tuple[str, ...], tuple[float, ...], tuple[float, ...]]:
+    """
+    parses stimulus info from metadata columns "Odour", "StimONms" and "StimLen" to create and return lists of
+    stimulus component names, times and durations
+    :param gdm_row_metadata: metadata row with the columns
+    :param sort: if True, stimulus times are sorted in ascending order and stimulus components and durations are
+    correspondingly reordered
+    :param odors_to_exclude_str: excludes odors specified here
+    :returns (stimulus_components, stimulus_times, stimulus_durations)
+    stimulus_times: in ms
+    stimulus_durations: in ms
+    """
+
+    if odors_to_exclude_str:
+        odors_to_exclude = parse_odors_to_exclude(odors_to_exclude_str)
+    else:
+        odors_to_exclude = []
 
     stimulus_components = eval(gdm_row_metadata["Odour"])
     if type(gdm_row_metadata["StimONms"]) is str:
@@ -361,10 +511,18 @@ def parse_stim_info(gdm_row_metadata, sort=True):
         stimulus_components = stimulus_components,
         stimulus_durations = stimulus_durations,
 
-    if sort:
-        arg_sort = np.argsort(stimulus_times)
-        stimulus_times = [stimulus_times[x] for x in arg_sort]
-        stimulus_components = [stimulus_components[x] for x in arg_sort]
-        stimulus_durations = [stimulus_durations[x] for x in arg_sort]
+    data = {"stim_comps": stimulus_components, "stim_times": stimulus_times, "stim_durs": stimulus_durations}
+    temp_df = pd.DataFrame(data=data)
 
-    return stimulus_components, stimulus_times, stimulus_durations
+    indices_good = [i for i, x in temp_df["stim_comps"].items() if x not in odors_to_exclude]
+
+    temp_df_good = temp_df.loc[indices_good, :]
+
+    if sort:
+        temp_df_good = temp_df_good.sort_values("stim_times")
+
+    return (
+        tuple(temp_df_good["stim_comps"].values),
+        tuple(temp_df_good["stim_times"].values),
+        tuple(temp_df_good["stim_durs"].values)
+    )
