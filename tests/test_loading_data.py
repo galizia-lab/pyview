@@ -1,3 +1,5 @@
+import pytest
+
 from tests.common import get_example_data_root_path, initialize_test_yml_list_measurement
 
 from view.python_core.flags import FlagsManager
@@ -24,7 +26,7 @@ def load_calc_data(yml_file, animal, measus=None, flags=None):
     return vo
 
 
-def test_loading_all_data():
+def gen_loading_all_data():
 
     yml_animal_dict = {
         "FakeData/test_defaults.yml": ["FakeData"],
@@ -49,11 +51,16 @@ def test_loading_all_data():
 
         for animal in animals:
 
-            load_calc_data.description \
-                = f"Testing loading data and signal calculation with yml={yml_relative_path} and animal={animal}"
+            yield yml_file, animal
 
-            yield load_calc_data, yml_file, animal
+loading_all_data_yml_files = list(gen_loading_all_data())
 
+@pytest.mark.parametrize("yml_file, animal", loading_all_data_yml_files)
+def test_loading_all_data(yml_file, animal):
+    # load_calc_data.description \
+    #     = f"Testing loading data and signal calculation with yml={yml_relative_path} and animal={animal}"
+    # TODO port description for use with pytest
+    load_calc_data(yml_file, animal)
 
 def test_loading_data_without_measurement_list():
     """Testing loading data without measurement list"""

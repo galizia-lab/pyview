@@ -4,7 +4,7 @@ from view.python_core.flags import FlagsManager
 import pprint
 
 
-def index_creation_test():
+def test_index_creation():
     """
     Testing creation of flags index
     """
@@ -16,11 +16,11 @@ def index_creation_test():
     return ix
 
 
-def query_tests():
+def test_querys():
     """
     Testing querying index
     """
-    ix = index_creation_test()
+    ix = test_index_creation()
     pprint.pprint(query(index=ix, query_str="movie"))
     pprint.pprint(query(index=ix, query_str="color"))
     pprint.pprint(query(index=ix, query_str="mv"))

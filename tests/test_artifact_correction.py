@@ -1,3 +1,5 @@
+import pytest
+
 from view import VIEW
 from view.python_core.io import write_tif_2Dor3D
 from tests.common import initialize_test_yml_list_measurement
@@ -172,13 +174,9 @@ def test_log_bleach_uniform_excluding_stimulus():
         # output_suffix="_BC_log_uniform_excludingStimulus"
     )
 
-
-def test_artifact_correction_filters_only():
-    """
-    testing loading data with no bleach correction, but with median filtering
-    """
-
-    flags_to_test = [
+@pytest.mark.parametrize(
+    "flags_to_test",
+    [
         {"Data_Median_Filter": 0},
         {"Data_Median_Filter": 1},
         {"Data_Median_Filter": 2},
@@ -188,11 +186,12 @@ def test_artifact_correction_filters_only():
         {"Data_Mean_Filter": 2},
         {"Data_Mean_Filter": 3, "Data_Mean_Filter_space": 10, "Data_Mean_Filter_time": 10}
     ]
+)
+def test_artifact_correction_filters_only(flags_to_test):
 
-    for flags in flags_to_test:
-
-        run_artifact_correction.description = f"Testing raw data filtering with {flags}"
-        yield run_artifact_correction, flags
+    # run_artifact_correction.description = f"Testing raw data filtering with {flags}"
+    # TODO port verbose description to pytest
+    run_artifact_correction(flags_to_test)
 
 
 if __name__ == '__main__':
