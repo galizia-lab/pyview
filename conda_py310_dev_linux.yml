@@ -14,7 +14,8 @@ dependencies:
   - pyqtgraph
   - whoosh
   - openpyxl
-  - nose
+  - pytest
+  - pandas-stubs
   - ipython
   - jupyter
   - appdirs

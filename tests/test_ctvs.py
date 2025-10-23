@@ -7,7 +7,7 @@ import pathlib as pl
 import numpy as np
 
 
-def ctv_signatures_test():
+def test_ctv_signatures():
     """
     Check if signatures of all csv functions are equal
     """

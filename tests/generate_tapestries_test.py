@@ -1,11 +1,12 @@
+import pytest
+
 from tests.common import initialize_test_yml_list_measurement
 from view import create_tapestry
 from view.python_core.flags import FlagsManager
 import pathlib as pl
-import platform
 
 
-def test_non_default():
+def gen_non_default_configs():
     """
     Generating tapestries with non-default tapestry configs
     """
@@ -19,15 +20,32 @@ def test_non_default():
 
     progs_path = pl.Path(flags_dummy["STG_MotherOfAllFolders"]) / "IDLprogs" / "tapestry_configs"
     for child in progs_path.iterdir():
-        if child.suffix == ".yml" and child.name != "defult.yml":
+        if child.suffix == ".yml" and child.name != "default.yml":
 
             # if child.name.lower().find("linux") >= 0 and platform.system() != "Linux":
             #     continue
             # elif child.name.lower().find("windows") >= 0 and platform.system() != "Windows":
             #     continue
 
-            create_tapestry.description = f"Generating tapestry with {child.name}"
-            yield create_tapestry, str(child), test_yml, text_below
+            # create_tapestry.description = f"Generating tapestry with {child.name}"
+            # TODO port descriptions for use with pytest
+
+            yield str(child), test_yml, text_below
+
+def test_default():
+    """
+    Generating tapestries with default tapestry configs
+    """
+
+    run_with_yml_name("default")
+
+
+non_default_configs = list(gen_non_default_configs())
+
+@pytest.mark.parametrize('tapestry_yml_file, view_yml_file, text_below_func', non_default_configs)
+def test_non_default_configs(tapestry_yml_file, view_yml_file, text_below_func):
+
+    create_tapestry(tapestry_yml_file, view_yml_file, text_below_func)
 
 
 def run_with_yml_name(yml_name):
@@ -45,12 +63,7 @@ def run_with_yml_name(yml_name):
                     text_below_func=text_below)
 
 
-def test_default():
-    """
-    Generating tapestries with default tapestry configs
-    """
 
-    run_with_yml_name("default")
 
 
 if __name__ == '__main__':

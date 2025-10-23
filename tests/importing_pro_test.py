@@ -1,7 +1,5 @@
 from view.idl_folder_translation.pro2tapestry_conf import parse_pro_file, convert_pro_to_tapestry_config
 import pathlib as pl
-import textfsm
-import pandas as pd
 import tempfile
 
 
