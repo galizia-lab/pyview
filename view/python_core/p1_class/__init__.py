@@ -192,7 +192,7 @@ class P1SingleWavelengthAbstract(ABC):
             filename, raw_data = self.read_data_with_defaulting(metadata=p1_metadata, flags=flags)
         except FileNotFoundError as fnfe:
             raise IOError(
-                f"Problem loading raw data from dbb1. Please check the measurement row selected in the "
+                f"load_correct_raw_data: Problem loading raw data from dbb1. Please check the measurement row selected in the "
                 f"measurement list file. Original Error:\n {str(fnfe)}")
 
         area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params = self.correct_raw_data(

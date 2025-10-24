@@ -5,7 +5,7 @@ from itertools import product
 def check_for_existing_dbb1(data_dir_path, dbb1, extension, animal_tag):
 
     dbb1 = str(dbb1).replace("\\", "/")  # dbb1 for settings files generated in windows can contain "\\"
-
+    dbb1_parts = pl.Path(dbb1).parts
     without_ORline_value_trailing = "_".join(animal_tag.split("_")[:-1])
     possible_paths = [data_dir_path / dbb1,
                       data_dir_path / f"{dbb1}{extension}",
@@ -19,9 +19,11 @@ def check_for_existing_dbb1(data_dir_path, dbb1, extension, animal_tag):
                       data_dir_path / without_ORline_value_trailing / dbb1,
                       data_dir_path / without_ORline_value_trailing / f"{dbb1}{extension}",
                       data_dir_path / without_ORline_value_trailing / f"{animal_tag}{extension}" / dbb1,
-                      data_dir_path / without_ORline_value_trailing / f"{animal_tag}{extension}" / f"{dbb1}{extension}"
+                      data_dir_path / without_ORline_value_trailing / f"{animal_tag}{extension}" / f"{dbb1}{extension}",
+                        # for GCMS Gerstel, when several folders are used for one animal, structure could be
+                      data_dir_path / dbb1_parts[0] / dbb1
                       ]
-
+    
     # resolution required for cross OS compatibility, i.e., for example, when settings files was generated in Windows
     # and used on linux/mac
     existences = [x.resolve(strict=False).is_file() for x in possible_paths]
@@ -78,7 +80,7 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
     if any(hits):
         return possible_filenames[hits.index(True)]
     else:
-        raise FileNotFoundError(f"Could not find raw file with dbb1={dbb} in {flags['STG_Datapath']}")
+        raise FileNotFoundError(f"get_existing_raw_data_filename: Could not find raw file with dbb1={dbb} in {flags['STG_Datapath']}")
 
 
 def convert_to_path_for_current_os(path_str):
