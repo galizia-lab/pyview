@@ -139,7 +139,7 @@ class BaseImporter(ABC):
             raise IOError("User Abort while choosing files.")
 
         # Ensure selected files are in expected directory
-        assert str(files_chosen[0]).startswith(str(default_dir)), (
+        assert str(pl.Path(files_chosen[0])).startswith(initial_dir), (
             f"The data selected is not in the expected data directory of the current tree:\n"
             f"{default_dir}. Please copy your data there and try again!"
         )

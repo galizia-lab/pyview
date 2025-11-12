@@ -220,6 +220,8 @@ class MeasurementList(object):
     def convert_to_required_data_types(self):
 
         type_spec = self._metadata_def_df['Data Type']
+        # pandas now enforces that all columns mentioned in type_spec must be present in the DataFrame
+        type_spec = type_spec[type_spec.index.isin(self.measurement_list_df.columns)]
         self.measurement_list_df = \
             self.measurement_list_df.astype(type_spec)
 
