@@ -2,7 +2,8 @@ from scipy.io import savemat
 from view.python_core.get_internal_files import get_gdm_doc_df
 from view.python_core.p1_class import P1SingleWavelengthTIF
 from view.python_core.flags import FlagsManager
-from view.python_core.gdm_generation.glomeruli_managers import get_gdm_row_boiler_plate_sans_glo
+#from view.python_core.gdm_generation.glomeruli_managers import get_gdm_row_boiler_plate_sans_glo
+from view.python_core.gdm_generation import get_glodatamix_row_boiler_plate as get_gdm_row_boiler_plate
 import numpy as np
 
 
@@ -24,7 +25,10 @@ def export_processed_data_as_mat_file(view_object, analyze_values_to_use):
         view_object.calculate_signals()
 
         # accumulate metadata
-        metadatas.append(get_gdm_row_boiler_plate_sans_glo(flags=view_object.flags, p1=view_object.p1))
+        #metadatas.append(get_gdm_row_boiler_plate_sans_glo(flags=view_object.flags, p1=view_object.p1))
+        #nov. 2025: sans_glo above replaced with standard version to include glomerulus info
+        metadatas.append(get_gdm_row_boiler_plate(p1=view_object.p1))
+        
 
         # accumulate CTV overview
         response_frames.append(view_object.generate_ctv_response_frame_for_current_measurement())

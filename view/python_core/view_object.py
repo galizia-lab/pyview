@@ -6,6 +6,7 @@ import tempfile
 import time
 
 import importlib
+from importlib import metadata
 from .flags import FlagsManager
 from view.python_core.gdm_generation import get_roi_gdm_traces_dict, get_gdm_file
 from .measurement_list import MeasurementList
@@ -34,24 +35,33 @@ class VIEW(object):
         self.p1 = None
         self.log_file = self.setup_logging(terminal_output_verbose)
         logging.getLogger("VIEW").info(
-            f"VIEW object initialized for offline use. Version: {importlib.metadata.version('view')}")
+            f"VIEW object initialized for offline use. Version: {metadata.version('view')}")
 
     def __del__(self):
 
-        del self.flags
-        self.delete_data()
+        #del self.flags
+        #self.delete_data()
+        self.close()
+        pass
+
+    def close(self):
+        self.p1 = None
+        self.measurement_list = None
+        self.flags = None
+
 
     def delete_data(self):
 
         try:
-            self.p1.__del__()
-            del self.measurement_list
+            self.close()
         except AttributeError as ae:
             pass
 
         self.p1 = None
         self.measurement_list = None
-        gc.collect()
+        print("gc before delete:", gc, type(gc))
+        gc.collect() #chat says not to use gc but seems necessary to avoid memory leaks
+        print("gc after delete:", gc, type(gc))
 
     def setup_logging(self, terminal_output_verbose):
 
@@ -243,9 +253,6 @@ class VIEW(object):
         Export a movie with the current flag settings and for the measurement data currently loaded
         :return: str, path of the movie output file written or output directory for when mv_exportFormat='single_tif'
         """
-
-        if self.p1.sig1 is None:
-            self.calculate_signals()
 
         movie_dir_path = pl.Path(self.flags.get_op_movie_dir())
         movie_dir_path.mkdir(parents=True, exist_ok=True)
