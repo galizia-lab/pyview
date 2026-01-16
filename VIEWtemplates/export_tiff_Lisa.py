@@ -27,9 +27,9 @@ flags_to_update = {
 # list of animals for which MAT files are to be generated
 animals = [
     'ES_250724d_cal520_PN',
-    'ES_250627d_cal520_PN'
+#    'ES_250627d_cal520_PN'
 ]
-analyze_values_to_use=(1,-1)
+analyze_values_to_use=(2,-1)
 
 if __name__ == '__main__':
 
