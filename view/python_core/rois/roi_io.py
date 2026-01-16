@@ -56,7 +56,7 @@ class ROIFileIO(BaseROIIO, ABC):
                 f"\nand measurement_label={measurement_label}\nwith extension={cls.get_extension()}"
             )
 
-        logging.getLogger("VIEW").info(f"Loading ROI data from {roi_file}")
+        logging.getLogger("VIEW").info(f"Loading current ROI data from {roi_file}")
         roi_data_list = cls.read_roi_file(roi_file, flags)
 
         # look for duplicate labels and issue warning
@@ -155,7 +155,7 @@ class IDLAREAFileIO(ROIFileIO):
         """
 
         idl_tiff_frame = AreaMaskIO().read_footprint(roi_file)
-
+        
         roi_data = TIFFIDLROIData(idl_tiff_frame=idl_tiff_frame, label="Area0")
         return [roi_data]
 

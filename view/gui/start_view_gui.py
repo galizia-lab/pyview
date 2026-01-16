@@ -4,7 +4,7 @@ from view.gui.application_settings import initialize_app_settings
 from view.gui.main_window import VIEWMainWindow
 from view.iltis_shell.main_shell import ILTISMainShell
 from matplotlib import pyplot as plt
-
+import numpy as np
 
 class ContainerWidget(QTabWidget):
 
@@ -40,7 +40,8 @@ class ContainerWidget(QTabWidget):
 
 
 def main():
-
+    np.set_printoptions(legacy="1.25") # numpy 2.0.0 includes type info. 
+    # This forces old style print
     # Initialize application Name, Organization Name and Domain
     initialize_app_settings()
 

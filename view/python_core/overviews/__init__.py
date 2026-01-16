@@ -201,7 +201,7 @@ def colorize_overview_add_border_etc(overview_frame, flags, p1=None):
 
     # add colorbar
     overview_frame_final = overview_generator.add_colorbar(overview_frame_rotated, static_frame)
-
+    np.set_printoptions(legacy="1.25") # numpy now includes type info. 
     logging.getLogger("VIEW").info(
         f"SO_individualScale set to:{flags['SO_individualScale']}. "
         f"Minimum and maximum are: {data_to_01_mapper.get_data_limits()}")
