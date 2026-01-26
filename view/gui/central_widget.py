@@ -31,6 +31,7 @@ from .file_selector_combobox import get_file_selector_combobox_using_settings
 from .flags_box import FlagsDisplayChoiceTabs
 from .gdm_visualization import GDMViz
 from .load_measurement import LoadMeasurementsFromVWSLogWindow, LoadMeasurementsFromListWindow
+from .loader_widgets import LogLoadWidget, ListLoadWidget
 from .logger import LoggerGroupBox
 from .main_function_widgets import MainFunctionAbstract, OverviewGenWidget
 from .setup_calcmethod_choice import SetupChoice
@@ -109,98 +110,14 @@ class CentralWidget(QWidget):
         direct_loader = DirectDataLoader(self, self.setup_choice_box.get_current_LE_loadExp())
         direct_loader.data_loaded_signal.connect(self.direct_load_finalize)
         self.setup_choice_box.return_LE_loadExp.connect(direct_loader.refresh_layout)
-
         loader_tabs.addTab(direct_loader, "Direct load from raw file (no pre-requirements)")
 
-        log_load_box = QWidget(self)
-        log_load_box_layout = QVBoxLayout(log_load_box)
+        log_load_widget = LogLoadWidget(self)
+        loader_tabs.addTab(log_load_widget, "Direct load from log file (no pre-requirements)")
 
-        new_vws_log_load = QPushButton("Load from new vws log file")
-        new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-
-        log_load_box_layout.addWidget(new_vws_log_load)
-
-        choose_from_current_vws_log = QPushButton("Select from current vws.log")
-        choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-
-        log_load_box_layout.addWidget(choose_from_current_vws_log)
-
-        loader_tabs.addTab(log_load_box, "Direct load from log file (no pre-requirements)")
-
-        list_load_box = QWidget(self)
-        list_load_vboxlayout = QVBoxLayout(list_load_box)
-
-        yaml_loader = get_file_selector_combobox_using_settings()(
-            groupbox_title="The YML file",
-            file_filter="YML File(*.yml)",
-            file_type="YML",
-            parent=self,
-            use_list_in_settings="yml_file_list",
-        )
-
-        yaml_loader.return_filename_signal.connect(self.load_yml_flags)
-
-        list_load_vboxlayout.addWidget(yaml_loader)
-
-        loading_hbox = QHBoxLayout()
-
-        list_vbox = QVBoxLayout()
-
-        new_load = QPushButton("Load from new list file")
-        new_load.clicked.connect(self.load_from_new_list)
-
-        list_vbox.addWidget(new_load)
-
-        self.main_function_widgets["load_lst"] = new_load
-
-        choose_from_current_list = QPushButton("Select row from current list")
-        choose_from_current_list.clicked.connect(self.choose_row_from_current_list)
-
-        self.main_function_widgets["select row from current list"] = choose_from_current_list
-
-        list_vbox.addWidget(choose_from_current_list)
-
-        new_vws_log_load = QPushButton("Load from new vws log file")
-        new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-
-        list_vbox.addWidget(new_vws_log_load)
-
-        self.main_function_widgets["select row from new vws log file"] = new_vws_log_load
-
-        choose_from_current_vws_log = QPushButton("Select from current vws.log")
-        choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-
-        self.main_function_widgets["select row from current vws log file"] = choose_from_current_vws_log
-
-        list_vbox.addWidget(choose_from_current_vws_log)
-
-        quick_load_from_current_lst_box_flags = ["STG_Measu"]
-
-        quick_load_from_current_lst_box = MainFunctionAbstract(parent=self,
-                                                               group_name="Quick Load",
-                                                               button_names=["Quick Load from current list"],
-                                                               flag_names=quick_load_from_current_lst_box_flags,
-                                                               flag_defaults=[self.flags[f] for f in
-                                                                              quick_load_from_current_lst_box_flags],
-                                                               stack_vertically=False)
-        loading_hbox.addLayout(list_vbox)
-
-        quick_load_from_current_lst_box.send_data.connect(self.quick_load_from_current_lst)
-        quick_load_from_current_lst_box.flag_update_signal.connect(self.flag_update_request_gui)
-
-        self.main_function_widgets["quick load from current list"] = quick_load_from_current_lst_box
-        loading_hbox.addWidget(quick_load_from_current_lst_box)
-
-        list_load_vboxlayout.addLayout(loading_hbox)
-        selected_list_file_box = QGroupBox("List/VWS.LOG file selected", self)
-        self.current_measurement_label = QLabel("None selected yet")
-        layout = QHBoxLayout(selected_list_file_box)
-        layout.addWidget(self.current_measurement_label)
-        self.main_function_widgets["selected list file"] = selected_list_file_box
-        list_load_vboxlayout.addWidget(selected_list_file_box)
-
-        loader_tabs.addTab(list_load_box, "List load (pre-requirements: YML File, folder structure, "
-                                          "measurement list files)")
+        list_load_widget = ListLoadWidget(self)
+        loader_tabs.addTab(list_load_widget, "List load (pre-requirements: YML File, folder structure, "
+                                           "measurement list files)")
 
         # --------------------------------------------------------------------------------------------------------------
         overview_gdm_hbox = QHBoxLayout()
