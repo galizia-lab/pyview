@@ -31,8 +31,8 @@ def compute_mean_projection(movie):
 import tifffile
 import csv
 
-def save_label_image(labels, path):
-    tifffile.imwrite(path, labels.astype(np.int32))
+def save_tiff_image(input_2D_image, path):
+    tifffile.imwrite(path, input_2D_image.astype(np.float32))
 
 
 def save_roi_list(seeds, path):
@@ -95,6 +95,7 @@ def z_scale_movie(movie):
             scaled_movie[t] = (frame - mean) / std
         else:
             scaled_movie[t] = frame - mean  # all pixels same value
+    print(f"Z-scaling done on {T} frames.")
     return scaled_movie 
     
 

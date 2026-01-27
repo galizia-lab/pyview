@@ -1,6 +1,8 @@
 '''
 Perform glomerular segmentation. 
 Based on Jannick Günzel's CalciSeg
+Finding maxima is good,
+but voronoi segmentation is not ideal for glomeruli. 
 
 - todo
 add local correlation-based segmentation option
@@ -27,7 +29,7 @@ from calciseg.CS_config import config as CS_config
 
 
 
-def compress_voronoi(movie, method='mean'):
+def compress_voronoi(movie, method='max'):
     """
     Full pipeline: compress movie, find local maxima, Voronoi segmentation.
 
@@ -48,11 +50,13 @@ def compress_voronoi(movie, method='mean'):
 
     # 2. Find local maxima
     seeds = find_local_maxima(proj)
+    # there is an alternative find_local_maxima in corr.py
+    # find_correlation_peaks(corr_map)
 
     # 3. Voronoi segmentation
     labels = segment_voronoi_simple(proj, seeds)
 
-    return proj, labels, seeds
+    return proj, seeds, labels
 
 
 def main():
@@ -75,7 +79,7 @@ def main():
     if CS_config.CS_proj_method in ['mean', 'max', 'std']:
         print(f"Using projection method: {CS_config.CS_proj_method}")
          # 2) Run segmentation pipeline, type 1. 
-        proj, labels, seeds = compress_voronoi(movie, 
+        proj, seeds, voronoi_segments = compress_voronoi(movie, 
                                                method=CS_config.CS_proj_method)
 
     elif CS_config.CS_proj_method in ['global_corr', 'local_corr']:
@@ -124,34 +128,52 @@ def main():
         plt.show()
 
 
-
-    # show segmentation only if 'labels' is defined
-    try:
-        labels
-    except NameError:
-        X, Y = proj.shape
-        labels = util.rois_to_label_image(rois)
-        #colored = label_image_to_color(labels)
-    plt.figure(figsize=(6, 6))
-    plt.imshow(labels, cmap='tab20')
-    plt.title("Segmentation Result")
-    plt.axis('off')
-    plt.show()
+    if CS_config.CS_proj_method in ['mean', 'max', 'std']:
+        # show segmentation only if 'labels' has been calculated
+        try:
+            voronoi_segments
+        except NameError:
+            pass
+        else:
+            plt.figure(figsize=(6, 6))
+            plt.imshow(voronoi_segments, cmap='tab20')
+            plt.title("Segmentation Result")
+            plt.axis('off')
+            plt.show()
 
 
     # 5) Save outputs
     print("Saving segmentation results...")
 
-    # save labels to file
-    label_file = input_file.replace('.tif', '_labels.tif')
-    util.save_label_image(labels, label_file)
-    # roi list
-    roi_file = input_file.replace('.tif', '_roi_list.csv')
-    util.save_roi_list(seeds, roi_file)
+    
+    # save projection image
+    name_end = f"_proj_{CS_config.CS_proj_method}.tif"
+    proj_file = input_file.replace('.tif', name_end)
+    # rescale to [0, 1] for better visualization
+    proj_rescaled = (proj - proj.min()) / (proj.max() - proj.min()) #* 255
+    util.save_tiff_image(proj_rescaled, proj_file)
+    print(f"Saved:  - {name_end}")
 
-    print("Done! Outputs saved as:")
-    print("  - segmentation_labels.tif")
-    print("  - roi_list.csv")
+    # save labels to file
+    try:
+        voronoi_segments
+    except NameError:
+        pass
+    else:   
+        label_file = input_file.replace('.tif', '_labels.tif')
+        util.save_tiff_image(voronoi_segments, label_file)
+        print("Saved:  - segmentation_labels.tif")
+    
+    
+    # roi list
+    try:
+        seeds
+    except NameError:
+        pass
+    else:   
+        roi_file = input_file.replace('.tif', '_roi_list.csv')
+        util.save_roi_list(seeds, roi_file)
+        print("Saved:  - roi_list.csv")
 
 
 if __name__ == "__main__":

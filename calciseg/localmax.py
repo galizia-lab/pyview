@@ -5,12 +5,21 @@ from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 from skimage.measure import regionprops
 
-def find_local_maxima(proj, sigma=1.0, 
+def find_local_maxima(proj, 
+                      sigma       =flags.CS_seed_min_distance/2, 
                       min_distance=flags.CS_seed_min_distance, 
-                      threshold=0):
+                      threshold   =flags.CS_max_threshold):
     """
     Returns list of (y, x) coordinates.
+    Smoothing should be related to expected cell size.
     """
+    # thresholding only makes sense if range is known. Scale to [0, 1]
+    proj_min = proj.min()
+    proj_max = proj.max()
+    if proj_max > proj_min:
+        proj = (proj - proj_min) / (proj_max - proj_min)
+    else:
+        proj = proj - proj_min  # all pixels same value
 
     # smooth a bit
     smoothed = gaussian_filter(proj, sigma=sigma)
@@ -19,6 +28,13 @@ def find_local_maxima(proj, sigma=1.0,
     neigh = (maximum_filter(smoothed, size=min_distance*2+1) == smoothed)
 
     # threshold away low-intensity peaks
+    # thresholding only makes sense if range is known. Scale to [0, 1]
+    smoothed_min = smoothed.min()
+    smoothed_max = smoothed.max()
+    if smoothed_max > smoothed_min:
+        smoothed = (smoothed - smoothed_min) / (smoothed_max - smoothed_min)
+    else:
+        smoothed = smoothed - smoothed_min  # all pixels same value
     neigh &= (smoothed > threshold)
 
     ys, xs = np.where(neigh)

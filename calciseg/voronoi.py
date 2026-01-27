@@ -116,7 +116,7 @@ def segment_voronoi_simple(image, seeds):
     labels = np.zeros((X, Y), dtype=np.int32)
 
     pts = np.array(seeds)
-    tree = cKDTree(pts)
+    tree = cKDTree(pts) # build tree
 
     yy, xx = np.indices((X, Y))
     coords = np.column_stack((yy.ravel(), xx.ravel()))
