@@ -113,9 +113,25 @@ class CentralWidget(QWidget):
         loader_tabs.addTab(direct_loader, "Direct load from raw file (no pre-requirements)")
 
         log_load_widget = LogLoadWidget(self)
+        log_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
+        log_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
         loader_tabs.addTab(log_load_widget, "Direct load from log file (no pre-requirements)")
 
         list_load_widget = ListLoadWidget(self)
+        list_load_widget.new_load.clicked.connect(self.load_from_new_list)
+        list_load_widget.choose_from_current_list.clicked.connect(self.choose_row_from_current_list)
+        list_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
+        list_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
+        list_load_widget.yaml_loader.return_filename_signal.connect(self.load_yml_flags)
+        list_load_widget.quick_load_from_current_lst_box.send_data.connect(self.quick_load_from_current_lst)
+        list_load_widget.quick_load_from_current_lst_box.flag_update_signal.connect(self.flag_update_request_gui)
+        self.main_function_widgets["load_lst"] = list_load_widget.new_load
+        self.main_function_widgets["select row from current list"] = list_load_widget.choose_from_current_list
+        self.main_function_widgets["select row from new vws log file"] = list_load_widget.new_vws_log_load
+        self.main_function_widgets["select row from current vws log file"] = list_load_widget.choose_from_current_vws_log
+        self.main_function_widgets["quick load from current list"] = list_load_widget.quick_load_from_current_lst_box
+        self.main_function_widgets["selected list file"] = list_load_widget.selected_list_file_box
+        self.current_measurement_label = list_load_widget.current_measurement_label
         loader_tabs.addTab(list_load_widget, "List load (pre-requirements: YML File, folder structure, "
                                            "measurement list files)")
 
