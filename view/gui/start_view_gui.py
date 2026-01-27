@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
+from qtpy.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
 import sys
 from view.gui.application_settings import initialize_app_settings
 from view.gui.main_window import VIEWMainWindow

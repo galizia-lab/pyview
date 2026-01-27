@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QTableWidget, QTabWidget, QLineEdit, QMessageBox, QPushButton, QVBoxLayout, QWidget, \
+from qtpy.QtWidgets import QTableWidget, QTabWidget, QLineEdit, QMessageBox, QPushButton, QVBoxLayout, QWidget, \
     QSizePolicy, QHeaderView, QMenu, QComboBox, QHBoxLayout, QLabel, QWidget
-from PyQt5.QtGui import QGuiApplication, QCursor
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject
+from qtpy.QtGui import QGuiApplication, QCursor
+from qtpy.QtCore import Signal, Slot, QObject
 from .flags_search import get_flags_index, query
 from collections import OrderedDict
 from html.parser import HTMLParser
@@ -28,7 +28,7 @@ class ButtonCopyableLabel(QPushButton):
 
 class FlagSubgroupPage(QTableWidget):
 
-    return_flag_signal = pyqtSignal(str, str, name="return_flag_signal")
+    return_flag_signal = Signal(str, str, name="return_flag_signal")
 
     def __init__(self, parent, flags_default_values_descriptions_df):
 
@@ -171,7 +171,7 @@ class FlagsDisplayChoiceTabs(QTabWidget):
         subgroup = self.flag_name_subgroup_mapping[flag_name]
         self.subgroup_pages[subgroup].reset_flag(flag_name, flag_value)
 
-    @pyqtSlot(str, name="jump to flag")
+    @Slot(str, name="jump to flag")
     def jump_to_flag(self, flag_name):
 
         target_subgroup_name = self.flag_name_subgroup_mapping[flag_name]
@@ -199,7 +199,7 @@ class FlagNameParser(HTMLParser):
 
 class FlagsSearchWidget(QWidget):
 
-    raise_jump_to_flag_signal = pyqtSignal(str)
+    raise_jump_to_flag_signal = Signal(str)
 
     def __init__(self, parent, flags):
 
@@ -222,7 +222,7 @@ class FlagsSearchWidget(QWidget):
 
         self.flag_name_push_button_mapping_2way = {}
 
-    @pyqtSlot(str, name="query and refresh")
+    @Slot(str, name="query and refresh")
     def query(self, text):
 
         self.flag_name_push_button_mapping_2way = {}
@@ -249,7 +249,7 @@ class FlagsSearchWidget(QWidget):
         self.search_results_table.resizeColumnsToContents()
         self.search_results_table.resizeRowsToContents()
 
-    @pyqtSlot(name="raise jump to flag")
+    @Slot(name="raise jump to flag")
     def raise_jump_to_flag(self):
 
         sender = QObject.sender(self)

@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QCoreApplication, QSettings
+from qtpy.QtCore import QCoreApplication, QSettings
 from ..python_core.appdirs import get_app_name_organization_domain
 
 

@@ -4,6 +4,7 @@ channels:
 dependencies:
   - python=3.10
   - pyqt=5
+  - qtpy
   - pip
   - scipy
   - scikit-image

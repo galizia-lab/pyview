@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QComboBox, QHBoxLayout, QFormLayout, QPushButton
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from qtpy.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QComboBox, QHBoxLayout, QFormLayout, QPushButton
+from qtpy.QtCore import Signal, Slot
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib import pyplot as plt
 import numpy as np
@@ -116,7 +116,7 @@ class GDMViz(QMainWindow):
 
         self.setWindowTitle("GDM Visualizer")
 
-    @pyqtSlot(name="refresh signal")
+    @Slot(name="refresh signal")
     def refresh(self):
 
         self.trace_canvas.axes.cla()

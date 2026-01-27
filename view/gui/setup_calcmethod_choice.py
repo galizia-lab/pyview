@@ -1,12 +1,12 @@
-from PyQt5.QtWidgets import QGroupBox, QComboBox, QVBoxLayout
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from qtpy.QtWidgets import QGroupBox, QComboBox, QVBoxLayout
+from qtpy.QtCore import Signal, Slot
 from view.python_core.get_internal_files import get_setup_description_dict
 
 
 class SetupChoice(QGroupBox):
 
-    update_LE_loadExp_flag_signal = pyqtSignal(str, str)
-    return_LE_loadExp = pyqtSignal(int)
+    update_LE_loadExp_flag_signal = Signal(str, str)
+    return_LE_loadExp = Signal(int)
 
     def __init__(self, parent):
 
@@ -22,7 +22,7 @@ class SetupChoice(QGroupBox):
 
         vbox_layout.addWidget(self.dropdown)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def choice_made(self, index):
         chosen_LE_loadExp = list(self.setup_description_dict.values())[index]
         self.update_LE_loadExp_flag_signal.emit("LE_loadExp", str(chosen_LE_loadExp))

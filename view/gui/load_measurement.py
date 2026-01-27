@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QPushButton, QHBoxLayout, QAbstractItemView, QMessageBox, \
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import QMainWindow, QVBoxLayout, QPushButton, QHBoxLayout, QAbstractItemView, QMessageBox, \
     QDesktopWidget, QWidget
 
 from view.python_core.measurement_list import MeasurementList, get_importer_class
@@ -11,7 +11,7 @@ from .file_selector_combobox import get_file_selector_combobox_using_settings
 
 class LoadMeasurementsFromFileWindow(QMainWindow):
 
-    send_data_signal = pyqtSignal(MeasurementList, list,
+    send_data_signal = Signal(MeasurementList, list,
                                   name="Measurement Selected")
 
     def __init__(self, LE_loadExp, default_directory_path, measurement_list=None):
@@ -135,7 +135,7 @@ class LoadMeasurementsFromListWindow(LoadMeasurementsFromFileWindow):
 
         return lst_file_selector
 
-    @pyqtSlot(str, name="load lst file")
+    @Slot(str, name="load lst file")
     def load_lst_from_file(self, lst_file):
         self.measurement_list = MeasurementList.create_from_lst_file(lst_file, self.LE_loadExp)
         self.refresh_display()
@@ -174,7 +174,7 @@ class LoadMeasurementsFromVWSLogWindow(LoadMeasurementsFromFileWindow):
 
         return lst_file_selector
 
-    @pyqtSlot(str, name="load lst file")
+    @Slot(str, name="load lst file")
     def load_lst_from_file(self, lst_file):
         # initialize importer
         importer_class = get_importer_class(self.LE_loadExp)

@@ -1,13 +1,13 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QGroupBox, \
+from qtpy.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QGroupBox, \
     QMessageBox, QDesktopWidget, QListWidget, QListWidgetItem, QPushButton, QHeaderView
-from PyQt5.QtCore import pyqtSignal
+from qtpy.QtCore import Signal
 from .custom_widgets import QTableWidgetPandasDF
 import pandas as pd
 
 
 class ILTISTransferDialog(QMainWindow):
 
-    send_data_signal = pyqtSignal(list, list, pd.DataFrame, name="send data")
+    send_data_signal = Signal(list, list, pd.DataFrame, name="send data")
 
     def __init__(self, data_loaded_df, metadata_to_choose_from):
 

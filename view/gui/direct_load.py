@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
+from qtpy.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
 from .file_selector_combobox import get_file_selector_combobox_using_settings
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
+from qtpy.QtCore import Slot, Signal, QObject
 from ..python_core.p1_class import Default_P1_Getter, get_empty_p1
 from view.python_core.flags import FlagsManager
 import pathlib as pl
@@ -24,7 +24,7 @@ def clear_layout(layout):
 
 class DirectDataLoader(QWidget):
 
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+    data_loaded_signal = Signal(dict, FlagsManager)
 
     def __init__(self, parent, default_LE_loadExp=3):
 
@@ -32,7 +32,7 @@ class DirectDataLoader(QWidget):
         vbox = QVBoxLayout(self)
         self.refresh_layout(default_LE_loadExp)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def refresh_layout(self, LE_loadExp):
 
         loader_interface_class = get_loader_interface_class(LE_loadExp)
@@ -108,7 +108,7 @@ def get_a_tiff_combobox(parent):
 
 class BaseLoaderInterface(QObject):
 
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+    data_loaded_signal = Signal(dict, FlagsManager)
 
     def __init__(self, parent):
 
@@ -119,8 +119,8 @@ class BaseLoaderInterface(QObject):
 
         self.parent().parent().parent().parent().write_status(msg)
 
-    @pyqtSlot(list)
-    @pyqtSlot(str)
+    @Slot(list)
+    @Slot(str)
     def load_list(self, filenames):
 
         filenames = self.check_revise_filenames(filenames)
@@ -241,7 +241,7 @@ class TillDualLoaderInterface(BaseLoaderInterface):
 
         widget.layout().addWidget(self.pst_2_combobox)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def check_revise_filenames(self, filenames):
 
         dbb1_filename = self.pst_1_combobox.get_current_entry()

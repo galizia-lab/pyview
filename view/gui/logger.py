@@ -1,5 +1,5 @@
 import logging
-from PyQt5.QtWidgets import QPlainTextEdit, QGroupBox, QVBoxLayout
+from qtpy.QtWidgets import QPlainTextEdit, QGroupBox, QVBoxLayout
 from ..python_core.appdirs import get_app_log_dir
 import pathlib as pl
 import time

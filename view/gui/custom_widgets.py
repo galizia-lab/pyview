@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QWidget, QAbstractItemView
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
+from qtpy.QtWidgets import QTableWidget, QTableWidgetItem, QWidget, QAbstractItemView
+from qtpy.QtGui import QIcon
+from qtpy.QtCore import Slot, Signal, Qt
 from view.python_core.get_internal_files import get_internal_icons
 import pandas as pd
 import logging
@@ -93,7 +93,7 @@ class QTableWidgetPandasDF(QTableWidget):
 
 class QTableWidgetPandasDFDeletable(QTableWidgetPandasDF):
 
-    remove_data_signal = pyqtSignal(int, name="delete data")
+    remove_data_signal = Signal(int, name="delete data")
 
     def __init__(self, parent):
 
@@ -131,13 +131,13 @@ class QTableWidgetPandasDFDeletable(QTableWidgetPandasDF):
         del to_return[0]
         return to_return
 
-    @pyqtSlot(int, int, name="cell clicked")
+    @Slot(int, int, name="cell clicked")
     def send_delete_signal(self, row_ind, col_ind):
         if col_ind == 0:
             self.removeRow(row_ind)
             self.remove_data_signal.emit(row_ind)
 
-    @pyqtSlot(int, name="header clicked")
+    @Slot(int, name="header clicked")
     def delete_all(self, col_ind):
         if col_ind == 0:
             row_count = self.rowCount()

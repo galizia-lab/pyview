@@ -8,10 +8,11 @@ from inspect import currentframe, getframeinfo
 
 import pandas as pd
 import yaml
-from PyQt5.QtCore import pyqtSlot, QSettings, pyqtSignal, QObject, QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QLabel, \
-    QPushButton, QFileDialog, QTabWidget
+from qtpy.QtCore import Slot, QSettings, Signal, QObject, QUrl
+from qtpy.QtGui import QDesktopServices
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QLabel, \
+    QPushButton, QTabWidget
+import qtpy.compat
 from matplotlib import pyplot as plt
 
 from view.idl_translation_core.ViewOverview import ExportMovie
@@ -38,8 +39,8 @@ from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
-    export_data_signal = pyqtSignal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
-    reset_iltis_signal = pyqtSignal(name="reset ILTIS")
+    export_data_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
+    reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, parent):
 
@@ -300,7 +301,7 @@ class CentralWidget(QWidget):
 
         return dict2return
 
-    @pyqtSlot(name="respond to data request from iltis")
+    @Slot(name="respond to data request from iltis")
     def spawn_export_dialog(self):
 
         if len(self.p1s) == 0:
@@ -367,7 +368,7 @@ class CentralWidget(QWidget):
             raw_data_list, signals_list,
             metadata_to_send, max(n_frames_list), stim_onset, stim_offset, self.flags["RM_Radius"])
 
-    @pyqtSlot(name="export all data")
+    @Slot(name="export all data")
     def export_data_all(self):
         """
         sends all data loaded into VIEW to ILTIS using export_data above
@@ -380,7 +381,7 @@ class CentralWidget(QWidget):
         self.parent().statusBar().showMessage(msg)
         logging.getLogger("VIEW").info(msg)
 
-    @pyqtSlot(str, str, name="flag_update_request_from_gui")
+    @Slot(str, str, name="flag_update_request_from_gui")
     def flag_update_request_gui(self, flag_name, flag_value):
 
         if not self.check_update_flags_and_gui({flag_name: flag_value}):
@@ -441,7 +442,7 @@ class CentralWidget(QWidget):
             if hasattr(box, "update_flag_defaults"):
                 box.update_flag_defaults(flags)
 
-    @pyqtSlot(str, name="load yml flags")
+    @Slot(str, name="load yml flags")
     def load_yml_flags(self, yml_filename):
 
         self.write_status(f"[working] Reading flags from {yml_filename}")
@@ -494,17 +495,17 @@ class CentralWidget(QWidget):
             )
         )
 
-    @pyqtSlot(name="go to wiki")
+    @Slot(name="go to wiki")
     def go_to_wiki(self):
         QDesktopServices.openUrl(QUrl("https://github.com/galizia-lab/pyview/wiki"))
 
 
-    @pyqtSlot(name="write yml file")
+    @Slot(name="write yml file")
     def write_yml_file(self):
 
-        filename, filters = QFileDialog.getSaveFileName(caption="Select a YML file for saving flags",
-                                                        filter="YML File(*.yml)",
-                                                        directory=self.get_default_directory(),
+        filename, filters = qtpy.compat.getsavefilename(caption="Select a YML file for saving flags",
+                                                        filters="YML File(*.yml)",
+                                                        basedir=self.get_default_directory(),
                                                         parent=self)
 
         self.write_status(f"[working] Writing flags to {filename}")
@@ -521,7 +522,7 @@ class CentralWidget(QWidget):
         data_label = self.data_manager.get_selected_data_label()
         return self.p1s[data_label]
 
-    @pyqtSlot(dict, FlagsManager)
+    @Slot(dict, FlagsManager)
     def direct_load_finalize(self, label_p1_mapping, flags_used):
 
         for label, p1 in label_p1_mapping.items():
@@ -534,7 +535,7 @@ class CentralWidget(QWidget):
         self.enable_disable_functions(enable=True, main_functions=["generate_overview"],
                                       misc_functions=self.misc_function_buttons.keys())
 
-    @pyqtSlot(name="launch lst file window")
+    @Slot(name="launch lst file window")
     def load_from_new_list(self):
 
         self.load_measurement_window = LoadMeasurementsFromListWindow(
@@ -544,7 +545,7 @@ class CentralWidget(QWidget):
 
         self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
 
-    @pyqtSlot(name="launch vws log file window")
+    @Slot(name="launch vws log file window")
     def load_from_new_vws_log(self):
 
         data_path = self.flags.get_raw_data_dir_str()
@@ -559,7 +560,7 @@ class CentralWidget(QWidget):
 
         self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
 
-    @pyqtSlot(MeasurementList, list, name="load lst data")
+    @Slot(MeasurementList, list, name="load lst data")
     def load_lst_data(self, measurement_list, selected_measus):
 
         self.measurement_list = measurement_list
@@ -640,7 +641,7 @@ class CentralWidget(QWidget):
         # enable all functions
         self.enable_disable_functions_all(enable=True)
 
-    @pyqtSlot(str, dict, name="reload from last lst file")
+    @Slot(str, dict, name="reload from last lst file")
     def quick_load_from_current_lst(self, button_name, flags):
 
         if not self.check_update_flags_and_gui(flags):
@@ -669,7 +670,7 @@ class CentralWidget(QWidget):
 
             QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
 
-    @pyqtSlot(name="choose from current list")
+    @Slot(name="choose from current list")
     def choose_row_from_current_list(self):
 
         if self.measurement_list is None:
@@ -687,11 +688,16 @@ class CentralWidget(QWidget):
             self.load_measurement_window.send_data_signal.connect(self.load_lst_data)
             self.load_measurement_window.show()
             self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
+        except ValueError as ve:
+            QMessageBox.critical(
+                self,
+                "Error finding list",
+                "Please load from a new list file first!")
         except Exception as e:
 
             QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
 
-    @pyqtSlot(name="choose from current vws log")
+    @Slot(name="choose from current vws log")
     def choose_row_from_current_vws_log(self):
 
         if self.measurement_list is None:
@@ -710,9 +716,19 @@ class CentralWidget(QWidget):
             self.load_measurement_window.send_data_signal.connect(self.load_lst_data)
             self.load_measurement_window.show()
             self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
+        except ValueError as ve:
+            QMessageBox.critical(
+                self,
+                "Error finding vws log file",
+                "Please load from a new vws log file first!")
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                f"{str(e)}\n\n{traceback.format_exc()}"
+            )
+
 
     def get_default_directory(self):
 
@@ -731,7 +747,7 @@ class CentralWidget(QWidget):
         del self.p1s[label]
         gc.collect()
 
-    @pyqtSlot(str, dict, bool, bool, name="generate overview")
+    @Slot(str, dict, bool, bool, name="generate overview")
     def generate_overview(self, button_name, flags, use_all_features, use_all_stimuli):
 
         if not self.check_update_flags_and_gui(flags):

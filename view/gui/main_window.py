@@ -1,7 +1,7 @@
 import importlib
 
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QAction
-from PyQt5.QtGui import QIcon
+from qtpy.QtWidgets import QMainWindow, QMessageBox, QAction
+from qtpy.QtGui import QIcon
 from .central_widget import CentralWidget
 from view.python_core.get_internal_files import get_internal_icons
 
