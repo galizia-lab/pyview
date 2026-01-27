@@ -1,0 +1,19 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v2.0.1
+_src_path: https://github.com/napari/napari-plugin-template
+display_name: PyView
+email: ajkumaraswamy@tutamail.com
+full_name: Ajayrama Kumaraswamy
+github_repository_url: provide later
+github_username_or_organization: galizia-lab
+include_reader_plugin: false
+include_sample_data_plugin: false
+include_widget_plugin: true
+include_writer_plugin: false
+install_dependabot: false
+install_precommit: false
+license: BSD-3
+module_name: napari_pyview
+plugin_name: napari-pyview
+short_description: A plugin for using pyView from within napari, including adding
+    data from pyView to napari, exporting ROIs from napari, etc.
