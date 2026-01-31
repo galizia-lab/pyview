@@ -8,7 +8,7 @@ class SetupChoice(QGroupBox):
     update_LE_loadExp_flag_signal = Signal(str, str)
     return_LE_loadExp = Signal(int)
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
 
         super().__init__("Choose your setup", parent)
 

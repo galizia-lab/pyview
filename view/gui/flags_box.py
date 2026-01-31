@@ -1,5 +1,5 @@
 from qtpy.QtWidgets import QTableWidget, QTabWidget, QLineEdit, QMessageBox, QPushButton, QVBoxLayout, QWidget, \
-    QSizePolicy, QHeaderView, QMenu, QComboBox, QHBoxLayout, QLabel, QWidget
+    QSizePolicy, QHeaderView, QMenu, QComboBox, QHBoxLayout, QLabel, QWidget, QGroupBox
 from qtpy.QtGui import QGuiApplication, QCursor
 from qtpy.QtCore import Signal, Slot, QObject
 from .flags_search import get_flags_index, query
@@ -257,8 +257,25 @@ class FlagsSearchWidget(QWidget):
 
 
 
+class FlagsMainWidget(QGroupBox):
 
+    def __init__(self, flags, parent=None):
 
+        super().__init__("Flags Viewer/Editor/Saver", parent)
+        self.flag_display_choice = FlagsDisplayChoiceTabs(self, flags)
+        self.init_ui()
+
+    def init_ui(self):
+
+        flags_vbox = QVBoxLayout(self)
+        header_hbox = QHBoxLayout()
+        header_hbox.addWidget(QLabel("Tip: Click on flag names for description"))
+        self.wiki_link_button = QPushButton("Go to VIEW WIKI")
+        header_hbox.addWidget(self.wiki_link_button)
+        self.save_button = QPushButton("Write flags to file")
+        header_hbox.addWidget(self.save_button)
+        flags_vbox.addLayout(header_hbox)
+        flags_vbox.addWidget(self.flag_display_choice)
 
 
 

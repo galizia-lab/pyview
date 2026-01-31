@@ -25,29 +25,30 @@ https://napari.org/stable/plugins/index.html
 
 ## Installation
 
-You can install `napari-pyview` via [pip]:
+1. Install napari with conda ([guide](https://napari.org/stable/tutorials/fundamentals/installation.html))
+2. Start this napari by running "napari" from within the conda environement created for it in Step 1.
+3. Installing the plugin is via napari plugin manager. Please read this [guide](https://napari.org/stable/plugins/start_using_plugins/finding_and_installing_plugins.html#installing-plugins-with-napari) first. 
+4. In napari plugin manager, select "PyPI" in the "Install" dropdown and provide the following manual input `git+https://git@github.com/galizia-lab/pyview.git@dev#subdirectory=napari-pyview`.
 
 ```
-pip install napari-pyview
-```
+NOTE:
+---
+You could also pull from other branches of pyview by replaced "dev" with other branches in the URL above.
+``` 
 
-If napari is not already installed, you can install `napari-pyview` with napari and Qt via:
 
-```
-pip install "napari-pyview[all]"
-```
-
+## Debugging
+Run the file "napari-pyview/debug_napari_plugin.py" with pdb/IDE in debugger mode. See [this guide](https://napari.org/stable/plugins/building_a_plugin/debug_plugins.html) for more info.
 
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome.
 
 ## License
 
 Distributed under the terms of the [BSD-3] license,
-"napari-pyview" is free and open source software
+"napari_pyview" is free and open source software
 
 ## Issues
 

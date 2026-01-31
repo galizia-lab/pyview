@@ -11,6 +11,16 @@ It provides **a powerful GUI** to interactively visualize, analyse and assess th
 - Take note tag of the latest release of PyView from [here](https://github.com/galizia-lab/pyview/releases).
 - Install PyView using `pip install git+https://git@github.com/galizia-lab/pyview.git@<tag name>`
 
+```
+NOTE:
+---
+[Advanced usage]
+PyView can also be installed and used without conda. Create a virtual python environment and install the package `ILTIS` into it using pip. 
+Important to note here is that PyQt5 is not a direct dependency, but an optional one. You will need to specify the optional dependency "all" to make sure PyQt gets installed
+Example `pip install -e "./[all]"` 
+For more info see the example titled "Install a package with extras, i.e., optional dependencies" here: https://pip.pypa.io/en/stable/cli/pip_install/#examples
+``` 
+
 ### Detailed guides
 Please consult [this page](https://github.com/galizia-lab/pyview/wiki/Installation-and-updating) on our wiki for detailed guides on installation and updating as normal users and as developers.
 

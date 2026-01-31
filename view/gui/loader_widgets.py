@@ -61,7 +61,7 @@ class ListLoadWidget(QWidget):
                                                                 flag_names=quick_load_from_current_lst_box_flags,
                                                                 flag_defaults=[self.parent().flags[f] for f in
                                                                                quick_load_from_current_lst_box_flags],
-                                                                stack_vertically=False)
+                                                                stack_vertically=True)
         loading_hbox.addLayout(list_vbox)
         loading_hbox.addWidget(self.quick_load_from_current_lst_box)
 

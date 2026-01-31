@@ -24,7 +24,7 @@ class QPlainTextEditLogger(QPlainTextEdit, logging.Handler):
 
 class LoggerGroupBox(QGroupBox):
 
-    def __init__(self, parent, location_dir=None):
+    def __init__(self, parent=None, location_dir=None):
 
         super().__init__("Event Log", parent)
 
@@ -38,7 +38,7 @@ class LoggerGroupBox(QGroupBox):
 
         vbox = QVBoxLayout(self)
 
-        self.log_pte = QPlainTextEditLogger(parent)
+        self.log_pte = QPlainTextEditLogger(self)
         self.log_pte.setLevel(level=logging.INFO)
 
         vbox.addWidget(self.log_pte)
@@ -65,5 +65,9 @@ class LoggerGroupBox(QGroupBox):
     def __del__(self):
 
         root_logger = logging.getLogger("VIEW")
-        root_logger.removeHandler(self.log_pte)
-        root_logger.removeHandler(self.log_file_handler)
+        if self.log_pte:
+            root_logger.removeHandler(self.log_pte)
+        if self.log_file_handler:
+            root_logger.removeHandler(self.log_file_handler)
+
+        print("LoggerGroupBox cleanup completed")

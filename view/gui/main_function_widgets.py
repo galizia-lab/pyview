@@ -9,7 +9,7 @@ class MainFunctionAbstract(QGroupBox):
     flag_update_signal = Signal(str, str)
 
     def __init__(
-            self, parent, button_names=(), flag_names=(),
+            self, parent=None, button_names=(), flag_names=(),
             flag_defaults=(), group_name="", comment=None, stack_vertically=True):
 
         super().__init__(group_name, parent)

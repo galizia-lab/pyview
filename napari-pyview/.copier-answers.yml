@@ -14,6 +14,6 @@ install_dependabot: false
 install_precommit: false
 license: BSD-3
 module_name: napari_pyview
-plugin_name: napari-pyview
+plugin_name: napari_pyview
 short_description: A plugin for using pyView from within napari, including adding
     data from pyView to napari, exporting ROIs from napari, etc.

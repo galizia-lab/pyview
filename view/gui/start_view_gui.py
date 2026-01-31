@@ -1,3 +1,5 @@
+import logging
+
 from qtpy.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
 import sys
 from view.gui.application_settings import initialize_app_settings
@@ -34,6 +36,7 @@ class ContainerWidget(QTabWidget):
 
         if reply == QMessageBox.Yes:
             plt.close("all")
+            logging.shutdown()
             event.accept()
         else:
             event.ignore()

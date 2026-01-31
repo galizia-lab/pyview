@@ -8,10 +8,10 @@ from inspect import currentframe, getframeinfo
 
 import pandas as pd
 import yaml
+from PyQt5.QtWidgets import QScrollArea
 from qtpy.QtCore import Slot, QSettings, Signal, QObject, QUrl
 from qtpy.QtGui import QDesktopServices
-from qtpy.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QLabel, \
-    QPushButton, QTabWidget
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QPushButton, QTabWidget
 import qtpy.compat
 from matplotlib import pyplot as plt
 
@@ -29,7 +29,7 @@ from .application_settings import get_view_qsettings_manager
 from .data_manager import DataManager
 from .direct_load import DirectDataLoader
 from .file_selector_combobox import get_file_selector_combobox_using_settings
-from .flags_box import FlagsDisplayChoiceTabs
+from .flags_box import FlagsDisplayChoiceTabs, FlagsMainWidget
 from .gdm_visualization import GDMViz
 from .load_measurement import LoadMeasurementsFromVWSLogWindow, LoadMeasurementsFromListWindow
 from .loader_widgets import LogLoadWidget, ListLoadWidget
@@ -73,7 +73,8 @@ class CentralWidget(QWidget):
 
     def init_ui(self):
 
-        main_hbox = QHBoxLayout(self)
+        content_widget = QWidget(self)
+        contents_hbox = QHBoxLayout(content_widget)
 
         main_functions_vboxlayout = QVBoxLayout()
 
@@ -145,7 +146,7 @@ class CentralWidget(QWidget):
         self.main_function_widgets["generate_overview"] = gen_overviews_box
         overview_gdm_hbox.addWidget(gen_overviews_box)
 
-        # --------------------------------------------------------------------------------------------------------------
+
         gdm_viz_box_flags = ["RM_ROITrace"]
         gdm_viz_box = MainFunctionAbstract(
             parent=self, button_names=["Visualize GDM traces"],
@@ -184,32 +185,22 @@ class CentralWidget(QWidget):
 
         main_functions_vboxlayout.addWidget(misc_functions)
 
-        main_hbox.addLayout(main_functions_vboxlayout)
+        contents_hbox.addLayout(main_functions_vboxlayout)
 
         # --------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
 
         right_vbox = QVBoxLayout()
 
-        self.flag_display_choice = FlagsDisplayChoiceTabs(self, self.flags)
+        self.flags_widget = FlagsMainWidget(parent=self, flags=self.flags)
 
-        for subgroup_name, subgroup_page in self.flag_display_choice.subgroup_pages.items():
+        for subgroup_name, subgroup_page in self.flags_widget.flag_display_choice.subgroup_pages.items():
             subgroup_page.return_flag_signal.connect(self.flag_update_request_gui)
 
-        flags_group_box = QGroupBox("Flags Viewer/Editor/Saver")
-        flags_vbox = QVBoxLayout(flags_group_box)
-        header_hbox = QHBoxLayout()
-        header_hbox.addWidget(QLabel("Tip: Click on flag names for description"))
-        wiki_link_button = QPushButton("Go to VIEW WIKI")
-        wiki_link_button.clicked.connect(self.go_to_wiki)
-        header_hbox.addWidget(wiki_link_button)
-        save_button = QPushButton("Write flags to file")
-        save_button.clicked.connect(self.write_yml_file)
-        header_hbox.addWidget(save_button)
-        flags_vbox.addLayout(header_hbox)
-        flags_vbox.addWidget(self.flag_display_choice)
+        self.flags_widget.wiki_link_button.clicked.connect(self.go_to_wiki)
+        self.flags_widget.save_button.clicked.connect(self.write_yml_file)
 
-        right_vbox.addWidget(flags_group_box)
+        right_vbox.addWidget(self.flags_widget)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -261,7 +252,19 @@ class CentralWidget(QWidget):
 
         right_vbox.addWidget(self.log_pte)
 
-        main_hbox.addLayout(right_vbox)
+        # --------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
+
+        scroll_area = QScrollArea(self)
+        contents_hbox.addLayout(right_vbox)
+        scroll_area.setWidget(content_widget)
+        scroll_area.setWidgetResizable(True)  # Critical for scrollbars to appear
+
+
+        main_hbox = QVBoxLayout(self)
+        main_hbox.addWidget(scroll_area)
+
+        # --------------------------------------------------------------------------------------------------------------
 
         # disable all actions other than YML loader
         self.enable_disable_functions_all(
@@ -379,7 +382,15 @@ class CentralWidget(QWidget):
     def write_status(self, msg):
 
         self.parent().statusBar().showMessage(msg)
+        self.log_info(msg)
+
+    def log_info(self, msg):
+
         logging.getLogger("VIEW").info(msg)
+
+    def log_error(self, msg):
+
+        logging.getLogger("VIEW").error(msg)
 
     @Slot(str, str, name="flag_update_request_from_gui")
     def flag_update_request_gui(self, flag_name, flag_value):
@@ -391,20 +402,20 @@ class CentralWidget(QWidget):
     def check_apply_gui_limitations(self, flags):
 
         if "LE_BleachCorrMethod" in flags and flags["LE_BleachCorrMethod"] == "log_pixelwise":
-            self.flag_display_choice.block_flags_update_signals(True)
+            self.flags_widget.flag_display_choice.block_flags_update_signals(True)
             QMessageBox.warning(
                 self, "Unavailable bleach correction setting",
                 "Pixelwise bleach correction is not supported in VIEW-GUI. Uniform bleach correction"
                 "will be applied instead. "
                 "If you want to turn bleach correction off, set the flag LE_BleachCorrMethod to None"
             )
-            self.flag_display_choice.block_flags_update_signals(False)
+            self.flags_widget.flag_display_choice.block_flags_update_signals(False)
 
             flags["LE_BleachCorrMethod"] = "log_uniform"
 
         return flags
 
-    def check_update_flags_and_gui(self, flags):
+    def check_update_flags_and_gui(self, flags: dict):
 
         flags = self.check_apply_gui_limitations(flags)
 
@@ -415,22 +426,22 @@ class CentralWidget(QWidget):
                 try:
                     self.flags.update_flags(this_flag_dict)
                 except AssertionError as ase:
-                    self.flag_display_choice.block_flags_update_signals(True)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(True)
                     QMessageBox.critical(self, f"Error setting flag {flag_name} to {flag_value}", str(ase))
                     self.write_status(f"[failure] Updating flag {flag_name} to {flag_value}")
-                    self.flag_display_choice.block_flags_update_signals(False)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(False)
                     return 0
                 except (FileNotFoundError, OSError) as fnfe:
-                    self.flag_display_choice.block_flags_update_signals(True)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(True)
                     QMessageBox.critical(self, f"Error setting flag {flag_name}",
                                          f"There is a problem with the current folder structure and the path flags "
                                          f"specified. Specifically, the value of the flag {flag_name} is inconsistent."
                                          f"\n------\nHere is the full error message:\n{fnfe}")
                     self.write_status(f"[failure] Updating flag {flag_name} to {flag_value}")
-                    self.flag_display_choice.block_flags_update_signals(False)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(False)
                     return 0
                 self._update_functions_flags(this_flag_dict)
-                self.flag_display_choice.set_flags(this_flag_dict)
+                self.flags_widget.flag_display_choice.set_flags(this_flag_dict)
                 self.write_status(f"[success] Updating flag {flag_name} to {flag_value}")
             else:
                 self.write_status(f"[info] Ignoring update request for unknown flag {flag_name}")
@@ -515,7 +526,14 @@ class CentralWidget(QWidget):
             return
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+                )
 
     def get_selected_data_p1(self):
 
@@ -523,17 +541,32 @@ class CentralWidget(QWidget):
         return self.p1s[data_label]
 
     @Slot(dict, FlagsManager)
-    def direct_load_finalize(self, label_p1_mapping, flags_used):
+    def direct_load_finalize(self, label_p1_mapping: dict, flags_used: FlagsManager):
 
-        for label, p1 in label_p1_mapping.items():
-            revised_label = self.data_manager.add_data(flags_used, p1, label)
-            self.p1s[revised_label] = p1
+        self.write_status("[working] Finalizing loading data...")
 
-        self.flags = flags_used
-        self.yml_file = None
+        try:
+            for label, p1 in label_p1_mapping.items():
+                revised_label = self.data_manager.add_data(flags_used, p1, label)
+                self.p1s[revised_label] = p1
 
-        self.enable_disable_functions(enable=True, main_functions=["generate_overview"],
-                                      misc_functions=self.misc_function_buttons.keys())
+            self.check_update_flags_and_gui(flags_used.flags)
+
+            self.yml_file = None
+
+            self.enable_disable_functions(enable=True, main_functions=["generate_overview"],
+                                          misc_functions=self.misc_function_buttons.keys())
+            self.write_status(f"[success] Finalizing loading data...")
+
+        except Exception as e:
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
 
     @Slot(name="launch lst file window")
     def load_from_new_list(self):
@@ -668,7 +701,14 @@ class CentralWidget(QWidget):
             return
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
 
     @Slot(name="choose from current list")
     def choose_row_from_current_list(self):
@@ -695,7 +735,14 @@ class CentralWidget(QWidget):
                 "Please load from a new list file first!")
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
 
     @Slot(name="choose from current vws log")
     def choose_row_from_current_vws_log(self):
@@ -723,10 +770,13 @@ class CentralWidget(QWidget):
                 "Please load from a new vws log file first!")
         except Exception as e:
 
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
             QMessageBox.critical(
                 self,
                 f"VIEW encountered a {type(e).__name__}",
-                f"{str(e)}\n\n{traceback.format_exc()}"
+                msg
             )
 
 
