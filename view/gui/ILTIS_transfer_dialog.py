@@ -1,13 +1,14 @@
 from qtpy.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QGroupBox, \
     QMessageBox, QDesktopWidget, QListWidget, QListWidgetItem, QPushButton, QHeaderView
-from qtpy.QtCore import Signal
+from qtpy.QtCore import Signal, Slot
 from .custom_widgets import QTableWidgetPandasDF
 import pandas as pd
 
 
 class ILTISTransferDialog(QMainWindow):
 
-    send_data_signal = Signal(list, list, pd.DataFrame, name="send data")
+    send_data_signal = Signal(list, list, name="send data")
+    send_data_all_signal = Signal(name="send all data to ILTIS")
 
     def __init__(self, data_loaded_df, metadata_to_choose_from):
 
@@ -38,10 +39,19 @@ class ILTISTransferDialog(QMainWindow):
 
         main_vbox.addWidget(metadata_choice_box)
 
+        import_hbox = QWidget(self)
+        import_hbox_layout = QHBoxLayout(import_hbox)
         import_button = QPushButton("Import")
         import_button.clicked.connect(self.send_data)
 
-        main_vbox.addWidget(import_button)
+        import_hbox_layout.addWidget(import_button)
+
+        import_all_button = QPushButton("Import all")
+        import_all_button.clicked.connect(self.send_all_data)
+        import_hbox_layout.addWidget(import_all_button)
+
+        main_vbox.addWidget(import_hbox)
+
 
         self.setCentralWidget(centralWidget)
 
@@ -55,6 +65,7 @@ class ILTISTransferDialog(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    @Slot(name="Trigger import of data from View to ILTIS")
     def send_data(self):
 
         indices = [x.row() for x in self.table.selectionModel().selectedRows()]
@@ -64,9 +75,10 @@ class ILTISTransferDialog(QMainWindow):
         if not indices:
             QMessageBox.critical(self, "No data Selected!", "Please select some data to continue transfer to ILTIS")
         else:
-            self.send_data_signal.emit(indices, metadata_cols, self.data_loaded_df)
+            self.send_data_signal.emit(indices, metadata_cols)
             self.close()
 
+    def send_all_data(self):
 
-
-
+        self.send_data_all_signal.emit()
+        self.close()

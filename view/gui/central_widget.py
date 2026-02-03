@@ -39,7 +39,7 @@ from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
-    export_data_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data to ILTIS")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, parent):
@@ -49,6 +49,7 @@ class CentralWidget(QWidget):
         # declare windows that might be generated
         self.gdm_viz_window = None
         self.load_measurement_window = None
+        self.transfer_dialog = None
 
         self.main_function_widgets = {}
         self.misc_function_buttons = {}
@@ -321,6 +322,7 @@ class CentralWidget(QWidget):
                 data_loaded_df=data_manager_df, metadata_to_choose_from=metadata_to_choose_from
                 )
             self.transfer_dialog.send_data_signal.connect(self.export_data)
+            self.transfer_dialog.send_data_all_signal.connect(self.export_data_all)
             self.transfer_dialog.show()
             self.write_status("Waiting for data selection before transfer to ILTIS")
 
@@ -367,7 +369,7 @@ class CentralWidget(QWidget):
             if path_flag not in self.flags.compound_path_flags_with_defaults:
                 metadata_to_send[path_flag] = self.flags[path_flag]
 
-        self.export_data_signal.emit(
+        self.export_data_to_iltis_signal.emit(
             raw_data_list, signals_list,
             metadata_to_send, max(n_frames_list), stim_onset, stim_offset, self.flags["RM_Radius"])
 
