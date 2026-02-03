@@ -231,7 +231,8 @@ class MeasurementList(object):
 
             for k, v in self.get_metadata_by_type(measurement_row=row, tpye="paths").items():
 
-                self.measurement_list_df.loc[row_ind, k] = convert_to_path_for_current_os(v)
+                self.measurement_list_df.loc[row_ind, k] = str(convert_to_path_for_current_os(v))
+                # better to store as string, as this column has been initialized to store strings
 
     def get_df_from_file(self, fle):
         pass

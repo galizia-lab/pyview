@@ -40,7 +40,8 @@ if TYPE_CHECKING:
 import pandas as pd
 from qtpy.QtCore import Signal
 
-from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QGroupBox, QTabWidget, QPushButton, QScrollArea, QWidget
+from qtpy.QtWidgets import (
+    QHBoxLayout, QVBoxLayout, QGroupBox, QTabWidget, QPushButton, QScrollArea, QWidget)
 from matplotlib import pyplot as plt
 
 from view.gui.central_widget import CentralWidget
@@ -56,17 +57,11 @@ class NapariPyViewWidget(CentralWidget):
     export_data_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
-    def __init__(self, napari_viewer: "napari.viewer.Viewer", parent=None):
+    def __init__(self, napari_viewer: "napari.viewer.Viewer"=None, parent=None):
         super().__init__(parent)
+        # among others, calls init_ui(), initializes Flags, self.p1s, self.measurement_list, etc
+
         self.napari_viewer = napari_viewer
-
-        self.init_flags()
-        self.current_measurement_label = None
-        self.init_ui()
-        self.measurement_list = None
-        self.yml_file = None
-
-        plt.ion()
 
     def init_ui(self):
         # Create a single VBox layout for the main widget
@@ -179,6 +174,12 @@ class NapariPyViewWidget(CentralWidget):
                 "No. of frames", "Frames per second", "No. of Pixels along X", "No. of Pixels along Y",
                 "LE_loadExp", "LE_CalcMethod"]
         )
+
+        # set height of data manager table to be a multiple of header height (multiple determined heuristically)
+        header_height = self.data_manager.ui_table.horizontalHeader().height()
+        self.data_manager.ui_table.setFixedHeight(header_height * 10)
+
+
         self.data_manager.remove_data_signal.connect(self.remove_data)
         data_manager_vbox.addWidget(self.data_manager.ui_table)
 
@@ -203,7 +204,7 @@ class NapariPyViewWidget(CentralWidget):
 
         # --------------------------------------------------------------------------------------------------------------
 
-        gen_overviews_box = OverviewGenWidget(parent=None, current_flags=self.flags)
+        gen_overviews_box = OverviewGenWidget(parent=contents_widget, current_flags=self.flags)
         gen_overviews_box.send_data.connect(self.generate_overview)
         gen_overviews_box.flag_update_signal.connect(self.flag_update_request_gui)
 
@@ -212,7 +213,7 @@ class NapariPyViewWidget(CentralWidget):
 
         gdm_viz_box_flags = ["RM_ROITrace"]
         gdm_viz_box = MainFunctionAbstract(
-            parent=None, button_names=["Visualize GDM traces"],
+            parent=contents_widget, button_names=["Visualize GDM traces"],
             flag_names=gdm_viz_box_flags, flag_defaults=[self.flags[f] for f in gdm_viz_box_flags],
             group_name="Visualize GDM traces", stack_vertically=True
         )
@@ -223,7 +224,7 @@ class NapariPyViewWidget(CentralWidget):
 
 
         # --------------------------------------------------------------------------------------------------------------
-        misc_functions = QGroupBox("Miscellaneous functions")
+        misc_functions = QGroupBox("Miscellaneous functions", self)
         misc_functions_vbox = QVBoxLayout(misc_functions)
         save_button = QPushButton("Save movie (legacy)")
         save_button.clicked.connect(self.save_movie)
@@ -267,6 +268,13 @@ class NapariPyViewWidget(CentralWidget):
         # TODO set status message in napari
 
         self.log_info(msg)
+
+    def closeEvent(self, event):
+
+        plt.close("all")
+        self.log_pte.__del__()
+        event.accept()
+
 
 
 

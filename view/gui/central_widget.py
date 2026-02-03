@@ -550,7 +550,8 @@ class CentralWidget(QWidget):
                 revised_label = self.data_manager.add_data(flags_used, p1, label)
                 self.p1s[revised_label] = p1
 
-            self.check_update_flags_and_gui(flags_used.flags)
+            for k, v in flags_used.items():
+                self.flag_update_request_gui(k, v)
 
             self.yml_file = None
 
