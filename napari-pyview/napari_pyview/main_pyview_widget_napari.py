@@ -52,9 +52,11 @@ from view.gui.direct_load import DirectDataLoader
 from view.gui.logger import LoggerGroupBox
 from view.gui.main_function_widgets import MainFunctionAbstract, OverviewGenWidget
 
+from napari_pyview.iltis_window_napari import ILTISWindowNapari
+
 
 class NapariPyViewWidget(CentralWidget):
-    export_data_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, napari_viewer: "napari.viewer.Viewer"=None, parent=None):
@@ -62,6 +64,7 @@ class NapariPyViewWidget(CentralWidget):
         # among others, calls init_ui(), initializes Flags, self.p1s, self.measurement_list, etc
 
         self.napari_viewer = napari_viewer
+        self.iltis_window = None
 
     def init_ui(self):
         # Create a single VBox layout for the main widget
@@ -192,6 +195,20 @@ class NapariPyViewWidget(CentralWidget):
 
         # --------------------------------------------------------------------------------------------------------------
 
+        iltis_functions_widget = QGroupBox("ILTIS-Related Functions", self)
+        iltis_functions_vbox = QVBoxLayout(iltis_functions_widget)
+        open_button = QPushButton("Open ILTIS and\nlaunch transfer dialog")
+        open_button.clicked.connect(self.open_iltis_launch_transfer_dialog)
+        iltis_functions_vbox.addWidget(open_button)
+
+        self.iltis_close_button = QPushButton("Close ILTIS and\ndelete all data")
+        iltis_functions_vbox.addWidget(self.iltis_close_button)
+
+        contents_vbox.addWidget(iltis_functions_widget)
+        self.main_function_widgets['ILTIS functions'] = iltis_functions_widget
+
+        # --------------------------------------------------------------------------------------------------------------
+
         self.flags_widget = FlagsMainWidget(flags=self.flags)
 
         for subgroup_name, subgroup_page in self.flags_widget.flag_display_choice.subgroup_pages.items():
@@ -269,7 +286,19 @@ class NapariPyViewWidget(CentralWidget):
 
         self.log_info(msg)
 
-    def closeEvent(self, event):
+    def open_iltis_launch_transfer_dialog(self):
+
+        self.iltis_window = ILTISWindowNapari(self)
+        self.iltis_window.show()
+        self.iltis_window.iltis_main_shell.import_action.triggered.connect(self.spawn_export_dialog)
+        self.iltis_window.iltis_main_shell.import_action_quick.triggered.connect(self.export_data_all)
+        self.export_data_to_iltis_signal.connect(self.iltis_window.iltis_main_shell.import_data)
+        self.reset_iltis_signal.connect(self.iltis_window.iltis_main_shell.reset)
+        self.iltis_close_button.clicked.connect(self.iltis_window.close)
+
+        self.iltis_window.iltis_main_shell.import_action.trigger()
+
+    def closeEvent(self, event=None):
 
         plt.close("all")
         self.log_pte.__del__()

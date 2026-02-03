@@ -3,7 +3,7 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from ._widget import NapariPyViewWidget
+from .main_pyview_widget_napari import NapariPyViewWidget
 
 __all__ = (
     "NapariPyViewWidget"
