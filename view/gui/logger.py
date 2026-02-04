@@ -65,9 +65,7 @@ class LoggerGroupBox(QGroupBox):
     def __del__(self):
 
         root_logger = logging.getLogger("VIEW")
-        if self.log_pte:
-            root_logger.removeHandler(self.log_pte)
-        if self.log_file_handler:
-            root_logger.removeHandler(self.log_file_handler)
+        root_logger.removeHandler(self.log_pte)
+        root_logger.removeHandler(self.log_file_handler)
 
         print("LoggerGroupBox cleanup completed")

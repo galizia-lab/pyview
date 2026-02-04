@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING
 
 from view.gui.flags_box import FlagsMainWidget
 from view.gui.setup_calcmethod_choice import SetupChoice
+from view.python_core.flags import FlagsManager
 
 if TYPE_CHECKING:
     import napari
@@ -53,10 +54,11 @@ from view.gui.logger import LoggerGroupBox
 from view.gui.main_function_widgets import MainFunctionAbstract, OverviewGenWidget
 
 from napari_pyview.iltis_window_napari import ILTISWindowNapari
+import numpy as np
 
 
 class NapariPyViewWidget(CentralWidget):
-    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, list, list, int, name="export data")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, napari_viewer: "napari.viewer.Viewer"=None, parent=None):
@@ -65,6 +67,7 @@ class NapariPyViewWidget(CentralWidget):
 
         self.napari_viewer = napari_viewer
         self.iltis_window = None
+
 
     def init_ui(self):
         # Create a single VBox layout for the main widget
@@ -336,17 +339,23 @@ class NapariPyViewWidget(CentralWidget):
         for ind, raw_data in enumerate(raw_data_list):
 
             # convert from format XYT to TXY
-            raw_data_TXY = raw_data.swapaxes(0, 2)
+            raw_data_TYX = raw_data.swapaxes(0, 2)
+
+            raw_data_TYX_Y_flipped = np.flip(raw_data_TYX, axis=1)
 
             metadata_row = metadata_to_send.iloc[ind]
             name = metadata_row["Label to use"]
-            self.napari_viewer.add_image(data=raw_data_TXY, name=name, metadata=metadata_row.to_dict())
+            self.napari_viewer.add_image(data=raw_data_TYX_Y_flipped, name=name, metadata=metadata_row.to_dict())
+
+    def direct_load_finalize(self, label_p1_mapping: dict, flags_used: FlagsManager):
+
+        super().direct_load_finalize(label_p1_mapping, flags_used)
+        self.enable_disable_functions(enable=True, main_functions=("ILTIS functions", "Napari functions"))
 
 
     def closeEvent(self, event=None):
 
         plt.close("all")
-        self.log_pte.__del__()
         event.accept()
 
 

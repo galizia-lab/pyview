@@ -39,7 +39,7 @@ from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
-    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, list, list, int, name="export data to ILTIS")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data to ILTIS")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, parent):
@@ -338,8 +338,8 @@ class CentralWidget(QWidget):
         raw_data_list = []
         signals_list = []
         n_frames_list = []
-        stim_onset_list = []
-        stim_offset_list = []
+        stim_onset = ()
+        stim_offset = ()
 
         dm_df = self.data_manager.df.copy()
         metadata_to_send = dm_df.iloc[indices]
@@ -353,6 +353,8 @@ class CentralWidget(QWidget):
                 stim_onset, stim_offset = zip(*stimulus_frames)
             else:
                 stim_onset = stim_offset = ()
+            # ILTIS needs only one set of stim_onset and stim_offset, irrespective of the number of
+            # images we transfer
 
             LE_loadExp = metadata_row["LE_loadExp"]
             le_label = self.data_manager.label_line_edits[label].text()
@@ -365,10 +367,8 @@ class CentralWidget(QWidget):
             raw_data_list.append(p1.raw1)
             signals_list.append(p1.sig1)
             n_frames_list.append(p1.metadata.frames)
-            stim_onset_list.append(stim_onset)
-            stim_offset_list.append(stim_offset)
 
-        return metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset_list, stim_offset_list
+        return metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset
 
     def export_data_to_iltis(self, indices, metadata_list_for_label):
         '''
