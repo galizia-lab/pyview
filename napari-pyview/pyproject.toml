@@ -30,7 +30,7 @@ requires-python = ">=3.10"
 # See best practices: https://napari.org/stable/plugins/building_a_plugin/best_practices.html
 dependencies = [
     "qtpy",
-    "view@git+https://git@github.com/galizia-lab/pyview.git@napari-plugin"
+    "view @ file:./"  # root is setup to be one directory up in setuptools-scm
 ]
 
 [project.optional-dependencies]

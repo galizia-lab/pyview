@@ -26,7 +26,7 @@ https://napari.org/stable/plugins/index.html
 ## Installation
 
 1. Install napari with conda ([guide](https://napari.org/stable/tutorials/fundamentals/installation.html))
-2. Start this napari by running "napari" from within the conda environement created for it in Step 1.
+2. Start this napari by running "napari" from within the conda environment created for it in Step 1.
 3. Installing the plugin is via napari plugin manager. Please read this [guide](https://napari.org/stable/plugins/start_using_plugins/finding_and_installing_plugins.html#installing-plugins-with-napari) first. 
 4. In napari plugin manager, select "PyPI" in the "Install" dropdown and provide the following manual input `git+https://git@github.com/galizia-lab/pyview.git@dev#subdirectory=napari-pyview`.
 
@@ -37,8 +37,22 @@ You could also pull from other branches of pyview by replaced "dev" with other b
 ``` 
 
 
+## Installation for development
+1. Follow steps 1-3 from "Installation" above
+2. Download source code of PyView
+3. Open terminal and activate the conda environment created for napari (`conda activate ...`)
+4. Change directory into the source code of PyView downloaded (`cd ..../pyview`)
+5. Install plugin in editable mode (`pip install -e ./napari-pyview`)
+
+```
+NOTE:
+---
+With the above editable install, the package view is not installed in editable mode.
+If required, navigate into pyview source code and install with `pip install -e ./`
+```
+
 ## Debugging
-Run the file "napari-pyview/debug_napari_plugin.py" with pdb/IDE in debugger mode. See [this guide](https://napari.org/stable/plugins/building_a_plugin/debug_plugins.html) for more info.
+Run the file "napari-pyview/launch_napari_with_pyview.py" with pdb/IDE in debugger mode. See [this guide](https://napari.org/stable/plugins/building_a_plugin/debug_plugins.html) for more info.
 
 
 ## Contributing
