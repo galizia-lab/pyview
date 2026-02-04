@@ -106,7 +106,7 @@ class ILTISMainShell(ILTISMain):
 
         return roi_options
 
-    @pyqtSlot(list, list, pd.DataFrame, int, tuple, tuple, int, name="import data")
+    @pyqtSlot(list, list, pd.DataFrame, int, list, list, int, name="import data")
     def import_data(self, raw_data_list, signal_list, metadata, n_frames, stim_onset, stim_offset, default_radius):
         """
         Writes raw data, (df/f) signal data and trials names into the data structures iltis.

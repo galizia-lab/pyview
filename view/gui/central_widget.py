@@ -39,7 +39,7 @@ from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
-    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data to ILTIS")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, list, list, int, name="export data to ILTIS")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, parent):
@@ -310,37 +310,40 @@ class CentralWidget(QWidget):
 
         if len(self.p1s) == 0:
             QMessageBox.critical(self, "No data loaded!", "Please load some data before transferring data to ILTIS")
+            return None
         else:
             data_manager_df = self.data_manager.df
             all_metadata_columns = data_manager_df.columns.values.tolist()
             metadata_to_choose_from = set(all_metadata_columns) \
                                       - set(self.data_manager.defaultLabelCols + [self.data_manager.label_col_name])
-            metadata_to_choose_from = \
-                [x.replace("\n", "---") for x in all_metadata_columns if x in metadata_to_choose_from]
-
-            self.transfer_dialog = ILTISTransferDialog(
-                data_loaded_df=data_manager_df, metadata_to_choose_from=metadata_to_choose_from
+            metadata_to_choose_from_list = list(metadata_to_choose_from)
+            transfer_dialog = ILTISTransferDialog(
+                parent=self,
+                data_loaded_df=data_manager_df, metadata_to_choose_from=metadata_to_choose_from_list
                 )
-            self.transfer_dialog.send_data_signal.connect(self.export_data)
-            self.transfer_dialog.send_data_all_signal.connect(self.export_data_all)
-            self.transfer_dialog.show()
+            transfer_dialog.send_data_signal.connect(self.export_data_to_iltis)
+            transfer_dialog.show()
             self.write_status("Waiting for data selection before transfer to ILTIS")
+            return transfer_dialog
+            # this returned value is used in napari plugin
 
-    def export_data(self, indices, metadata_list_for_label):
-        '''
+    def get_data_for_iltis_export(self, indices, metadata_list_for_label=None):
+        """
         goes through indices (i.e. the selected measurements to move to ILTIS)
-        and copies data (p1.raw1) and signals (p1.sig1) etc. into the variables for ILTIS
-        i.e. raw_data_list, signals_list etc.
-        '''
+        curates raw data, signals, n_frames
+        """
+        if metadata_list_for_label is None:
+            metadata_list_for_label = []
 
         raw_data_list = []
         signals_list = []
         n_frames_list = []
+        stim_onset_list = []
+        stim_offset_list = []
 
         dm_df = self.data_manager.df.copy()
         metadata_to_send = dm_df.iloc[indices]
-        stim_onset = []
-        stim_offset = []
+
         for label, metadata_row in metadata_to_send.iterrows():
 
             p1 = self.p1s[label]
@@ -354,8 +357,6 @@ class CentralWidget(QWidget):
             LE_loadExp = metadata_row["LE_loadExp"]
             le_label = self.data_manager.label_line_edits[label].text()
 
-            # the inverse replacement was done for visualization purposes in self.spawn_export_dialog
-            metadata_list_for_label = [x.replace("---", "\n") for x in metadata_list_for_label]
             other_metadata_to_send = metadata_row.loc[metadata_list_for_label].values.tolist()
             label_to_use = self.data_manager.label_joiner.join([le_label] + [str(x) for x in other_metadata_to_send])
             if LE_loadExp == 4:
@@ -364,6 +365,20 @@ class CentralWidget(QWidget):
             raw_data_list.append(p1.raw1)
             signals_list.append(p1.sig1)
             n_frames_list.append(p1.metadata.frames)
+            stim_onset_list.append(stim_onset)
+            stim_offset_list.append(stim_offset)
+
+        return metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset_list, stim_offset_list
+
+    def export_data_to_iltis(self, indices, metadata_list_for_label):
+        '''
+        goes through indices (i.e. the selected measurements to move to ILTIS)
+        and copies data (p1.raw1) and signals (p1.sig1) etc. into the variables for ILTIS
+        i.e. raw_data_list, signals_list etc.
+        '''
+
+        metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset \
+            = self.get_data_for_iltis_export(indices, metadata_list_for_label)
 
         for path_flag in self.flags.compound_path_flags:
             if path_flag not in self.flags.compound_path_flags_with_defaults:
@@ -374,12 +389,12 @@ class CentralWidget(QWidget):
             metadata_to_send, max(n_frames_list), stim_onset, stim_offset, self.flags["RM_Radius"])
 
     @Slot(name="export all data")
-    def export_data_all(self):
+    def export_data_to_iltis_all(self):
         """
         sends all data loaded into VIEW to ILTIS using export_data above
         """
 
-        self.export_data(indices=slice(None), metadata_list_for_label=[])
+        self.export_data_to_iltis(indices=slice(None), metadata_list_for_label=[])
 
     def write_status(self, msg):
 

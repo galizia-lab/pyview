@@ -22,7 +22,7 @@ class ContainerWidget(QTabWidget):
         view_central_widget.export_data_to_iltis_signal.connect(self.iltis_main_object.import_data)
         view_central_widget.reset_iltis_signal.connect(self.iltis_main_object.reset)
 
-        self.iltis_main_object.import_action_quick.triggered.connect(view_central_widget.export_data_all)
+        self.iltis_main_object.import_action_quick.triggered.connect(view_central_widget.export_data_to_iltis_all)
 
         self.addTab(self.view_main_window, "VIEW")
         self.addTab(self.iltis_main_object.MainWindow, "ILTIS")

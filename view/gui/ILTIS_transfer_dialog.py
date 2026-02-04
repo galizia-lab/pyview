@@ -8,11 +8,13 @@ import pandas as pd
 class ILTISTransferDialog(QMainWindow):
 
     send_data_signal = Signal(list, list, name="send data")
-    send_data_all_signal = Signal(name="send all data to ILTIS")
 
-    def __init__(self, data_loaded_df, metadata_to_choose_from):
+    def __init__(self, parent, data_loaded_df, metadata_to_choose_from):
 
-        super().__init__()
+        super().__init__(parent)
+
+        metadata_to_choose_from = \
+            [x.replace("\n", "---") for x in metadata_to_choose_from]
 
         self.data_loaded_df = data_loaded_df
 
@@ -32,7 +34,9 @@ class ILTISTransferDialog(QMainWindow):
         self.metadata_choice_list = QTableWidgetPandasDF(self)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.metadata_choice_list.setSelectionMode(QAbstractItemView.MultiSelection)
-        self.metadata_choice_list.refresh(pd.DataFrame.from_dict({"Metadata to choose from": metadata_to_choose_from}))
+        self.metadata_choice_list.refresh(
+            pd.DataFrame.from_dict({"Metadata to choose from": metadata_to_choose_from})
+        )
         self.metadata_choice_list.resizeColumnsToContents()
 
         metadata_choice_vboxlayout.addWidget(self.metadata_choice_list)
@@ -72,6 +76,9 @@ class ILTISTransferDialog(QMainWindow):
         metadata_cols = [self.metadata_choice_list.item(x.row(), 0).text()
                          for x in self.metadata_choice_list.selectionModel().selectedRows()]
 
+        # the inverse replacement was done for visualization purposes in self.__init__()
+        metadata_cols = [x.replace("---", "\n") for x in metadata_cols]
+
         if not indices:
             QMessageBox.critical(self, "No data Selected!", "Please select some data to continue transfer to ILTIS")
         else:
@@ -80,5 +87,5 @@ class ILTISTransferDialog(QMainWindow):
 
     def send_all_data(self):
 
-        self.send_data_all_signal.emit()
-        self.close()
+        self.table.selectAll()
+        self.send_data()

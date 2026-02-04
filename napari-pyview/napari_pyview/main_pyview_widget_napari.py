@@ -41,7 +41,7 @@ import pandas as pd
 from qtpy.QtCore import Signal
 
 from qtpy.QtWidgets import (
-    QHBoxLayout, QVBoxLayout, QGroupBox, QTabWidget, QPushButton, QScrollArea, QWidget)
+    QHBoxLayout, QVBoxLayout, QGroupBox, QTabWidget, QPushButton, QScrollArea, QWidget, QMessageBox)
 from matplotlib import pyplot as plt
 
 from view.gui.central_widget import CentralWidget
@@ -56,7 +56,7 @@ from napari_pyview.iltis_window_napari import ILTISWindowNapari
 
 
 class NapariPyViewWidget(CentralWidget):
-    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, list, list, int, name="export data")
     reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, napari_viewer: "napari.viewer.Viewer"=None, parent=None):
@@ -194,7 +194,7 @@ class NapariPyViewWidget(CentralWidget):
         contents_vbox.addWidget(self.log_pte)
 
         # --------------------------------------------------------------------------------------------------------------
-
+        # ILTIS related
         iltis_functions_widget = QGroupBox("ILTIS-Related Functions", self)
         iltis_functions_vbox = QVBoxLayout(iltis_functions_widget)
         open_button = QPushButton("Open ILTIS and\nlaunch transfer dialog")
@@ -209,6 +209,18 @@ class NapariPyViewWidget(CentralWidget):
 
         # --------------------------------------------------------------------------------------------------------------
 
+        # Napari Related
+        napari_functions_widget = QGroupBox("Napari-Related Functions", self)
+        napari_functions_vbox = QVBoxLayout(napari_functions_widget)
+
+        transfer_data_button = QPushButton("Transfer data to Napari")
+        transfer_data_button.clicked.connect(self.spawn_dialog_napari_data_transfer)
+        napari_functions_vbox.addWidget(transfer_data_button)
+
+        contents_vbox.addWidget(napari_functions_widget)
+        self.main_function_widgets['Napari functions'] = napari_functions_widget
+
+        # --------------------------------------------------------------------------------------------------------------
         self.flags_widget = FlagsMainWidget(flags=self.flags)
 
         for subgroup_name, subgroup_page in self.flags_widget.flag_display_choice.subgroup_pages.items():
@@ -291,12 +303,45 @@ class NapariPyViewWidget(CentralWidget):
         self.iltis_window = ILTISWindowNapari(self)
         self.iltis_window.show()
         self.iltis_window.iltis_main_shell.import_action.triggered.connect(self.spawn_export_dialog)
-        self.iltis_window.iltis_main_shell.import_action_quick.triggered.connect(self.export_data_all)
+        self.iltis_window.iltis_main_shell.import_action_quick.triggered.connect(self.export_data_to_iltis_all)
         self.export_data_to_iltis_signal.connect(self.iltis_window.iltis_main_shell.import_data)
         self.reset_iltis_signal.connect(self.iltis_window.iltis_main_shell.reset)
         self.iltis_close_button.clicked.connect(self.iltis_window.close)
 
         self.iltis_window.iltis_main_shell.import_action.trigger()
+
+
+    def spawn_dialog_napari_data_transfer(self):
+
+        transfer_dialog = self.spawn_export_dialog()
+        if transfer_dialog is not None:
+            transfer_dialog.send_data_signal.connect(self.export_data_to_napari)
+            transfer_dialog.setWindowTitle("Import Data to Napari")
+
+
+    def export_data_to_napari(self, indices, metadata_list_for_label):
+
+        if self.napari_viewer is None:
+            QMessageBox.critical(self, f"Napari not found!",
+                                 f"The plugin was started without a napari viewer."
+                                 f" Please start the plugin from within napari.")
+
+        metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset \
+            = self.get_data_for_iltis_export(indices, metadata_list_for_label)
+
+        for path_flag in self.flags.compound_path_flags:
+            if path_flag not in self.flags.compound_path_flags_with_defaults:
+                metadata_to_send[path_flag] = self.flags[path_flag]
+
+        for ind, raw_data in enumerate(raw_data_list):
+
+            # convert from format XYT to TXY
+            raw_data_TXY = raw_data.swapaxes(0, 2)
+
+            metadata_row = metadata_to_send.iloc[ind]
+            name = metadata_row["Label to use"]
+            self.napari_viewer.add_image(data=raw_data_TXY, name=name, metadata=metadata_row.to_dict())
+
 
     def closeEvent(self, event=None):
 

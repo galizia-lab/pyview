@@ -117,9 +117,3 @@ class DataManager(QObject):
 
 
 
-
-
-
-
-
-
