@@ -1,25 +1,30 @@
 import logging
 from qtpy.QtWidgets import QPlainTextEdit, QGroupBox, QVBoxLayout
+from qtpy import QtCore
 from ..python_core.appdirs import get_app_log_dir
 import pathlib as pl
 import time
 import sys
 
 
-# solution copied from https://stackoverflow.com/questions/28655198/best-way-to-display-logs-in-pyqt
-class QPlainTextEditLogger(QPlainTextEdit, logging.Handler):
+# Source - https://stackoverflow.com/a/60528393
+# Posted by tobilocker, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-02-05, License - CC BY-SA 4.0
+
+class QTextEditLogger(logging.Handler, QtCore.QObject):
+    appendPlainText = QtCore.Signal(str)
 
     def __init__(self, parent):
-        super(QPlainTextEdit, self).__init__(parent)
-        super(logging.Handler, self).__init__()
-
-        self.setReadOnly(True)
+        super().__init__()
+        QtCore.QObject.__init__(self)
+        self.widget = QPlainTextEdit(parent)
+        self.widget.setReadOnly(True)
+        self.appendPlainText.connect(self.widget.appendPlainText)
 
     def emit(self, record):
         msg = self.format(record)
-        text_cursor = self.textCursor()
-        text_cursor.insertText(f"{msg}\n")
-        self.setTextCursor(text_cursor)
+        self.appendPlainText.emit(msg)
+
 
 
 class LoggerGroupBox(QGroupBox):
@@ -38,10 +43,10 @@ class LoggerGroupBox(QGroupBox):
 
         vbox = QVBoxLayout(self)
 
-        self.log_pte = QPlainTextEditLogger(self)
+        self.log_pte = QTextEditLogger(self)
         self.log_pte.setLevel(level=logging.INFO)
 
-        vbox.addWidget(self.log_pte)
+        vbox.addWidget(self.log_pte.widget)
 
         view_logger = logging.getLogger("VIEW")
         view_logger.setLevel(level=logging.INFO)
@@ -62,10 +67,3 @@ class LoggerGroupBox(QGroupBox):
         stream_handler.setFormatter(formatter)
         view_logger.addHandler(stream_handler)
 
-    def __del__(self):
-
-        root_logger = logging.getLogger("VIEW")
-        root_logger.removeHandler(self.log_pte)
-        root_logger.removeHandler(self.log_file_handler)
-
-        print("LoggerGroupBox cleanup completed")
