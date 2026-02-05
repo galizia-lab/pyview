@@ -1,4 +1,4 @@
-from napari_pyview import NapariPyViewWidget
+from view.napari_pyview import NapariPyViewWidget
 import sys
 from qtpy.QtWidgets import QApplication
 

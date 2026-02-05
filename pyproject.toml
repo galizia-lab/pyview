@@ -46,8 +46,9 @@ dependencies = [
 pyqt5 = [
     "PyQt5>=5.12.2,<6"
 ]
-all = ["view[pyqt5]"]
-
+napari = [
+    "napari[all]"
+]
 
 [project.scripts]
 view = 'view.gui.start_view_gui:main'
@@ -64,3 +65,7 @@ view  = [
             "jinja_templates/*",
             "idl_folder_translation/*template.txt"
         ]
+
+# napari-plugin related
+[project.entry-points."napari.manifest"]
+napari_pyview = "view.napari_pyview:napari.yaml"

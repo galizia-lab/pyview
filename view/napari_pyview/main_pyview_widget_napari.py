@@ -53,7 +53,7 @@ from view.gui.direct_load import DirectDataLoader
 from view.gui.logger import LoggerGroupBox
 from view.gui.main_function_widgets import MainFunctionAbstract, OverviewGenWidget
 
-from napari_pyview.iltis_window_napari import ILTISWindowNapari
+from view.napari_pyview.iltis_window_napari import ILTISWindowNapari
 import numpy as np
 
 
