@@ -2,9 +2,10 @@
 """
 Test file for flag interactions in the CentralWidget.
 
-This test verifies that when a specific value is chosen in the setup_choice_box.dropdown,
-the corresponding flag value in flags_widget.flag_display_choice.subgroup_pages["LoadData"].
-flag_values_descriptions_df is updated correctly.
+This test verifies that:
+ 1. when a specific value is chosen for LE_loadExp in the setup choice box, the same is correctly updated in the flags widget
+ 2. when a specific value is chosen for LE_loadExp in the flags widget, the same is correctly updated in the setup choice box
+
 """
 
 import pytest
