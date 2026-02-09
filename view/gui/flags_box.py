@@ -1,15 +1,30 @@
-from qtpy.QtWidgets import QTableWidget, QTabWidget, QLineEdit, QMessageBox, QPushButton, QVBoxLayout, QWidget, \
-    QSizePolicy, QHeaderView, QMenu, QComboBox, QHBoxLayout, QLabel, QWidget, QGroupBox
-from qtpy.QtGui import QGuiApplication, QCursor
-from qtpy.QtCore import Signal, Slot, QObject
-from .flags_search import get_flags_index, query
 from collections import OrderedDict
 from html.parser import HTMLParser
+
 import pandas as pd
+from qtpy.QtCore import QObject, Signal, Slot
+from qtpy.QtGui import QCursor, QGuiApplication
+from qtpy.QtWidgets import (
+    QComboBox,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTableWidget,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .flags_search import get_flags_index, query
 
 
 class ButtonCopyableLabel(QPushButton):
-
     def __init__(self, label):
 
         super().__init__(label)
@@ -27,7 +42,6 @@ class ButtonCopyableLabel(QPushButton):
 
 
 class FlagSubgroupPage(QTableWidget):
-
     return_flag_signal = Signal(str, str, name="return_flag_signal")
 
     def __init__(self, parent, flags_default_values_descriptions_df):
@@ -38,43 +52,62 @@ class FlagSubgroupPage(QTableWidget):
         self.setColumnCount(2)
         self.setHorizontalHeaderLabels(["Flag Name", "Flag Value"])
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.flag_values_descriptions_df = flags_default_values_descriptions_df.set_index("Flag Name")
-        self.flag_values_descriptions_df.rename(columns={"Flag Default Value": "Flag Value"}, inplace=True)
+        self.flag_values_descriptions_df = (
+            flags_default_values_descriptions_df.set_index("Flag Name")
+        )
+        self.flag_values_descriptions_df.rename(
+            columns={"Flag Default Value": "Flag Value"}, inplace=True
+        )
 
-        for index, (flag_name, flag_value, flags_description, selectable_options_str, flag_value_type) in \
-                flags_default_values_descriptions_df.iterrows():
-
+        for index, (
+            flag_name,
+            flag_value,
+            _flags_description,
+            selectable_options_str,
+            flag_value_type,
+        ) in flags_default_values_descriptions_df.iterrows():
             if flag_value_type.find("bool") >= 0:
                 to_update = "True:\nFalse:\n1: same as True\n0: same as False"
                 if not pd.isnull(selectable_options_str):
                     to_update = f"{to_update}\n{selectable_options_str}"
 
                 selectable_options_str = to_update
-                self.flag_values_descriptions_df.loc[flag_name, "Selectable Options"] = selectable_options_str
+                self.flag_values_descriptions_df.loc[
+                    flag_name, "Selectable Options"
+                ] = selectable_options_str
 
             name_button = ButtonCopyableLabel(flag_name)
             name_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            name_button.setToolTip("Click here for a description of flag function and possible choices")
+            name_button.setToolTip(
+                "Click here for a description of flag function and possible choices"
+            )
             name_button.clicked.connect(self.display_description)
             self.setCellWidget(index, 0, name_button)
             combobox = QComboBox(self)
             combobox.setToolTip(
                 "Click on flag name (button just to the left) "
-                "for a description of flag function and possible choices")
+                "for a description of flag function and possible choices"
+            )
             combobox.setInsertPolicy(QComboBox.InsertAtBottom)
             combobox.setAccessibleName(flag_name)
             combobox.setEditable(True)
             if not pd.isnull(selectable_options_str):
-                selectable_options_dict = self.parse_selectable_options_str(selectable_options_str)
+                selectable_options_dict = self.parse_selectable_options_str(
+                    selectable_options_str
+                )
                 combobox.addItems(selectable_options_dict.keys())
             combobox.lineEdit().editingFinished.connect(self.return_flag)
-            combobox.currentIndexChanged.connect(self.return_flag)
+            combobox.textActivated.connect(self.return_flag)
 
-            self.flag_values_descriptions_df.loc[flag_name, "combobox"] = combobox
+            self.flag_values_descriptions_df.loc[flag_name, "combobox"] = (
+                combobox
+            )
             # set_flag accesses the column "combobox", so it needs to be set beforehand
             self.set_flag(flag_name, flag_value)
             self.setCellWidget(index, 1, combobox)
-            self.flag_values_descriptions_df.loc[flag_name, "button"] = name_button
+            self.flag_values_descriptions_df.loc[flag_name, "button"] = (
+                name_button
+            )
 
     def parse_selectable_options_str(self, selectable_options_str):
         selectable_options_dict = {}
@@ -88,32 +121,52 @@ class FlagSubgroupPage(QTableWidget):
 
     def set_flag(self, flag_name, flag_value):
 
-        self.flag_values_descriptions_df.loc[flag_name, "combobox"].setCurrentText(str(flag_value))
-        self.flag_values_descriptions_df.loc[flag_name, "Flag Value"] = str(flag_value)
+        self.flag_values_descriptions_df.loc[
+            flag_name, "combobox"
+        ].setCurrentText(str(flag_value))
+        self.flag_values_descriptions_df.loc[flag_name, "Flag Value"] = str(
+            flag_value
+        )
 
     def reset_flag(self, flag_name, flag_value):
-        self.flag_values_descriptions_df.loc[flag_name, "combobox"].setCurrentText(str(flag_value))
+        self.flag_values_descriptions_df.loc[
+            flag_name, "combobox"
+        ].setCurrentText(str(flag_value))
 
     def display_description(self):
         sender = QObject.sender(self)
         flag_name = sender.text()
-        flag_descr = self.flag_values_descriptions_df.loc[flag_name, "Flag Description"]
-        flag_selectable_values = self.flag_values_descriptions_df.loc[flag_name, "Selectable Options"]
+        flag_descr = self.flag_values_descriptions_df.loc[
+            flag_name, "Flag Description"
+        ]
+        flag_selectable_values = self.flag_values_descriptions_df.loc[
+            flag_name, "Selectable Options"
+        ]
         descr = flag_descr[:]  # make a copy
         if not pd.isnull(flag_selectable_values):
             descr = f"{descr}\n\nValid values:\n\n{flag_selectable_values}"
-        QMessageBox.information(self, f"Description of flag '{flag_name}'", descr)
+        QMessageBox.information(
+            self, f"Description of flag '{flag_name}'", descr
+        )
 
     def return_flag(self):
         sender_le = QObject.sender(self)
         if sender_le is not None:
             flag_name = sender_le.accessibleName()
-            if flag_name in self.flag_values_descriptions_df.index.values:  # not sure why this check is needed
-                self.return_flag_signal.emit(flag_name, sender_le.currentText())
+            if (
+                flag_name in self.flag_values_descriptions_df.index.values
+            ):  # in case this call comes not from a combobox corresponding to a flag, but some other widget
+                self.return_flag_signal.emit(
+                    flag_name, sender_le.currentText()
+                )
 
     def jump_to_flag(self, flag_name):
 
-        flag_index = self.flag_values_descriptions_df.index.values.tolist().index(flag_name)
+        flag_index = (
+            self.flag_values_descriptions_df.index.values.tolist().index(
+                flag_name
+            )
+        )
 
         # this programmatic change will otherwise send currentChanged signal
         self.blockSignals(True)
@@ -122,7 +175,6 @@ class FlagSubgroupPage(QTableWidget):
 
 
 class FlagsDisplayChoiceTabs(QTabWidget):
-
     def __init__(self, parent, flags):
 
         super().__init__(parent=parent)
@@ -138,14 +190,19 @@ class FlagsDisplayChoiceTabs(QTabWidget):
         self.flag_name_subgroup_mapping = {}
 
         for subgroup in flags.get_subgroups():
+            subgroup_flag_def_subset_df = flags.get_subgroup_definition(
+                subgroup
+            )
 
-            subgroup_flag_def_subset_df = flags.get_subgroup_definition(subgroup)
-
-            subgroup_page = FlagSubgroupPage(parent=None,
-                                             flags_default_values_descriptions_df=subgroup_flag_def_subset_df
-                                             )
-            self.flag_name_subgroup_mapping.update({flag_name: subgroup
-                                              for flag_name in subgroup_flag_def_subset_df["Flag Name"]})
+            subgroup_page = FlagSubgroupPage(
+                parent=None,
+                flags_default_values_descriptions_df=subgroup_flag_def_subset_df,
+            )
+            self.flag_name_subgroup_mapping.update(
+                dict.fromkeys(
+                    subgroup_flag_def_subset_df["Flag Name"], subgroup
+                )
+            )
 
             self.subgroup_pages[subgroup] = subgroup_page
             widget = QWidget(self)
@@ -176,18 +233,19 @@ class FlagsDisplayChoiceTabs(QTabWidget):
 
         target_subgroup_name = self.flag_name_subgroup_mapping[flag_name]
         target_subgroup_page = self.subgroup_pages[target_subgroup_name]
-        subgroup_index = list(self.subgroup_pages.keys()).index(target_subgroup_name)
+        subgroup_index = list(self.subgroup_pages.keys()).index(
+            target_subgroup_name
+        )
 
         # this programmatic change will otherwise send currentChanged signal
         self.blockSignals(True)
         self.setCurrentIndex(subgroup_index + 1)  # index 0 is search page
         self.blockSignals(False)
-        
+
         target_subgroup_page.jump_to_flag(flag_name)
 
 
 class FlagNameParser(HTMLParser):
-
     def __init__(self, line):
         super().__init__()
         self.flag_name = None
@@ -198,7 +256,6 @@ class FlagNameParser(HTMLParser):
 
 
 class FlagsSearchWidget(QWidget):
-
     raise_jump_to_flag_signal = Signal(str)
 
     def __init__(self, parent, flags):
@@ -216,8 +273,12 @@ class FlagsSearchWidget(QWidget):
 
         self.search_results_table = QTableWidget(self)
         self.search_results_table.setColumnCount(3)
-        self.search_results_table.setHorizontalHeaderLabels(["Flag Name", "Flag Subgroup", "Flag Description"])
-        self.search_results_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.search_results_table.setHorizontalHeaderLabels(
+            ["Flag Name", "Flag Subgroup", "Flag Description"]
+        )
+        self.search_results_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
         vbox.addWidget(self.search_results_table)
 
         self.flag_name_push_button_mapping_2way = {}
@@ -227,25 +288,35 @@ class FlagsSearchWidget(QWidget):
 
         self.flag_name_push_button_mapping_2way = {}
 
-        highlights = query(index=self.search_index, query_str=text, max_results=20)
+        highlights = query(
+            index=self.search_index, query_str=text, max_results=20
+        )
 
         self.search_results_table.clearContents()
         self.search_results_table.setRowCount(len(highlights))
         for ind, highlight in enumerate(highlights):
-            self.search_results_table.setCellWidget(ind, 0, QLabel(highlight["flag_name"]))
+            self.search_results_table.setCellWidget(
+                ind, 0, QLabel(highlight["flag_name"])
+            )
             flag_name_parser = FlagNameParser(highlight["flag_name"])
 
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.addWidget(QLabel(highlight["flag_subgroup"]))
             push_button = QPushButton("Go to flag")
-            self.flag_name_push_button_mapping_2way[flag_name_parser.flag_name] = push_button
-            self.flag_name_push_button_mapping_2way[push_button] = flag_name_parser.flag_name
+            self.flag_name_push_button_mapping_2way[
+                flag_name_parser.flag_name
+            ] = push_button
+            self.flag_name_push_button_mapping_2way[push_button] = (
+                flag_name_parser.flag_name
+            )
             push_button.clicked.connect(self.raise_jump_to_flag)
             layout.addWidget(push_button)
             self.search_results_table.setCellWidget(ind, 1, widget)
 
-            self.search_results_table.setCellWidget(ind, 2, QLabel(highlight["flag_description"]))
+            self.search_results_table.setCellWidget(
+                ind, 2, QLabel(highlight["flag_description"])
+            )
         self.search_results_table.resizeColumnsToContents()
         self.search_results_table.resizeRowsToContents()
 
@@ -253,12 +324,12 @@ class FlagsSearchWidget(QWidget):
     def raise_jump_to_flag(self):
 
         sender = QObject.sender(self)
-        self.raise_jump_to_flag_signal.emit(self.flag_name_push_button_mapping_2way[sender])
-
+        self.raise_jump_to_flag_signal.emit(
+            self.flag_name_push_button_mapping_2way[sender]
+        )
 
 
 class FlagsMainWidget(QGroupBox):
-
     def __init__(self, flags, parent=None):
 
         super().__init__("Flags Viewer/Editor/Saver", parent)
@@ -269,16 +340,12 @@ class FlagsMainWidget(QGroupBox):
 
         flags_vbox = QVBoxLayout(self)
         header_hbox = QHBoxLayout()
-        header_hbox.addWidget(QLabel("Tip: Click on flag names for description"))
+        header_hbox.addWidget(
+            QLabel("Tip: Click on flag names for description")
+        )
         self.wiki_link_button = QPushButton("Go to VIEW WIKI")
         header_hbox.addWidget(self.wiki_link_button)
         self.save_button = QPushButton("Write flags to file")
         header_hbox.addWidget(self.save_button)
         flags_vbox.addLayout(header_hbox)
         flags_vbox.addWidget(self.flag_display_choice)
-
-
-
-
-
-
