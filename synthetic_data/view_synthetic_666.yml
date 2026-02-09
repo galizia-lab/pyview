@@ -32,7 +32,7 @@ LE_ScatteredLightRadius: 50.0
 LE_StartBackground: 4
 LE_StimulusBasedBackground: true
 LE_labelColumns: ('Measu',)
-LE_loadExp: 666
+LE_loadExp: 665
 RM_ROIThreshold: 75.0
 RM_ROITrace: 3
 RM_Radius: 5
