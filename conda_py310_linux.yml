@@ -1,6 +1,7 @@
 name: view_py310
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.10
   - pyqt=5
@@ -17,8 +18,9 @@ dependencies:
   - openpyxl
   - jupyter
   - appdirs
-# only available on conda-forge
+  # only available on conda-forge
   - moviepy
   - libstdcxx-ng
-  - # ensure consistent BLAS/LAPACK stack
+  # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas
+
