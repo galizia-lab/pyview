@@ -1,5 +1,5 @@
-from tests.gdm_data_classes.common import read_tst_file
 from view.python_core.gdm_generation import GDMFile
+from view.python_core.tests.gdm_data_classes.common import read_tst_file
 
 
 def test_read_from_csv_all():
@@ -11,6 +11,7 @@ def test_read_from_csv_all():
 
     assert all(v is not None for v in gdm_file.data_dict.values())
 
+
 def test_read_from_csv_metadata_only():
     """
     Checking reading function from CSV with metadata_only set to True
@@ -21,6 +22,7 @@ def test_read_from_csv_metadata_only():
     assert all(v is None for v in gdm_file.data_dict.values())
 
     return gdm_file
+
 
 def test_read_data_later_based_on_metadata():
     """
@@ -46,11 +48,10 @@ def test_read_data_later_based_on_metadata_select_indices():
     gdm_file.check_load_data_if_missing(indices_to_check=indices_to_read)
 
     assert all(
-        v is not None
-        if k in indices_to_read
-        else v is None
+        v is not None if k in indices_to_read else v is None
         for k, v in gdm_file.data_dict.items()
     )
+
 
 def test_read_data_later_in_gdm_file_from_multiple_csv_files():
     """
@@ -71,6 +72,7 @@ def test_read_data_later_in_gdm_file_from_multiple_csv_files():
 
     assert all(v is not None for v in gdm_file1.data_dict.values())
 
+
 def test_groupby_function():
     """
     Testing Groupby function of GDMFiles
@@ -80,23 +82,32 @@ def test_groupby_function():
 
     grouping_column_sets = ["Animal", ["Animal", "Measu"]]
     grouping_inds_expected_sets = [
-        ['animal1', 'animal2'],
-        [('animal1', 1), ('animal1', 2), ('animal2', 1), ('animal2', 2)]
+        ["animal1", "animal2"],
+        [("animal1", 1), ("animal1", 2), ("animal2", 1), ("animal2", 2)],
     ]
     group_gdm_file_sizes_expected_sets = [[2, 2], [1, 1, 1, 1]]
 
-    for grouping_cols, grouping_inds_expected, group_gdm_file_sizes_expected in \
-        zip(grouping_column_sets, grouping_inds_expected_sets, group_gdm_file_sizes_expected_sets):
-
-        for serial_ind, (grouping_inds, group_gdm_file) in enumerate(gdm_file1.groupby(grouping_cols)):
-
+    for (
+        grouping_cols,
+        grouping_inds_expected,
+        group_gdm_file_sizes_expected,
+    ) in zip(
+        grouping_column_sets,
+        grouping_inds_expected_sets,
+        group_gdm_file_sizes_expected_sets,
+    ):
+        for serial_ind, (grouping_inds, group_gdm_file) in enumerate(
+            gdm_file1.groupby(grouping_cols)
+        ):
             assert grouping_inds == grouping_inds_expected[serial_ind]
             assert isinstance(group_gdm_file, GDMFile)
-            assert len(group_gdm_file.data_dict) == group_gdm_file_sizes_expected[serial_ind]
+            assert (
+                len(group_gdm_file.data_dict)
+                == group_gdm_file_sizes_expected[serial_ind]
+            )
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # test_read_from_csv_metadata_only()
     # test_read_data_later_based_on_metadata_select_indices()
     test_groupby_function()

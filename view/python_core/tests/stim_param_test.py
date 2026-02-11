@@ -1,8 +1,10 @@
-import pytest
-
-from view.python_core.measurement_list import MeasurementList
 import pathlib as pl
 import tempfile
+
+import pytest
+
+from view.python_core.get_internal_files import get_internal_test_files_path
+from view.python_core.measurement_list import MeasurementList
 
 
 def test_valid_stim_params():
@@ -11,7 +13,11 @@ def test_valid_stim_params():
     :return:
     """
 
-    valid_stim_list = 'tests/test_files/measurement_test_files/190112_locust_ip_VALID_stims.lst.xls'
+    valid_stim_list = str(
+        pl.Path(get_internal_test_files_path())
+        / "measurement_test_files"
+        / "190112_locust_ip_VALID_stims.lst.xls"
+    )
 
     ml = MeasurementList.create_from_lst_file(valid_stim_list, LE_loadExp=4)
     for measu_index, measu in enumerate(ml.get_measus()):
@@ -24,7 +30,11 @@ def test_invalid_stim_params():
     :return:
     """
 
-    invalid_stim_list = 'tests/test_files/measurement_test_files/190112_locust_ip_INVALID_stims.lst.xls'
+    invalid_stim_list = str(
+        pl.Path(get_internal_test_files_path())
+        / "measurement_test_files"
+        / "190112_locust_ip_INVALID_stims.lst.xls"
+    )
 
     ml = MeasurementList.create_from_lst_file(invalid_stim_list, LE_loadExp=4)
     for measu_index, measu in enumerate(ml.get_measus()):
@@ -38,7 +48,11 @@ def test_invalid_stim_params():
 
 def stim_spec_test_generator():
 
-    test_root = "tests/test_files/measurement_test_files/valid_files"
+    test_root = (
+        pl.Path(get_internal_test_files_path())
+        / "measurement_test_files"
+        / "valid_files"
+    )
 
     test_root_path = pl.Path(test_root)
     dirs = [child for child in test_root_path.iterdir() if child.is_dir()]
@@ -46,14 +60,16 @@ def stim_spec_test_generator():
     for direc in dirs:
         for child in direc.iterdir():
             if child.suffix == ".xls":
-                #try_importing_measurement_list.description = f"Testing with the stimulus specification in " \
-                                                            # f"{child.relative_to(test_root_path)}"
+                # try_importing_measurement_list.description = f"Testing with the stimulus specification in " \
+                # f"{child.relative_to(test_root_path)}"
                 # TODO Include description in pytest test
                 yield str(child)
 
+
 valid_files = list(stim_spec_test_generator())
 
-@pytest.mark.parametrize('xls', valid_files)
+
+@pytest.mark.parametrize("xls", valid_files)
 def test_importing_measurement_list(xls):
 
     expected_csv = f"{xls.split('.')[0]}.csv"
@@ -72,11 +88,14 @@ def test_importing_measurement_list(xls):
 
 
 if __name__ == "__main__":
-
     # valid_stim_params_test()
-    test_importing_measurement_list("tests/test_files/measurement_test_files/valid_files/"
-                                   "one_stim/stimON_stimOFF.lst.xls")
+
+    test_path = (
+        pl.Path(get_internal_test_files_path())
+        / "measurement_test_files"
+        / "valid_files"
+        / "one_stim/stimON_stimOFF.lst.xls"
+    )
+    test_importing_measurement_list(str(test_path))
     # test_importing_measurement_list("tests/test_files/measurement_test_files/valid_files/"
     #                                "two_stim_new_mixed/stimON_stimOFF_stimLen.lst.xls")
-
-

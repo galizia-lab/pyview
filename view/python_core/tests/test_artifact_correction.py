@@ -1,14 +1,18 @@
+import numpy as np
 import pytest
 
 from view import VIEW
 from view.python_core.io import write_tif_2Dor3D
-from tests.common import initialize_test_yml_list_measurement
-import numpy as np
+from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
-def run_artifact_correction(flags_to_update, output_suffix=None, tiny_dataset=False):
+def run_artifact_correction(
+    flags_to_update, output_suffix=None, tiny_dataset=False
+):
 
-    test_yml, test_animal, test_measu = initialize_test_yml_list_measurement(tiny_dataset=tiny_dataset)
+    test_yml, test_animal, test_measu = initialize_test_yml_list_measurement(
+        tiny_dataset=tiny_dataset
+    )
 
     flags = {
         "LE_BleachCorrMethod": "None",
@@ -30,9 +34,13 @@ def run_artifact_correction(flags_to_update, output_suffix=None, tiny_dataset=Fa
     vo.load_measurement_data_from_current_animal(measu=test_measu)
 
     if output_suffix is not None:
-        op_dir = vo.flags.get_processed_data_dir_path() / "Artifact_corrected_raw"
+        op_dir = (
+            vo.flags.get_processed_data_dir_path() / "Artifact_corrected_raw"
+        )
         op_dir.mkdir(exist_ok=True)
-        op_filename = op_dir / f"{test_animal}_{test_animal}{output_suffix}.tif"
+        op_filename = (
+            op_dir / f"{test_animal}_{test_animal}{output_suffix}.tif"
+        )
         write_tif_2Dor3D(array_xy_or_xyt=vo.p1.raw1, tif_file=op_filename)
 
     return vo
@@ -44,13 +52,21 @@ def test_replace_init_frames():
     """
 
     frames2replace = 5
-    vo = run_artifact_correction(flags_to_update={"Data_ReplaceInitFrames": frames2replace})
+    vo = run_artifact_correction(
+        flags_to_update={"Data_ReplaceInitFrames": frames2replace}
+    )
 
     temp = vo.p1.raw1
 
     # after replacement, the first <frames2replace + 1> frames are identical to the first frame,
     # while <frames2replace + 2>th frame isn't
-    assert sum(np.allclose(temp[:, :, 0], temp[:, :, i]) for i in range(frames2replace + 2)) == frames2replace + 1
+    assert (
+        sum(
+            np.allclose(temp[:, :, 0], temp[:, :, i])
+            for i in range(frames2replace + 2)
+        )
+        == frames2replace + 1
+    )
 
 
 def test_no_bleach_method():
@@ -81,10 +97,8 @@ def test_log_bleach_pixelwise_1cpu():
     """
 
     run_artifact_correction(
-        flags_to_update={
-            "LE_BleachCorrMethod": "log_pixelwise_1cpu"
-        },
-        tiny_dataset=True
+        flags_to_update={"LE_BleachCorrMethod": "log_pixelwise_1cpu"},
+        tiny_dataset=True,
         # output_suffix="_BC_log_pixelwise"
     )
 
@@ -95,9 +109,7 @@ def test_log_bleach_pixelwise_parallel():
     """
 
     run_artifact_correction(
-        flags_to_update={
-            "LE_BleachCorrMethod": "log_pixelwise_parallel"
-        },
+        flags_to_update={"LE_BleachCorrMethod": "log_pixelwise_parallel"},
         # output_suffix="_BC_log_pixelwise"
     )
 
@@ -110,7 +122,7 @@ def test_log_bleach_pixelwise_excluding_area():
     run_artifact_correction(
         flags_to_update={
             "LE_BleachCorrMethod": "log_pixelwise_parallel",
-            "LE_BleachExcludeArea": True
+            "LE_BleachExcludeArea": True,
         },
         # output_suffix="_BC_log_pixelwise_excludingArea"
     )
@@ -126,7 +138,7 @@ def test_log_bleach_pixelwise_excluding_stimulus():
             "LE_BleachCorrMethod": "log_pixelwise_parallel",
             "LE_BleachExcludeStimulus": True,
             "LELog_ExcludeSeconds": 5,
-            "LE_PrestimEndBackground": 5
+            "LE_PrestimEndBackground": 5,
         },
         # output_suffix="_BC_log_pixelwise_excludingStimulus"
     )
@@ -138,9 +150,7 @@ def test_log_bleach_uniform():
     """
 
     run_artifact_correction(
-        flags_to_update={
-            "LE_BleachCorrMethod": "log_uniform"
-        },
+        flags_to_update={"LE_BleachCorrMethod": "log_uniform"},
         # output_suffix="_BC_log_uniform"
     )
 
@@ -153,7 +163,7 @@ def test_log_bleach_uniform_excluding_area():
     run_artifact_correction(
         flags_to_update={
             "LE_BleachCorrMethod": "log_uniform",
-            "LE_BleachExcludeArea": True
+            "LE_BleachExcludeArea": True,
         },
         # output_suffix="_BC_log_uniform_excludingArea"
     )
@@ -169,10 +179,11 @@ def test_log_bleach_uniform_excluding_stimulus():
             "LE_BleachCorrMethod": "log_uniform",
             "LE_BleachExcludeStimulus": True,
             "LELog_ExcludeSeconds": 5,
-            "LE_PrestimEndBackground": 5
+            "LE_PrestimEndBackground": 5,
         },
         # output_suffix="_BC_log_uniform_excludingStimulus"
     )
+
 
 @pytest.mark.parametrize(
     "flags_to_test",
@@ -180,12 +191,20 @@ def test_log_bleach_uniform_excluding_stimulus():
         {"Data_Median_Filter": 0},
         {"Data_Median_Filter": 1},
         {"Data_Median_Filter": 2},
-        {"Data_Median_Filter": 3, "Data_Median_Filter_space": 2, "Data_Median_Filter_time": 3},
+        {
+            "Data_Median_Filter": 3,
+            "Data_Median_Filter_space": 2,
+            "Data_Median_Filter_time": 3,
+        },
         {"Data_Mean_Filter": 0},
         {"Data_Mean_Filter": 1},
         {"Data_Mean_Filter": 2},
-        {"Data_Mean_Filter": 3, "Data_Mean_Filter_space": 10, "Data_Mean_Filter_time": 10}
-    ]
+        {
+            "Data_Mean_Filter": 3,
+            "Data_Mean_Filter_space": 10,
+            "Data_Mean_Filter_time": 10,
+        },
+    ],
 )
 def test_artifact_correction_filters_only(flags_to_test):
 
@@ -194,8 +213,7 @@ def test_artifact_correction_filters_only(flags_to_test):
     run_artifact_correction(flags_to_test)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # test_no_bleach_method()
     # test_log_bleach_pixelwise_1cpu()
     # test_log_bleach_pixelwise_parallel()

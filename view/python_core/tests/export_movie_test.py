@@ -1,10 +1,11 @@
-import pytest
-
-from tests.common import initialize_test_yml_list_measurement
-from view import VIEW
 import logging
 import pathlib as pl
 import shutil
+
+import pytest
+
+from view import VIEW
+from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
 def export_fake_data_movie(flags_to_update, movie_name_suffix):
@@ -19,13 +20,18 @@ def export_fake_data_movie(flags_to_update, movie_name_suffix):
     view.calculate_signals()
     op_filename = view.export_movie_for_current_measurement()
 
-    test_movies_folder = pl.Path(view.flags["STG_OdorReportPath"]) / "test_movies"
+    test_movies_folder = (
+        pl.Path(view.flags["STG_OdorReportPath"]) / "test_movies"
+    )
 
     if not test_movies_folder.is_dir():
         test_movies_folder.mkdir()
 
     op_filepath = pl.Path(op_filename)
-    test_movie_path = test_movies_folder / f"{op_filepath.stem}{movie_name_suffix}{op_filepath.suffix}"
+    test_movie_path = (
+        test_movies_folder
+        / f"{op_filepath.stem}{movie_name_suffix}{op_filepath.suffix}"
+    )
 
     if test_movie_path.is_dir():
         shutil.rmtree(test_movie_path)
@@ -47,7 +53,6 @@ def test_rotate_flags():
     """
 
     for rot in range(1, 8):
-
         flags = {"mv_rotateImage": rot}
         export_fake_data_movie(flags, f"mv_rotateImage_{rot}")
 
@@ -61,39 +66,66 @@ def test_scale_flags():
     """
 
     percentile_value = 20
-    flags_with_percentile = {"mv_percentileScale": True, "mv_percentileValue": percentile_value}
+    flags_with_percentile = {
+        "mv_percentileScale": True,
+        "mv_percentileValue": percentile_value,
+    }
     flags_without_percentile = {}
 
     cutborder = 5
     flags_with_cutborder = {"mv_cutborder": cutborder}
 
-    flag_types = {f"_percentileValue{percentile_value}": flags_with_percentile,
-                  "": flags_without_percentile,
-                  f"_cutborder{cutborder}": flags_with_cutborder}
+    flag_types = {
+        f"_percentileValue{percentile_value}": flags_with_percentile,
+        "": flags_without_percentile,
+        f"_cutborder{cutborder}": flags_with_cutborder,
+    }
 
     for label, flags_to_copy in flag_types.items():
-        for indiscale in [1, 2, 4, 5, 6,
-                          11, 12, 14, 15, 16,
-                          21, 22, 24, 25, 26]:
+        for indiscale in [
+            1,
+            2,
+            4,
+            5,
+            6,
+            11,
+            12,
+            14,
+            15,
+            16,
+            21,
+            22,
+            24,
+            25,
+            26,
+        ]:
             flags = flags_to_copy.copy()
             flags["mv_individualScale"] = indiscale
-            export_fake_data_movie(flags, f"mv_individualScale{indiscale}{label}")
+            export_fake_data_movie(
+                flags, f"mv_individualScale{indiscale}{label}"
+            )
 
         for indiscale in [3, 13, 23]:
             flags = flags_to_copy.copy()
             flags["mv_individualScale"] = indiscale
             flags["mv_indiScale3factor"] = 0.25
-            export_fake_data_movie(flags, f"mv_individualScale{indiscale}_factor0p25{label}")
+            export_fake_data_movie(
+                flags, f"mv_individualScale{indiscale}_factor0p25{label}"
+            )
 
             flags = flags_to_copy.copy()
             flags["mv_individualScale"] = indiscale
             flags["mv_indiScale3factor"] = 0.4
-            export_fake_data_movie(flags, f"mv_individualScale{indiscale}_factor0p4{label}")
+            export_fake_data_movie(
+                flags, f"mv_individualScale{indiscale}_factor0p4{label}"
+            )
 
             flags = flags_to_copy.copy()
             flags["mv_individualScale"] = indiscale
             flags["mv_indiScale3factor"] = 0
-            export_fake_data_movie(flags, f"mv_individualScale{indiscale}_factor0{label}")
+            export_fake_data_movie(
+                flags, f"mv_individualScale{indiscale}_factor0{label}"
+            )
 
 
 def test_displayTime_flags():
@@ -105,7 +137,10 @@ def test_displayTime_flags():
     export_fake_data_movie({"mv_displayTime": 0.8}, "with_frame_time")
     export_fake_data_movie({"mv_displayTime": 0.5}, "with_frame_time_0p5")
     export_fake_data_movie({"mv_displayTime": 0.25}, "with_frame_time_0p25")
-    export_fake_data_movie({"mv_displayTime": 0.8, "mv_suppressMilliseconds": True}, "with_frame_time_no_ms")
+    export_fake_data_movie(
+        {"mv_displayTime": 0.8, "mv_suppressMilliseconds": True},
+        "with_frame_time_no_ms",
+    )
 
 
 def test_mark_stimulus_flags():
@@ -116,7 +151,9 @@ def test_mark_stimulus_flags():
     possible_values = [0, 1, 2, 3, 21]
 
     for ms in possible_values:
-        export_fake_data_movie({"mv_markStimulus": ms}, f"with_mark_stimulus_{ms}")
+        export_fake_data_movie(
+            {"mv_markStimulus": ms}, f"with_mark_stimulus_{ms}"
+        )
 
 
 def test_different_export_formats():
@@ -124,9 +161,17 @@ def test_different_export_formats():
     Testing export movie with different export formats
     """
 
-    export_fake_data_movie({"mv_exportFormat": "libx264", 'mv_individualScale': 2}, "_indScale2_libx264")
-    export_fake_data_movie({"mv_exportFormat": "single_tif", 'mv_individualScale': 2}, "_indScale2")
-    export_fake_data_movie({"mv_exportFormat": "ayuv", 'mv_individualScale': 2}, "_indScale2_ayuv")
+    export_fake_data_movie(
+        {"mv_exportFormat": "libx264", "mv_individualScale": 2},
+        "_indScale2_libx264",
+    )
+    export_fake_data_movie(
+        {"mv_exportFormat": "single_tif", "mv_individualScale": 2},
+        "_indScale2",
+    )
+    export_fake_data_movie(
+        {"mv_exportFormat": "ayuv", "mv_individualScale": 2}, "_indScale2_ayuv"
+    )
 
 
 def test_filters():
@@ -134,8 +179,20 @@ def test_filters():
     Testing export movie with temporal and spatial filters
     """
 
-    export_fake_data_movie({"Signal_Signal_FilterSpaceFlag": True, "Signal_Signal_FilterSpaceSize": 3}, "space_filter_3")
-    export_fake_data_movie({"Signal_Signal_FilterTimeFlag": True, "Signal_Signal_FilterTimeSize": 3}, "time_filter_3")
+    export_fake_data_movie(
+        {
+            "Signal_Signal_FilterSpaceFlag": True,
+            "Signal_Signal_FilterSpaceSize": 3,
+        },
+        "space_filter_3",
+    )
+    export_fake_data_movie(
+        {
+            "Signal_Signal_FilterTimeFlag": True,
+            "Signal_Signal_FilterTimeSize": 3,
+        },
+        "time_filter_3",
+    )
 
 
 def test_cutters():
@@ -143,14 +200,23 @@ def test_cutters():
     Testing export movie with temporal and spatial cutters
     """
 
-    export_fake_data_movie({"mv_FirstFrame": 5, "mv_LastFrame": 75,
-                            'mv_individualScale': 3,
-                            "mv_indiScale3factor": 0.25
-                            }, "five_frame_cut_start_end")
-    export_fake_data_movie({"mv_cutborder": 5,
-                            'mv_individualScale': 3,
-                            "mv_indiScale3factor": 0.25
-                            }, "mv_cutborder_5")
+    export_fake_data_movie(
+        {
+            "mv_FirstFrame": 5,
+            "mv_LastFrame": 75,
+            "mv_individualScale": 3,
+            "mv_indiScale3factor": 0.25,
+        },
+        "five_frame_cut_start_end",
+    )
+    export_fake_data_movie(
+        {
+            "mv_cutborder": 5,
+            "mv_individualScale": 3,
+            "mv_indiScale3factor": 0.25,
+        },
+        "mv_cutborder_5",
+    )
 
 
 def test_correct_stimulus_onset():
@@ -158,8 +224,14 @@ def test_correct_stimulus_onset():
     Testing export movie with stimulus onset correction
     """
 
-    export_fake_data_movie({"mv_correctStimulusOnset": 10, "mv_markStimulus": 1}, "mv_correct_stimulus_onset_10")
-    export_fake_data_movie({"mv_correctStimulusOnset": 1300, "mv_markStimulus": 1}, "mv_correct_stimulus_onset_1300")
+    export_fake_data_movie(
+        {"mv_correctStimulusOnset": 10, "mv_markStimulus": 1},
+        "mv_correct_stimulus_onset_10",
+    )
+    export_fake_data_movie(
+        {"mv_correctStimulusOnset": 1300, "mv_markStimulus": 1},
+        "mv_correct_stimulus_onset_1300",
+    )
 
 
 def test_thresholdOn():
@@ -167,24 +239,27 @@ def test_thresholdOn():
     Testing export movie with different values of mv_thresholdOn
     """
 
-    threshold_on_vals = {"foto1": [("a1000", "a400"), ("r50", "r30")],
-                         "raw1": [("a1000", "a400"), ("r60", "r10")],
-                         "sig1": [("a0.75", "a0.65"), ("r60", "r10")]}
+    threshold_on_vals = {
+        "foto1": [("a1000", "a400"), ("r50", "r30")],
+        "raw1": [("a1000", "a400"), ("r60", "r10")],
+        "sig1": [("a0.75", "a0.65"), ("r60", "r10")],
+    }
 
     for within_area in (True, False):
-
         for threshold_on, threshold_vals in threshold_on_vals.items():
-            for (threshold_pos, threshold_neg) in threshold_vals:
-
-                export_fake_data_movie({
-                                        'mv_withinArea': within_area,
-                                        'mv_thresholdOn': threshold_on,
-                                        'mv_lowerThreshPositiveResps': threshold_pos,
-                                        'mv_upperThreshNegativeResps': threshold_neg,
-                                        'mv_individualScale': 3,
-                                        "mv_indiScale3factor": 0.25},
-                                        f"mv_thresholdOn_{threshold_on}"
-                                        f"_vals_{threshold_pos}{threshold_neg}_withinArea_{within_area}")
+            for threshold_pos, threshold_neg in threshold_vals:
+                export_fake_data_movie(
+                    {
+                        "mv_withinArea": within_area,
+                        "mv_thresholdOn": threshold_on,
+                        "mv_lowerThreshPositiveResps": threshold_pos,
+                        "mv_upperThreshNegativeResps": threshold_neg,
+                        "mv_individualScale": 3,
+                        "mv_indiScale3factor": 0.25,
+                    },
+                    f"mv_thresholdOn_{threshold_on}"
+                    f"_vals_{threshold_pos}{threshold_neg}_withinArea_{within_area}",
+                )
 
 
 def test_thresholdShowImage():
@@ -194,16 +269,18 @@ def test_thresholdShowImage():
 
     for threshold_show_image in ["foto1", "raw1", "bgColor"]:
         for threshold_scale in ["full", "onlyShown"]:
-
-            export_fake_data_movie({"mv_thresholdShowImage": threshold_show_image,
-                                    "mv_thresholdScale": threshold_scale,
-                                    'mv_thresholdOn': "foto1",
-                                    'mv_lowerThreshPositiveResps': "a1000",
-                                    'mv_individualScale': 3,
-                                    "mv_indiScale3factor": 0.25
-                                    },
-                                    f"mv_thresholdOn_foto1_posVal_a1000_Image_"
-                                    f"{threshold_show_image}_scale_{threshold_scale}")
+            export_fake_data_movie(
+                {
+                    "mv_thresholdShowImage": threshold_show_image,
+                    "mv_thresholdScale": threshold_scale,
+                    "mv_thresholdOn": "foto1",
+                    "mv_lowerThreshPositiveResps": "a1000",
+                    "mv_individualScale": 3,
+                    "mv_indiScale3factor": 0.25,
+                },
+                f"mv_thresholdOn_foto1_posVal_a1000_Image_"
+                f"{threshold_show_image}_scale_{threshold_scale}",
+            )
 
 
 def test_withinArea():
@@ -211,16 +288,24 @@ def test_withinArea():
     Testing export movie with mv_withinArea set
     """
 
-    export_fake_data_movie({'mv_withinArea': True,
-                            'mv_individualScale': 3,
-                            "mv_indiScale3factor": 0.25},
-                           "mv_within_Mask_True")
+    export_fake_data_movie(
+        {
+            "mv_withinArea": True,
+            "mv_individualScale": 3,
+            "mv_indiScale3factor": 0.25,
+        },
+        "mv_within_Mask_True",
+    )
 
-    export_fake_data_movie({'mv_withinArea': True,
-                            'mv_individualScale': 3,
-                            "mv_indiScale3factor": 0.25,
-                            "mv_cutborder": 5},
-                           "mv_within_Mask_True_cutBorder5")
+    export_fake_data_movie(
+        {
+            "mv_withinArea": True,
+            "mv_individualScale": 3,
+            "mv_indiScale3factor": 0.25,
+            "mv_cutborder": 5,
+        },
+        "mv_within_Mask_True_cutBorder5",
+    )
 
 
 def test_bgColor():
@@ -228,8 +313,7 @@ def test_bgColor():
     Testing export movie with mv_bgColor set
     """
 
-    export_fake_data_movie({"mv_bgColor": "g"},
-                           "mv_with_bgColor_green")
+    export_fake_data_movie({"mv_bgColor": "g"}, "mv_with_bgColor_green")
 
 
 def test_fgColor():
@@ -237,8 +321,7 @@ def test_fgColor():
     Testing export movie with mv_fgColor set
     """
 
-    export_fake_data_movie({"mv_fgColor": "m"},
-                           "mv_with_fgColor_magenta")
+    export_fake_data_movie({"mv_fgColor": "m"}, "mv_with_fgColor_magenta")
 
 
 def test_mark_rois():
@@ -246,22 +329,31 @@ def test_mark_rois():
     Testing export movie with ROIs marked
     """
 
-    base_flags = {'mv_individualScale': 3, "mv_indiScale3factor": 0.25}
+    base_flags = {"mv_individualScale": 3, "mv_indiScale3factor": 0.25}
 
     test_values = [10, 13, 14, 15]
 
     for test_value in test_values:
         flags2use = base_flags.copy()
         flags2use["mv_showROIs"] = test_value
-        export_fake_data_movie(flags_to_update=flags2use, movie_name_suffix=f"mv_showROIs{test_value}")
+        export_fake_data_movie(
+            flags_to_update=flags2use,
+            movie_name_suffix=f"mv_showROIs{test_value}",
+        )
 
         flags2use_new = flags2use.copy()
         flags2use_new["mv_rotateImage"] = 3
-        export_fake_data_movie(flags_to_update=flags2use_new, movie_name_suffix=f"mv_showROIs{test_value}_rotate3")
+        export_fake_data_movie(
+            flags_to_update=flags2use_new,
+            movie_name_suffix=f"mv_showROIs{test_value}_rotate3",
+        )
 
         flags2use_new = flags2use.copy()
         flags2use_new["mv_cutborder"] = 5
-        export_fake_data_movie(flags_to_update=flags2use_new, movie_name_suffix=f"mv_showROIs{test_value}_cutborder5")
+        export_fake_data_movie(
+            flags_to_update=flags2use_new,
+            movie_name_suffix=f"mv_showROIs{test_value}_cutborder5",
+        )
 
 
 def test_large_bordercut():
@@ -277,9 +369,18 @@ def test_fonts():
     """
     Testing export movie with different fonts
     """
-    export_fake_data_movie({"mv_markStimulus": 2, "mv_fontName": "DroidSerif-Bold"}, "mv_fontName_DroidSerifBold")
-    export_fake_data_movie({"mv_markStimulus": 2, "mv_fontName": "OpenSans-Regular"}, "mv_fontName_OpenSansRegular")
-    export_fake_data_movie({"mv_markStimulus": 2, "mv_fontName": "DejaVuSerif-Bold"}, "mv_fontName_DejaVuSerifBold")
+    export_fake_data_movie(
+        {"mv_markStimulus": 2, "mv_fontName": "DroidSerif-Bold"},
+        "mv_fontName_DroidSerifBold",
+    )
+    export_fake_data_movie(
+        {"mv_markStimulus": 2, "mv_fontName": "OpenSans-Regular"},
+        "mv_fontName_OpenSansRegular",
+    )
+    export_fake_data_movie(
+        {"mv_markStimulus": 2, "mv_fontName": "DejaVuSerif-Bold"},
+        "mv_fontName_DejaVuSerifBold",
+    )
 
 
 def test_mv_ygap():
@@ -296,11 +397,15 @@ def test_scale_legend_factor():
     """
 
     for factor in (10, 100):
-        export_fake_data_movie({"mv_individualScale": 2,
-                                "mv_percentileScale": True,
-                                "mv_percentileValue": 20,
-                                "mv_scaleLegendFactor": factor},
-                               f"_scaleLegendFactor{factor}")
+        export_fake_data_movie(
+            {
+                "mv_individualScale": 2,
+                "mv_percentileScale": True,
+                "mv_percentileValue": 20,
+                "mv_scaleLegendFactor": factor,
+            },
+            f"_scaleLegendFactor{factor}",
+        )
 
 
 def test_bit_rate():
@@ -312,10 +417,11 @@ def test_bit_rate():
         {
             "mv_individualScale": 2,
             "mv_bitrate": f"{12 * 1024}k",
-            "mv_exportFormat": "libx264"
+            "mv_exportFormat": "libx264",
         },
-        "_bitrate_12M"
+        "_bitrate_12M",
     )
+
 
 # def test_with_recorded_data():
 #     """
@@ -395,7 +501,6 @@ def test_bit_rate():
 
 
 if __name__ == "__main__":
-
     logging.basicConfig(level=logging.INFO)
     # test_with_recorded_data()
     # test_scale_flags()

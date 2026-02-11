@@ -1,9 +1,11 @@
-from tests.common import initialize_test_yml_list_measurement
+import pathlib as pl
+import tempfile
+
+import numpy as np
+
 from view import VIEW
 from view.python_core.io import read_tif_2Dor3D, write_tif_2Dor3D
-import tempfile
-import pathlib as pl
-import numpy as np
+from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
 def test_tif_io():
@@ -16,7 +18,9 @@ def test_tif_io():
     view.initialize_animal(test_animal)
     view.load_measurement_data_from_current_animal(test_measu)
 
-    temp_tif_fn = str(pl.Path(tempfile.gettempdir()) / f"{tempfile.gettempprefix()}.tif")
+    temp_tif_fn = str(
+        pl.Path(tempfile.gettempdir()) / f"{tempfile.gettempprefix()}.tif"
+    )
 
     write_tif_2Dor3D(view.p1.raw1, temp_tif_fn)
 
@@ -42,7 +46,5 @@ def test_tif_io():
     # assert all(x == y for x, y in zip(fake_labels, read_labels))
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     test_tif_io()
-

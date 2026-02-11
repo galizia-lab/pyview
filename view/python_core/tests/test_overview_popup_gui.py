@@ -1,8 +1,8 @@
 import pytest
 
-from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 from view.python_core.overviews import pop_show_overview
+from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
 def gen_different_configs():
@@ -23,7 +23,12 @@ def gen_different_configs():
     # TODO port descriptions for use with pytest
     yield vo.flags, vo.p1, None, None
 
-    for stim_nr, feature_nr in [([0], [0]), ([0], "all"), ("all", [0]), ("all", "all")]:
+    for stim_nr, feature_nr in [
+        ([0], [0]),
+        ([0], "all"),
+        ("all", [0]),
+        ("all", "all"),
+    ]:
         # pop_show_overview.description = f"Testing stimulus number={stim_nr} and feature number={feature_nr}"
         # TODO port descriptions for use with pytest
         yield vo.flags, vo.p1, stim_nr, feature_nr
@@ -31,17 +36,14 @@ def gen_different_configs():
 
 configs = list(gen_different_configs())
 
+
 @pytest.mark.parametrize("flags,p1,stim_nr,feature_nr", configs)
 def test_different_configs(flags, p1, stim_nr, feature_nr):
 
     pop_show_overview(flags, p1, "test", stim_nr, feature_nr)
 
 
-
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     for args in gen_different_configs():
-
         test_different_configs(*args)
         input("Press any key to close figure and continue...")
-

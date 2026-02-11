@@ -1,10 +1,12 @@
-from tests.common import initialize_test_yml_list_measurement
+import inspect
+import pathlib as pl
+
+import numpy as np
+
 from view import VIEW
 from view.python_core import ctvs
 from view.python_core.overviews import generate_overview_frame
-import inspect
-import pathlib as pl
-import numpy as np
+from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
 def test_ctv_signatures():
@@ -14,7 +16,6 @@ def test_ctv_signatures():
     ctv_funcs = [x for x in inspect.getmembers(ctvs) if callable(x)]
 
     for ctv_func in ctv_funcs[1:]:
-
         assert inspect.signature(ctv_func) == inspect.signature(ctv_funcs[0])
 
 
@@ -33,10 +34,15 @@ def check_ctv_generic(ctv_method):
     overview_frames = generate_overview_frame(flags=view.flags, p1=view.p1)
     overview = overview_frames[0, :, :]
 
-    expected_overview_fle_path = \
-        pl.Path(view.flags["STG_MotherOfAllFolders"]) / "test_files" / f"ctv{ctv_method}_expected.npz"
+    expected_overview_fle_path = (
+        pl.Path(view.flags["STG_MotherOfAllFolders"])
+        / "test_files"
+        / f"ctv{ctv_method}_expected.npz"
+    )
 
-    expected_overview = np.load(str(expected_overview_fle_path))["expected_overview"]
+    expected_overview = np.load(str(expected_overview_fle_path))[
+        "expected_overview"
+    ]
     assert np.allclose(overview, expected_overview)
 
 
@@ -56,5 +62,5 @@ def test_ctv_35():
     check_ctv_generic(35)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_ctv_35()

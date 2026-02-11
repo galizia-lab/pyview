@@ -1,12 +1,14 @@
-from view.python_core.flags import FlagsManager
-from view.python_core.utils.colors import interpret_flag_SO_MV_colortable
-from tests.common import get_example_data_root_path
-from view.idl_translation_core.IDL import createPalette
+import os
+import pathlib as pl
+import tempfile
+
 import numpy as np
 from matplotlib.colors import Colormap
-import os
-import tempfile
-import pathlib as pl
+
+from view.idl_translation_core.IDL import createPalette
+from view.python_core.flags import FlagsManager
+from view.python_core.tests.common import get_example_data_root_path
+from view.python_core.utils.colors import interpret_flag_SO_MV_colortable
 
 
 def test_flags_internal():
@@ -37,11 +39,24 @@ def test_flag_fails():
 
     flags = FlagsManager()
 
-    must_fail = [["SO_MV_SO_MV_colortable", True],  # expected value is int or str, bool given
-                 ["VIEW_VIEW_batchmode", "whatever"],  # expected value is bool, string given
-                 ["VIEW_VIEW_batchmode", 15],  # expected value is bool, incompatible integer given
-                 ["LE_loadExp", "whatever"]  # expected value is integer, incompatible string given
-                 ]
+    must_fail = [
+        [
+            "SO_MV_SO_MV_colortable",
+            True,
+        ],  # expected value is int or str, bool given
+        [
+            "VIEW_VIEW_batchmode",
+            "whatever",
+        ],  # expected value is bool, string given
+        [
+            "VIEW_VIEW_batchmode",
+            15,
+        ],  # expected value is bool, incompatible integer given
+        [
+            "LE_loadExp",
+            "whatever",
+        ],  # expected value is integer, incompatible string given
+    ]
 
     for k, v in must_fail:
         try:
@@ -63,13 +78,14 @@ def test_flags_read_write():
 
     flags.update_flags({"STG_MotherOfAllFolders": str(moaf_path)})
 
-    STG_flags = {"STG_OdorReportPath": "IDLoutput",
-                 "STG_OdorInfoPath": "Lists",
-                 "STG_OdormaskPath": "Coor",
-                 "STG_Datapath": "data",
-                 "STG_ProcessedDataPath": "ProcessedData",
-                 "STG_OdorAreaPath": "Areas"
-                 }
+    STG_flags = {
+        "STG_OdorReportPath": "IDLoutput",
+        "STG_OdorInfoPath": "Lists",
+        "STG_OdormaskPath": "Coor",
+        "STG_Datapath": "data",
+        "STG_ProcessedDataPath": "ProcessedData",
+        "STG_OdorAreaPath": "Areas",
+    }
 
     flags.update_flags(STG_flags)
 
@@ -85,11 +101,19 @@ def test_flags_read_write():
         if flag_name in flags_temp.flags:
             path = pl.Path(flags_temp[flag_name])
             if path.is_absolute():
-                flags_temp.update_flags({flag_name: os.path.relpath(path, flags_temp["STG_MotherOfAllFolders"])})
+                flags_temp.update_flags(
+                    {
+                        flag_name: os.path.relpath(
+                            path, flags_temp["STG_MotherOfAllFolders"]
+                        )
+                    }
+                )
 
     assert len(flags_temp.flags) == len(flags.flags)
     assert len(set(flags_temp.flags.keys()) - set(flags.flags.keys())) == 0
-    assert all(flags.flags[x] == flags_temp.flags[x] for x in flags.flags.keys())
+    assert all(
+        flags.flags[x] == flags_temp.flags[x] for x in flags.flags.keys()
+    )
     temp_yml_path.unlink()
 
 
@@ -103,7 +127,6 @@ def test_interpret_flag_SO_MV_colortable():
     invalid_SO_MV_colortable_value = [50, 150, "whatever", "notacolormap"]
 
     for value in valid_SO_MV_colortable_values:
-
         cmap, bg, fg = interpret_flag_SO_MV_colortable(value)
 
         assert issubclass(cmap.__class__, Colormap)
@@ -111,7 +134,6 @@ def test_interpret_flag_SO_MV_colortable():
         assert len(fg) in (3, 4)
 
         if type(value) is int:
-
             original_cmap = createPalette(value)
 
             original_cols = original_cmap(np.linspace(0, 1, original_cmap.N))
@@ -121,7 +143,6 @@ def test_interpret_flag_SO_MV_colortable():
             assert np.allclose(original_cols[1:-1, :], interpreted_cols)
 
     for value in invalid_SO_MV_colortable_value:
-
         it_failed = False
         try:
             interpret_flag_SO_MV_colortable(value)
@@ -136,4 +157,3 @@ def test_interpret_flag_SO_MV_colortable():
 if __name__ == "__main__":
     # test_flag_fails()
     test_flags_read_write()
-

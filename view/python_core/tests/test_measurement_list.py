@@ -1,7 +1,8 @@
-from tests.common import get_example_dataset_roots
-from view.python_core.measurement_list import MeasurementList
-from view.python_core.flags import FlagsManager
 import pathlib as pl
+
+from view.python_core.flags import FlagsManager
+from view.python_core.measurement_list import MeasurementList
+from view.python_core.tests.common import get_example_dataset_roots
 
 
 def measurement_list_manager_loading(ext):
@@ -15,11 +16,13 @@ def measurement_list_manager_loading(ext):
         return any([yml_filename_lower.find(x) >= 0 for x in to_exclude])
 
     for dataset_root in get_example_dataset_roots():
-
-        yml_files = [x for x in dataset_root.iterdir() if x.suffix == ".yml" and not exclusion_check(x.name)]
+        yml_files = [
+            x
+            for x in dataset_root.iterdir()
+            if x.suffix == ".yml" and not exclusion_check(x.name)
+        ]
 
         if len(yml_files):
-
             yml_file = yml_files[0]
             flags = FlagsManager()
 
@@ -29,10 +32,12 @@ def measurement_list_manager_loading(ext):
 
             if list_dir.is_dir():
                 for fle in list_dir.iterdir():
-
                     if fle.name.endswith(ext) and not fle.name.startswith("."):
-
-                        measurement_list = MeasurementList.create_from_lst_file(str(fle), LE_loadExp=3)
+                        measurement_list = (
+                            MeasurementList.create_from_lst_file(
+                                str(fle), LE_loadExp=3
+                            )
+                        )
                         yield measurement_list
 
 
@@ -66,7 +71,6 @@ def test_reading_LSTXLS():
 def run_get_p1_all(lst):
 
     for ind, measu in enumerate(lst.get_measus()):
-
         p1_metadata, extra_metadata = lst.get_p1_metadata_by_index(ind)
         pass
 
@@ -85,7 +89,9 @@ def test_settings2p1():
     Testing metadata in settings files to p1
     """
 
-    for ind, lst in enumerate(measurement_list_manager_loading(".settings.xls")):
+    for ind, lst in enumerate(
+        measurement_list_manager_loading(".settings.xls")
+    ):
         run_get_p1_all(lst)
 
 
@@ -99,7 +105,6 @@ def test_lstxls2p1():
 
 
 if __name__ == "__main__":
-
     # test_reading_lst()
     test_lstxls2p1()
 
@@ -115,6 +120,3 @@ if __name__ == "__main__":
     # print("Settings XLS files")
     # for ml in measurement_list_manager_loading(".settings.xls"):
     #     print(ml.last_measurement_list_fle)
-
-
-
