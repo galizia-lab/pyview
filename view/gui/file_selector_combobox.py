@@ -1,22 +1,30 @@
-from qtpy.QtWidgets import QGroupBox, QComboBox, QVBoxLayout, QSizePolicy, QLabel
-from qtpy.QtCore import QSettings, Slot, Signal, QCoreApplication
-import qtpy.compat
 import os
 import pathlib as pl
 from collections import OrderedDict
+
+import qtpy.compat
+from qtpy.QtCore import QCoreApplication, QSettings, Signal, Slot
+from qtpy.QtWidgets import (
+    QComboBox,
+    QGroupBox,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 from view.gui.application_settings import get_view_qsettings_manager
 
 
 class SingleFileSelectorHComboBox(QGroupBox):
-
     return_filename_signal = Signal(str, name="return filename")
 
     def new_selection_handler(self, label):
-        filename, used_filter = qtpy.compat.getopenfilename(parent=self,
-                                                            caption=f"Select a {self.file_type} file",
-                                                            basedir=self.get_default_directory(),
-                                                            filters=self.file_filter)
+        filename, used_filter = qtpy.compat.getopenfilename(
+            parent=self,
+            caption=f"Select a {self.file_type} file",
+            basedir=self.get_default_directory(),
+            filters=self.file_filter,
+        )
 
         possibly_index = self.combo_box.findText(filename)
 
@@ -33,13 +41,19 @@ class SingleFileSelectorHComboBox(QGroupBox):
         entries_to_remove = []
         for index in range(self.combo_box.count()):
             entry = self.combo_box.itemText(index)
-            if entry not in self.entry_handler_orderedDict.keys():
+            if entry not in self.entry_handler_orderedDict:
                 entries_to_remove.append(entry)
 
         self.remove_entries(entries_to_remove)
 
-    def __init__(self, parent, groupbox_title="File Selector",
-                 file_type="", file_filter="All Files(*.*)", comment=None):
+    def __init__(
+        self,
+        parent,
+        groupbox_title="File Selector",
+        file_type="",
+        file_filter="All Files(*.*)",
+        comment=None,
+    ):
 
         super().__init__(title=groupbox_title, parent=parent)
 
@@ -54,9 +68,15 @@ class SingleFileSelectorHComboBox(QGroupBox):
         self.combo_box = QComboBox(self)
 
         self.entry_handler_orderedDict = OrderedDict()
-        self.entry_handler_orderedDict[f"--Please choose a {file_type} file--"] = None
-        self.entry_handler_orderedDict[f"--Select a new {file_type} file--"] = self.new_selection_handler
-        self.entry_handler_orderedDict[f"--Clear this list--"] = self.list_clearance_handler
+        self.entry_handler_orderedDict[
+            f"--Please choose a {file_type} file--"
+        ] = None
+        self.entry_handler_orderedDict[
+            f"--Select a new {file_type} file--"
+        ] = self.new_selection_handler
+        self.entry_handler_orderedDict["--Clear this list--"] = (
+            self.list_clearance_handler
+        )
 
         self.inaction_entries = [f"--Please choose a {file_type} file--"]
 
@@ -78,8 +98,12 @@ class SingleFileSelectorHComboBox(QGroupBox):
 
     def get_current_file_list(self):
 
-        return [self.combo_box.itemText(ind) for ind in range(self.combo_box.count())
-                if self.combo_box.itemText(ind) not in self.entry_handler_orderedDict.keys()]
+        return [
+            self.combo_box.itemText(ind)
+            for ind in range(self.combo_box.count())
+            if self.combo_box.itemText(ind)
+            not in self.entry_handler_orderedDict
+        ]
 
     def get_default_directory(self):
 
@@ -98,7 +122,7 @@ class SingleFileSelectorHComboBox(QGroupBox):
 
         current_text = self.combo_box.currentText()
 
-        if current_text in self.entry_handler_orderedDict.keys():
+        if current_text in self.entry_handler_orderedDict:
             return None
         else:
             return current_text
@@ -117,7 +141,10 @@ class SingleFileSelectorHComboBox(QGroupBox):
 
     def remove_entries(self, entries):
 
-        [self.combo_box.removeItem(self.combo_box.findText(x)) for x in entries]
+        [
+            self.combo_box.removeItem(self.combo_box.findText(x))
+            for x in entries
+        ]
 
     def return_filename(self, filename):
 
@@ -125,14 +152,15 @@ class SingleFileSelectorHComboBox(QGroupBox):
 
 
 class MultiFileSelectorHComboBox(SingleFileSelectorHComboBox):
-
     return_filenames_signal = Signal(list, name="return filename")
 
     def multi_selection_handler(self, label):
-        filenames, used_filter = qtpy.compat.getopenfilenames(parent=self,
-                                                              caption=f"Select a {self.file_type} file",
-                                                              basedir=self.get_default_directory(),
-                                                              filters=self.file_filter)
+        filenames, used_filter = qtpy.compat.getopenfilenames(
+            parent=self,
+            caption=f"Select a {self.file_type} file",
+            basedir=self.get_default_directory(),
+            filters=self.file_filter,
+        )
 
         if len(filenames):
             entry = ",".join([pl.Path(x).name for x in filenames])
@@ -141,14 +169,24 @@ class MultiFileSelectorHComboBox(SingleFileSelectorHComboBox):
             self.inaction_entries.append(entry)
             self.return_filename(filenames)
 
-    def __init__(self, parent, groupbox_title="File Selector",
-                 file_type="", file_filter="All Files(*.*)", comment=None):
+    def __init__(
+        self,
+        parent,
+        groupbox_title="File Selector",
+        file_type="",
+        file_filter="All Files(*.*)",
+        comment=None,
+    ):
 
-        super().__init__(parent, groupbox_title, file_type, file_filter, comment)
+        super().__init__(
+            parent, groupbox_title, file_type, file_filter, comment
+        )
 
         additional_entry = f"--Select multiple {self.file_type} files--"
 
-        self.entry_handler_orderedDict[additional_entry] = self.multi_selection_handler
+        self.entry_handler_orderedDict[additional_entry] = (
+            self.multi_selection_handler
+        )
 
         self.combo_box.insertItem(2, additional_entry)
 
@@ -159,10 +197,14 @@ class MultiFileSelectorHComboBox(SingleFileSelectorHComboBox):
         elif type(filename) is list:
             return self.return_filenames_signal.emit(filename)
         else:
-            raise(TypeError(f"Can only return str or list, got {type(filename)}"))
+            raise (
+                TypeError(f"Can only return str or list, got {type(filename)}")
+            )
 
 
-def get_file_selector_combobox_using_settings(multiple_selection_allowed=False):
+def get_file_selector_combobox_using_settings(
+    multiple_selection_allowed=False,
+):
 
     if multiple_selection_allowed:
         super_class = MultiFileSelectorHComboBox
@@ -170,12 +212,21 @@ def get_file_selector_combobox_using_settings(multiple_selection_allowed=False):
         super_class = SingleFileSelectorHComboBox
 
     class FileSelectorHComboBoxUsingSettingsList(super_class):
+        def __init__(
+            self,
+            parent,
+            groupbox_title,
+            use_list_in_settings,
+            settings_list_value_filter=lambda x: True,
+            default_directory=None,
+            file_type="",
+            file_filter="All Files(*.*)",
+            comment=None,
+        ):
 
-        def __init__(self, parent, groupbox_title, use_list_in_settings, settings_list_value_filter=lambda x: True,
-                     default_directory=None, file_type="", file_filter="All Files(*.*)",
-                     comment=None):
-
-            super().__init__(parent, groupbox_title, file_type, file_filter, comment)
+            super().__init__(
+                parent, groupbox_title, file_type, file_filter, comment
+            )
 
             self.settings_list = use_list_in_settings
 
@@ -190,9 +241,17 @@ def get_file_selector_combobox_using_settings(multiple_selection_allowed=False):
             # add files from internal settings, checking if they exist and satisfy <settings_list_value_filter>
             if settings.contains(self.settings_list):
                 file_list = settings.value(self.settings_list, type=list)
-                file_list_existing = [x for x in file_list if os.path.isfile(x)]
+                file_list_existing = [
+                    x for x in file_list if os.path.isfile(x)
+                ]
                 settings.setValue(self.settings_list, file_list_existing)
-                self.combo_box.addItems([x for x in file_list_existing if settings_list_value_filter(x)])
+                self.combo_box.addItems(
+                    [
+                        x
+                        for x in file_list_existing
+                        if settings_list_value_filter(x)
+                    ]
+                )
             # if the <self.settings_list> does not exist, initialize it to empty list
             else:
                 settings.setValue(self.settings_list, [])
@@ -219,7 +278,10 @@ def get_file_selector_combobox_using_settings(multiple_selection_allowed=False):
                 else:
                     raise NotImplementedError
                 # update internal settings after deduplication
-                settings.setValue(self.settings_list, list(set(current_file_list + filenames)))
+                settings.setValue(
+                    self.settings_list,
+                    list(set(current_file_list + filenames)),
+                )
             super().return_filename(filename)
 
         def remove_entries(self, entries):
@@ -232,4 +294,3 @@ def get_file_selector_combobox_using_settings(multiple_selection_allowed=False):
             settings.setValue(self.settings_list, current_file_list)
 
     return FileSelectorHComboBoxUsingSettingsList
-

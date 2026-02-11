@@ -38,36 +38,47 @@ from view.python_core.flags import FlagsManager
 if TYPE_CHECKING:
     import napari
 
+import numpy as np
 import pandas as pd
-from qtpy.QtCore import Signal
-
-from qtpy.QtWidgets import (
-    QHBoxLayout, QVBoxLayout, QGroupBox, QTabWidget, QPushButton, QScrollArea, QWidget, QMessageBox)
 from matplotlib import pyplot as plt
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import (
+    QGroupBox,
+    QHBoxLayout,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from view.gui.central_widget import CentralWidget
-from view.gui.loader_widgets import LogLoadWidget, ListLoadWidget
-
 from view.gui.data_manager import DataManager
 from view.gui.direct_load import DirectDataLoader
+from view.gui.loader_widgets import ListLoadWidget, LogLoadWidget
 from view.gui.logger import LoggerGroupBox
-from view.gui.main_function_widgets import MainFunctionAbstract, OverviewGenWidget
-
+from view.gui.main_function_widgets import (
+    MainFunctionAbstract,
+    OverviewGenWidget,
+)
 from view.napari_pyview.iltis_window_napari import ILTISWindowNapari
-import numpy as np
 
 
 class NapariPyViewWidget(CentralWidget):
-    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
+    export_data_to_iltis_signal = Signal(
+        list, list, pd.DataFrame, int, tuple, tuple, int, name="export data"
+    )
     reset_iltis_signal = Signal(name="reset ILTIS")
 
-    def __init__(self, napari_viewer: "napari.viewer.Viewer"=None, parent=None):
+    def __init__(
+        self, napari_viewer: "napari.viewer.Viewer" = None, parent=None
+    ):
         super().__init__(parent)
         # among others, calls init_ui(), initializes Flags, self.p1s, self.measurement_list, etc
 
         self.napari_viewer = napari_viewer
         self.iltis_window = None
-
 
     def init_ui(self):
         # Create a single VBox layout for the main widget
@@ -75,11 +86,12 @@ class NapariPyViewWidget(CentralWidget):
         contents_widget = QWidget(self)
         contents_vbox = QVBoxLayout(contents_widget)
 
-
         # --------------------------------------------------------------------------------------------------------------
         # Instantiate setup choice box for LE_loadExp
         self.setup_choice_box = SetupChoice()
-        self.setup_choice_box.update_LE_loadExp_flag_signal.connect(self.flag_update_request_gui)
+        self.setup_choice_box.update_LE_loadExp_flag_signal.connect(
+            self.flag_update_request_gui
+        )
         self.main_function_widgets["setup choice box"] = self.setup_choice_box
         contents_vbox.addWidget(self.setup_choice_box)
 
@@ -91,11 +103,15 @@ class NapariPyViewWidget(CentralWidget):
             button_names={},
             flag_names=calcMethod_flags,
             flag_defaults=[self.flags[f] for f in calcMethod_flags],
-            group_name="Choose the method for calculating signals\n"
-                       # "(does not affect raw data loading and artifact correction)"
+            group_name="Choose the method for calculating signals\n",
+            # "(does not affect raw data loading and artifact correction)"
         )
-        self.calcMethod_box.flag_update_signal.connect(self.flag_update_request_gui)
-        self.main_function_widgets["calc method choice box"] = self.calcMethod_box
+        self.calcMethod_box.flag_update_signal.connect(
+            self.flag_update_request_gui
+        )
+        self.main_function_widgets["calc method choice box"] = (
+            self.calcMethod_box
+        )
         temp_hbox.addWidget(self.calcMethod_box)
 
         button = QPushButton("Close all\nmatplotlib figures")
@@ -110,57 +126,110 @@ class NapariPyViewWidget(CentralWidget):
         loader_tabs = QTabWidget(self)
         contents_vbox.addWidget(loader_tabs)
 
-        direct_loader = DirectDataLoader(self, self.setup_choice_box.get_current_LE_loadExp())
+        direct_loader = DirectDataLoader(
+            self, self.setup_choice_box.get_current_LE_loadExp()
+        )
         direct_loader.data_loaded_signal.connect(self.direct_load_finalize)
-        self.setup_choice_box.return_LE_loadExp.connect(direct_loader.refresh_layout)
-        loader_tabs.addTab(direct_loader, "Direct load from raw file (no pre-requirements)")
+        self.setup_choice_box.return_LE_loadExp.connect(
+            direct_loader.refresh_layout
+        )
+        loader_tabs.addTab(
+            direct_loader, "Direct load from raw file (no pre-requirements)"
+        )
 
         log_load_widget = LogLoadWidget(self)
-        log_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-        log_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-        loader_tabs.addTab(log_load_widget, "Direct load from log file (no pre-requirements)")
+        log_load_widget.new_vws_log_load.clicked.connect(
+            self.load_from_new_vws_log
+        )
+        log_load_widget.choose_from_current_vws_log.clicked.connect(
+            self.choose_row_from_current_vws_log
+        )
+        loader_tabs.addTab(
+            log_load_widget, "Direct load from log file (no pre-requirements)"
+        )
 
-        list_load_widget = ListLoadWidget(self)
+        list_load_widget = ListLoadWidget(self, self.flags.flags)
         list_load_widget.new_load.clicked.connect(self.load_from_new_list)
-        list_load_widget.choose_from_current_list.clicked.connect(self.choose_row_from_current_list)
-        list_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-        list_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-        list_load_widget.yaml_loader.return_filename_signal.connect(self.load_yml_flags)
-        list_load_widget.quick_load_from_current_lst_box.send_data.connect(self.quick_load_from_current_lst)
-        list_load_widget.quick_load_from_current_lst_box.flag_update_signal.connect(self.flag_update_request_gui)
+        list_load_widget.choose_from_current_list.clicked.connect(
+            self.choose_row_from_current_list
+        )
+        list_load_widget.new_vws_log_load.clicked.connect(
+            self.load_from_new_vws_log
+        )
+        list_load_widget.choose_from_current_vws_log.clicked.connect(
+            self.choose_row_from_current_vws_log
+        )
+        list_load_widget.yaml_loader.return_filename_signal.connect(
+            self.load_yml_flags
+        )
+        list_load_widget.quick_load_from_current_lst_box.send_data.connect(
+            self.quick_load_from_current_lst
+        )
+        list_load_widget.quick_load_from_current_lst_box.flag_update_signal.connect(
+            self.flag_update_request_gui
+        )
         self.main_function_widgets["load_lst"] = list_load_widget.new_load
-        self.main_function_widgets["select row from current list"] = list_load_widget.choose_from_current_list
-        self.main_function_widgets["select row from new vws log file"] = list_load_widget.new_vws_log_load
-        self.main_function_widgets[
-            "select row from current vws log file"] = list_load_widget.choose_from_current_vws_log
-        self.main_function_widgets["quick load from current list"] = list_load_widget.quick_load_from_current_lst_box
-        self.main_function_widgets["selected list file"] = list_load_widget.selected_list_file_box
-        self.current_measurement_label = list_load_widget.current_measurement_label
-        loader_tabs.addTab(list_load_widget, "List load (pre-requirements: YML File, folder structure, "
-                                             "measurement list files)")
+        self.main_function_widgets["select row from current list"] = (
+            list_load_widget.choose_from_current_list
+        )
+        self.main_function_widgets["select row from new vws log file"] = (
+            list_load_widget.new_vws_log_load
+        )
+        self.main_function_widgets["select row from current vws log file"] = (
+            list_load_widget.choose_from_current_vws_log
+        )
+        self.main_function_widgets["quick load from current list"] = (
+            list_load_widget.quick_load_from_current_lst_box
+        )
+        self.main_function_widgets["selected list file"] = (
+            list_load_widget.selected_list_file_box
+        )
+        self.current_measurement_label = (
+            list_load_widget.current_measurement_label
+        )
+        loader_tabs.addTab(
+            list_load_widget,
+            "List load (pre-requirements: YML File, folder structure, "
+            "measurement list files)",
+        )
 
         # --------------------------------------------------------------------------------------------------------------
         # Instantiate data_manager_group_box
         data_manager_group_box = QGroupBox("Data Manager", self)
         data_manager_vbox = QVBoxLayout(data_manager_group_box)
 
-        flags_values2use = \
-            ["LE_loadExp", "LE_CalcMethod", "STG_ReportTag", "STG_Measu"] + self.flags.compound_path_flags
+        flags_values2use = [
+            "LE_loadExp",
+            "LE_CalcMethod",
+            "STG_ReportTag",
+            "STG_Measu",
+        ] + self.flags.compound_path_flags
 
         def temp(x):
             return lambda p1: p1.metadata.get(x, "N/A")
 
         flags_values2use_dict = {k: k for k in flags_values2use}
         p1_values2use = {
-            "Component\nOdors": temp("odor"), "Stimulus": temp("stimulus"), "Stimulus\nConcentration": temp("odor_nr"),
-            "No. of pulses in stimuli": lambda p1: p1.metadata["pulsed_stimuli_handler"].stimulus_frame.shape[0],
-            "Stimulus pulse start times\nrelative to imaging start (s)":
-                lambda p1: [x / pd.Timedelta(seconds=1)
-                            for x in p1.metadata["pulsed_stimuli_handler"].get_pulse_start_times()],
-            "Stimulus pulse end times\nrelative to imaging start (s)":
-                lambda p1: [x / pd.Timedelta(seconds=1)
-                            for x in p1.metadata["pulsed_stimuli_handler"].get_pulse_end_times()],
-            "Measurement\nLabel": temp("ex_name"), "Raw File Name": temp("full_raw_data_path_str"),
+            "Component\nOdors": temp("odor"),
+            "Stimulus": temp("stimulus"),
+            "Stimulus\nConcentration": temp("odor_nr"),
+            "No. of pulses in stimuli": lambda p1: p1.metadata[
+                "pulsed_stimuli_handler"
+            ].stimulus_frame.shape[0],
+            "Stimulus pulse start times\nrelative to imaging start (s)": lambda p1: [
+                x / pd.Timedelta(seconds=1)
+                for x in p1.metadata[
+                    "pulsed_stimuli_handler"
+                ].get_pulse_start_times()
+            ],
+            "Stimulus pulse end times\nrelative to imaging start (s)": lambda p1: [
+                x / pd.Timedelta(seconds=1)
+                for x in p1.metadata[
+                    "pulsed_stimuli_handler"
+                ].get_pulse_end_times()
+            ],
+            "Measurement\nLabel": temp("ex_name"),
+            "Raw File Name": temp("full_raw_data_path_str"),
             "No. of frames": temp("frames"),
             "Frames per second": lambda p1: p1.metadata.frequency,
             "No. of Pixels along X": temp("format_x"),
@@ -170,21 +239,33 @@ class NapariPyViewWidget(CentralWidget):
         # --------------------------------------------------------------------------------------------------------------
         # Instantiate Data Manager
         self.data_manager = DataManager(
-            parent=None, flag_values_to_use=flags_values2use_dict, p1_values_to_use=p1_values2use, label_joiner="_",
+            parent=None,
+            flag_values_to_use=flags_values2use_dict,
+            p1_values_to_use=p1_values2use,
+            label_joiner="_",
             default_label_cols=["STG_Measu", "STG_ReportTag"],
             precedence_order=[
-                "STG_ReportTag", "STG_Measu", "Measurement\nLabel",
-                "Stimulus", "Stimulus\nConcentration", "Component\nOdors",
-                "No. of pulses in stimuli", "Stimulus pulse start times\nrelative to imaging start (s)",
+                "STG_ReportTag",
+                "STG_Measu",
+                "Measurement\nLabel",
+                "Stimulus",
+                "Stimulus\nConcentration",
+                "Component\nOdors",
+                "No. of pulses in stimuli",
+                "Stimulus pulse start times\nrelative to imaging start (s)",
                 "Stimulus pulse end times\nrelative to imaging start (s)",
-                "No. of frames", "Frames per second", "No. of Pixels along X", "No. of Pixels along Y",
-                "LE_loadExp", "LE_CalcMethod"]
+                "No. of frames",
+                "Frames per second",
+                "No. of Pixels along X",
+                "No. of Pixels along Y",
+                "LE_loadExp",
+                "LE_CalcMethod",
+            ],
         )
 
         # set height of data manager table to be a multiple of header height (multiple determined heuristically)
         header_height = self.data_manager.ui_table.horizontalHeader().height()
         self.data_manager.ui_table.setFixedHeight(header_height * 10)
-
 
         self.data_manager.remove_data_signal.connect(self.remove_data)
         data_manager_vbox.addWidget(self.data_manager.ui_table)
@@ -204,11 +285,13 @@ class NapariPyViewWidget(CentralWidget):
         open_button.clicked.connect(self.open_iltis_launch_transfer_dialog)
         iltis_functions_vbox.addWidget(open_button)
 
-        self.iltis_close_button = QPushButton("Close ILTIS and\ndelete all data")
+        self.iltis_close_button = QPushButton(
+            "Close ILTIS and\ndelete all data"
+        )
         iltis_functions_vbox.addWidget(self.iltis_close_button)
 
         contents_vbox.addWidget(iltis_functions_widget)
-        self.main_function_widgets['ILTIS functions'] = iltis_functions_widget
+        self.main_function_widgets["ILTIS functions"] = iltis_functions_widget
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -217,17 +300,26 @@ class NapariPyViewWidget(CentralWidget):
         napari_functions_vbox = QVBoxLayout(napari_functions_widget)
 
         transfer_data_button = QPushButton("Transfer data to Napari")
-        transfer_data_button.clicked.connect(self.spawn_dialog_napari_data_transfer)
+        transfer_data_button.clicked.connect(
+            self.spawn_dialog_napari_data_transfer
+        )
         napari_functions_vbox.addWidget(transfer_data_button)
 
         contents_vbox.addWidget(napari_functions_widget)
-        self.main_function_widgets['Napari functions'] = napari_functions_widget
+        self.main_function_widgets["Napari functions"] = (
+            napari_functions_widget
+        )
 
         # --------------------------------------------------------------------------------------------------------------
         self.flags_widget = FlagsMainWidget(flags=self.flags)
 
-        for subgroup_name, subgroup_page in self.flags_widget.flag_display_choice.subgroup_pages.items():
-            subgroup_page.return_flag_signal.connect(self.flag_update_request_gui)
+        for (
+            subgroup_name,
+            subgroup_page,
+        ) in self.flags_widget.flag_display_choice.subgroup_pages.items():
+            subgroup_page.return_flag_signal.connect(
+                self.flag_update_request_gui
+            )
 
         self.flags_widget.wiki_link_button.clicked.connect(self.go_to_wiki)
         self.flags_widget.save_button.clicked.connect(self.write_yml_file)
@@ -236,24 +328,30 @@ class NapariPyViewWidget(CentralWidget):
 
         # --------------------------------------------------------------------------------------------------------------
 
-        gen_overviews_box = OverviewGenWidget(parent=contents_widget, current_flags=self.flags)
+        gen_overviews_box = OverviewGenWidget(
+            parent=contents_widget, current_flags=self.flags
+        )
         gen_overviews_box.send_data.connect(self.generate_overview)
-        gen_overviews_box.flag_update_signal.connect(self.flag_update_request_gui)
+        gen_overviews_box.flag_update_signal.connect(
+            self.flag_update_request_gui
+        )
 
         self.main_function_widgets["generate_overview"] = gen_overviews_box
         contents_vbox.addWidget(gen_overviews_box)
 
         gdm_viz_box_flags = ["RM_ROITrace"]
         gdm_viz_box = MainFunctionAbstract(
-            parent=contents_widget, button_names=["Visualize GDM traces"],
-            flag_names=gdm_viz_box_flags, flag_defaults=[self.flags[f] for f in gdm_viz_box_flags],
-            group_name="Visualize GDM traces", stack_vertically=True
+            parent=contents_widget,
+            button_names=["Visualize GDM traces"],
+            flag_names=gdm_viz_box_flags,
+            flag_defaults=[self.flags[f] for f in gdm_viz_box_flags],
+            group_name="Visualize GDM traces",
+            stack_vertically=True,
         )
         gdm_viz_box.send_data.connect(self.viz_gdm_traces)
         gdm_viz_box.flag_update_signal.connect(self.flag_update_request_gui)
         self.main_function_widgets["viz_gdm"] = gdm_viz_box
         contents_vbox.addWidget(gdm_viz_box)
-
 
         # --------------------------------------------------------------------------------------------------------------
         misc_functions = QGroupBox("Miscellaneous functions", self)
@@ -284,7 +382,9 @@ class NapariPyViewWidget(CentralWidget):
 
         scroll_area = QScrollArea()
         scroll_area.setWidget(contents_widget)
-        scroll_area.setWidgetResizable(True)  # Critical for scrollbars to appear
+        scroll_area.setWidgetResizable(
+            True
+        )  # Critical for scrollbars to appear
 
         main_vbox = QVBoxLayout(self)
         main_vbox.addWidget(scroll_area)
@@ -293,7 +393,13 @@ class NapariPyViewWidget(CentralWidget):
 
         # Disable all actions other than YML loader
         self.enable_disable_functions_all(
-            enable=False, main_exceptions=["yml loader", "setup choice box", "calc method choice box"])
+            enable=False,
+            main_exceptions=[
+                "yml loader",
+                "setup choice box",
+                "calc method choice box",
+            ],
+        )
 
     def write_status(self, msg):
 
@@ -305,39 +411,55 @@ class NapariPyViewWidget(CentralWidget):
 
         self.iltis_window = ILTISWindowNapari(self)
         self.iltis_window.show()
-        self.iltis_window.iltis_main_shell.import_action.triggered.connect(self.spawn_export_dialog)
-        self.iltis_window.iltis_main_shell.import_action_quick.triggered.connect(self.export_data_to_iltis_all)
-        self.export_data_to_iltis_signal.connect(self.iltis_window.iltis_main_shell.import_data)
-        self.reset_iltis_signal.connect(self.iltis_window.iltis_main_shell.reset)
+        self.iltis_window.iltis_main_shell.import_action.triggered.connect(
+            self.spawn_export_dialog
+        )
+        self.iltis_window.iltis_main_shell.import_action_quick.triggered.connect(
+            self.export_data_to_iltis_all
+        )
+        self.export_data_to_iltis_signal.connect(
+            self.iltis_window.iltis_main_shell.import_data
+        )
+        self.reset_iltis_signal.connect(
+            self.iltis_window.iltis_main_shell.reset
+        )
         self.iltis_close_button.clicked.connect(self.iltis_window.close)
 
         self.iltis_window.iltis_main_shell.import_action.trigger()
-
 
     def spawn_dialog_napari_data_transfer(self):
 
         transfer_dialog = self.spawn_export_dialog()
         if transfer_dialog is not None:
-            transfer_dialog.send_data_signal.connect(self.export_data_to_napari)
+            transfer_dialog.send_data_signal.connect(
+                self.export_data_to_napari
+            )
             transfer_dialog.setWindowTitle("Import Data to Napari")
-
 
     def export_data_to_napari(self, indices, metadata_list_for_label):
 
         if self.napari_viewer is None:
-            QMessageBox.critical(self, f"Napari not found!",
-                                 f"The plugin was started without a napari viewer."
-                                 f" Please start the plugin from within napari.")
+            QMessageBox.critical(
+                self,
+                f"Napari not found!",
+                f"The plugin was started without a napari viewer."
+                f" Please start the plugin from within napari.",
+            )
 
-        metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset \
-            = self.get_data_for_iltis_export(indices, metadata_list_for_label)
+        (
+            metadata_to_send,
+            raw_data_list,
+            signals_list,
+            n_frames_list,
+            stim_onset,
+            stim_offset,
+        ) = self.get_data_for_iltis_export(indices, metadata_list_for_label)
 
         for path_flag in self.flags.compound_path_flags:
             if path_flag not in self.flags.compound_path_flags_with_defaults:
                 metadata_to_send[path_flag] = self.flags[path_flag]
 
         for ind, raw_data in enumerate(raw_data_list):
-
             # convert from format XYT to TXY
             raw_data_TYX = raw_data.swapaxes(0, 2)
 
@@ -345,20 +467,22 @@ class NapariPyViewWidget(CentralWidget):
 
             metadata_row = metadata_to_send.iloc[ind]
             name = metadata_row["Label to use"]
-            self.napari_viewer.add_image(data=raw_data_TYX_Y_flipped, name=name, metadata=metadata_row.to_dict())
+            self.napari_viewer.add_image(
+                data=raw_data_TYX_Y_flipped,
+                name=name,
+                metadata=metadata_row.to_dict(),
+            )
 
-    def direct_load_finalize(self, label_p1_mapping: dict, flags_used: FlagsManager):
+    def direct_load_finalize(
+        self, label_p1_mapping: dict, flags_used: FlagsManager
+    ):
 
         super().direct_load_finalize(label_p1_mapping, flags_used)
-        self.enable_disable_functions(enable=True, main_functions=("ILTIS functions", "Napari functions"))
-
+        self.enable_disable_functions(
+            enable=True, main_functions=("ILTIS functions", "Napari functions")
+        )
 
     def closeEvent(self, event=None):
 
         plt.close("all")
         event.accept()
-
-
-
-
-

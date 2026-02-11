@@ -71,6 +71,8 @@ class CentralWidget(QWidget):
         self.gdm_viz_window = None
         self.load_measurement_window = None
         self.transfer_dialog = None
+        self.measurement_list = None
+        self.yml_file = None
 
         self.main_function_widgets = {}
         self.misc_function_buttons = {}
@@ -79,8 +81,6 @@ class CentralWidget(QWidget):
         self.init_flags()
         self.current_measurement_label = None
         self.init_ui()
-        self.measurement_list = None
-        self.yml_file = None
 
         plt.ion()
 
@@ -160,7 +160,7 @@ class CentralWidget(QWidget):
             log_load_widget, "Direct load from log file (no pre-requirements)"
         )
 
-        list_load_widget = ListLoadWidget(self)
+        list_load_widget = ListLoadWidget(self, self.flags.flags)
         list_load_widget.new_load.clicked.connect(self.load_from_new_list)
         list_load_widget.choose_from_current_list.clicked.connect(
             self.choose_row_from_current_list
