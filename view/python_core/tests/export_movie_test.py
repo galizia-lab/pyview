@@ -278,8 +278,7 @@ def test_thresholdShowImage():
                     "mv_individualScale": 3,
                     "mv_indiScale3factor": 0.25,
                 },
-                f"mv_thresholdOn_foto1_posVal_a1000_Image_"
-                f"{threshold_show_image}_scale_{threshold_scale}",
+                f"mv_thresholdOn_foto1_posVal_a1000_Image_{threshold_show_image}_scale_{threshold_scale}",
             )
 
 

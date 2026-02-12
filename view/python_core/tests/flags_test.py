@@ -1,3 +1,4 @@
+import contextlib
 import os
 import pathlib as pl
 import tempfile
@@ -16,7 +17,7 @@ def test_flags_internal():
     Testing the initialization of flags with default values from definition csv
     """
 
-    flags = FlagsManager()
+    _flags = FlagsManager()
 
 
 def test_SO_MV_colortable_flags():
@@ -59,10 +60,8 @@ def test_flag_fails():
     ]
 
     for k, v in must_fail:
-        try:
+        with contextlib.suppress(AssertionError):
             flags.update_flags({k: v})
-        except AssertionError as ase:
-            pass
 
 
 def test_flags_read_write():
@@ -111,9 +110,7 @@ def test_flags_read_write():
 
     assert len(flags_temp.flags) == len(flags.flags)
     assert len(set(flags_temp.flags.keys()) - set(flags.flags.keys())) == 0
-    assert all(
-        flags.flags[x] == flags_temp.flags[x] for x in flags.flags.keys()
-    )
+    assert all(flags.flags[x] == flags_temp.flags[x] for x in flags.flags)
     temp_yml_path.unlink()
 
 
@@ -146,9 +143,9 @@ def test_interpret_flag_SO_MV_colortable():
         it_failed = False
         try:
             interpret_flag_SO_MV_colortable(value)
-        except ValueError as ve:
+        except ValueError:
             it_failed = True
-        except NotImplementedError as se:
+        except NotImplementedError:
             it_failed = True
 
         assert it_failed

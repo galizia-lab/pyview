@@ -3,7 +3,7 @@ import pathlib as pl
 from collections import OrderedDict
 
 import qtpy.compat
-from qtpy.QtCore import QCoreApplication, QSettings, Signal, Slot
+from qtpy.QtCore import Signal, Slot
 from qtpy.QtWidgets import (
     QComboBox,
     QGroupBox,

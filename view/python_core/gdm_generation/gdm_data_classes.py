@@ -1,57 +1,71 @@
 import logging
+from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import dataclass, field
-
-import pandas as pd
-from typing import Dict, Mapping, Sequence, Hashable
-from collections.abc import Callable
-
-from neo import AnalogSignal
-import quantities as pq
-import numpy as np
-from typing_extensions import Self
 from os import PathLike
+
+import numpy as np
+import pandas as pd
+import quantities as pq
 from matplotlib import pyplot as plt
+from neo import AnalogSignal
+from typing_extensions import Self
 
 
-def parse_data_metadata_from_csv_row(csv_df_row: pd.Series) -> tuple[Sequence[float]|None, dict]:
+def parse_data_metadata_from_csv_row(
+    csv_df_row: pd.Series,
+) -> tuple[Sequence[float] | None, dict]:
 
     try:
         place_holder_column_index = get_place_holder_index(csv_df_row.index)
-    except StopIteration as se:
+    except StopIteration:
         return None, csv_df_row.to_dict()
 
     try:
         trace_start_pos = place_holder_column_index + 1
         n_samples = csv_df_row.get("NumFrames", None)
-        trace = [float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
+        trace = [
+            float(x)
+            for x in csv_df_row.iloc[
+                trace_start_pos : trace_start_pos + n_samples
+            ].values
+        ]
         return trace, csv_df_row.iloc[:place_holder_column_index].to_dict()
-    except Exception as e:
-        logging.debug(f'Problem creating a trace', exc_info=e)
+    except Exception as e:  # noqa: BLE001
+        logging.debug("Problem creating a trace", exc_info=e)
 
 
 @dataclass
 class GDMRow:
     """Class for a gdm row, which a pixel trace with associated metadata"""
+
     metadata: pd.Series
     time_series: AnalogSignal
 
     def copy(self) -> Self:
 
-        return GDMRow(metadata=self.metadata.copy(), time_series=self.time_series.copy())
+        return GDMRow(
+            metadata=self.metadata.copy(), time_series=self.time_series.copy()
+        )
 
     def set_index(self, index: Hashable):
         self.metadata.name = index
 
     @classmethod
     def from_data_and_metadata(
-            cls, metadata_dict: Mapping, trace: Sequence=None, sampling_period_ms: float=None,
-            starting_time_s: float = 0, units: str = "au"
+        cls,
+        metadata_dict: Mapping,
+        trace: Sequence = None,
+        sampling_period_ms: float = None,
+        starting_time_s: float = 0,
+        units: str = "au",
     ):
         metadata = pd.Series(metadata_dict)
         if trace is not None:
             time_series = AnalogSignal(
-                signal=trace, sampling_period=sampling_period_ms * pq.ms, t_start=starting_time_s * pq.s,
-                units=units
+                signal=trace,
+                sampling_period=sampling_period_ms * pq.ms,
+                t_start=starting_time_s * pq.s,
+                units=units,
             )
         else:
             time_series = None
@@ -62,17 +76,24 @@ class GDMRow:
 
         signal_metadata = self.metadata.copy()
         signal_metadata["TraceOffset"] = self.time_series.t_start.magnitude
-        signal_metadata["Cycle"] = (self.time_series.sampling_period / pq.ms).simplified.magnitude
+        signal_metadata["Cycle"] = (
+            self.time_series.sampling_period / pq.ms
+        ).simplified.magnitude
         signal_metadata["NumFrames"] = self.time_series.shape[0]
 
         return signal_metadata, self.time_series.magnitude.T[0]
 
     @classmethod
     def parse_from_csv_df_row(
-            cls, csv_df_row: pd.Series,
-            source_csv_file: str=None, source_csv_row_index: int=None):
+        cls,
+        csv_df_row: pd.Series,
+        source_csv_file: str = None,
+        source_csv_row_index: int = None,
+    ):
 
-        sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(csv_df_row)
+        sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(
+            csv_df_row
+        )
 
         trace, metadata = parse_data_metadata_from_csv_row(csv_df_row)
 
@@ -83,7 +104,7 @@ class GDMRow:
             metadata_dict=metadata,
             sampling_period_ms=sampling_period,
             starting_time_s=t_start,
-            trace=trace
+            trace=trace,
         )
 
     @classmethod
@@ -102,7 +123,7 @@ class GDMRow:
 
             csv_df_row = read_chunks_gdm_csv(
                 input_csv=gdm_row.metadata["source_csv_file"],
-                limit_to_rows=[gdm_row.metadata["source_csv_row_index"]]
+                limit_to_rows=[gdm_row.metadata["source_csv_row_index"]],
             ).iloc[0, :]
 
             gdm_row_with_data = cls.parse_from_csv_df_row(csv_df_row)
@@ -115,15 +136,22 @@ class GDMRow:
 @dataclass
 class GDMFile:
     """Class for a collection fo GDMRow objects, with CSV (and other) IO interfaces"""
+
     metadata_df: pd.DataFrame = field(default_factory=pd.DataFrame)
-    data_dict: Dict = field(default_factory=dict)
+    data_dict: dict = field(default_factory=dict)
 
     def copy(self) -> Self:
 
-        return GDMFile(metadata_df=self.metadata_df.copy(), data_dict={k: v.copy() for k, v in self.data_dict.items()})
+        return GDMFile(
+            metadata_df=self.metadata_df.copy(),
+            data_dict={k: v.copy() for k, v in self.data_dict.items()},
+        )
 
     def __getitem__(self, item) -> GDMRow:
-        return GDMRow(time_series=self.data_dict[item], metadata=self.metadata_df.loc[item])
+        return GDMRow(
+            time_series=self.data_dict[item],
+            metadata=self.metadata_df.loc[item],
+        )
 
     def __eq__(self, other):
 
@@ -136,33 +164,39 @@ class GDMFile:
             del df_copy["source_csv_file"]
             del df_copy["source_csv_row_index"]
             # delete these two metadata column added internally to keep track of csv file and row index
-            df_copy["estimate of noise standard deviation"] \
-                = df["estimate of noise standard deviation"].apply(lambda x: f"{x:.4f}")
+            df_copy["estimate of noise standard deviation"] = df[
+                "estimate of noise standard deviation"
+            ].apply(lambda x: f"{x:.4f}")
 
             return df_copy.astype(str)
 
         cleaned_str_rep_self_metadata = clean_generate_as_str(self.metadata_df)
-        cleaned_str_rep_other_metadata = clean_generate_as_str(other.metadata_df)
+        cleaned_str_rep_other_metadata = clean_generate_as_str(
+            other.metadata_df
+        )
         # using string representations above using `astype` to avoid potential issues due to type mismatches
 
-        if not cleaned_str_rep_self_metadata.equals(cleaned_str_rep_other_metadata):
-
+        if not cleaned_str_rep_self_metadata.equals(
+            cleaned_str_rep_other_metadata
+        ):
             return False
 
         for ind in self.metadata_df.index.values:
-            if not ind in other.data_dict:
+            if ind not in other.data_dict:
                 return False
 
             as_self = self.data_dict[ind]
             as_other = other.data_dict[ind]
-            if as_self.t_start != as_other.t_start or as_self.sampling_rate != as_other.sampling_rate:
+            if (
+                as_self.t_start != as_other.t_start
+                or as_self.sampling_rate != as_other.sampling_rate
+            ):
                 return False
 
             if not np.isclose(as_self.magnitude, as_other.magnitude).all():
                 return False
 
         return True
-
 
     def indices_iterator(self):
         return iter(self.data_dict.keys())
@@ -177,14 +211,20 @@ class GDMFile:
         :param Sequence indices: sequence of indices
         :return: GDMFile
         """
-        assert all(x in self.data_dict for x in indices), "Not all indices specified are in the current GDMFile"
+        assert all(
+            x in self.data_dict for x in indices
+        ), "Not all indices specified are in the current GDMFile"
         gdm_file = __class__()
         gdm_file.metadata_df = self.metadata_df.loc[indices, :]
-        gdm_file.data_dict = {k: v for k, v in self.data_dict.items() if k in indices}
+        gdm_file.data_dict = {
+            k: v for k, v in self.data_dict.items() if k in indices
+        }
 
         return gdm_file
 
-    def subset_based_on_callable(self, metadata_filter: Callable[[pd.DataFrame], pd.Series]) -> Self:
+    def subset_based_on_callable(
+        self, metadata_filter: Callable[[pd.DataFrame], pd.Series]
+    ) -> Self:
         """
         Return a new GDMFile object with only those metadata and time series whose index is in indices
         :param Callable metadata_filter: a callable that can be used to select rows of metadata df
@@ -194,7 +234,11 @@ class GDMFile:
         gdm_file = __class__()
 
         gdm_file.metadata_df = self.metadata_df.loc[metadata_filter, :]
-        gdm_file.data_dict = {k: v for k, v in self.data_dict.items() if k in gdm_file.metadata_df.index.values}
+        gdm_file.data_dict = {
+            k: v
+            for k, v in self.data_dict.items()
+            if k in gdm_file.metadata_df.index.values
+        }
 
         return gdm_file
 
@@ -202,17 +246,17 @@ class GDMFile:
         # note: current implementation ignores indices in `gdm_file` above.
         # idea: implement a flag to incorporate or ignore indices of 'gdm_file'
 
-
         # switch off warning "A value is trying to be set on a copy of a slice from a DataFrame"
         pd.options.mode.chained_assignment = None  # default='warn'
-        
+
         if self.metadata_df.shape[0] == 0:
             self.metadata_df = gdm_file.metadata_df
             self.data_dict = gdm_file.data_dict
         else:
-
             current_max_ind = self.metadata_df.index.values.max()
-            for enum_ind, (ind, metadata_row) in enumerate(gdm_file.metadata_df.iterrows()):
+            for enum_ind, (ind, metadata_row) in enumerate(
+                gdm_file.metadata_df.iterrows()
+            ):
                 new_ind = current_max_ind + enum_ind + 1
                 self.metadata_df.loc[new_ind] = metadata_row
                 self.data_dict[new_ind] = gdm_file.data_dict[ind]
@@ -220,8 +264,9 @@ class GDMFile:
     def append_gdm_row(self, gdm_row, ignore_index=True):
 
         if (not ignore_index) and gdm_row.metadata.name:
-            assert gdm_row.metadata.name not in self.metadata_df.index, \
-                'Index of the row to be appended already exists!'
+            assert (
+                gdm_row.metadata.name not in self.metadata_df.index
+            ), "Index of the row to be appended already exists!"
             new_index = gdm_row.metadata.name
         else:
             if self.metadata_df.shape[0]:
@@ -233,7 +278,9 @@ class GDMFile:
             self.metadata_df.loc[new_index] = gdm_row.metadata
         else:
             self.metadata_df = pd.DataFrame(gdm_row.metadata).T
-            self.metadata_df.index = [new_index]  # set index as needed for the first row
+            self.metadata_df.index = [
+                new_index
+            ]  # set index as needed for the first row
 
         self.data_dict[new_index] = gdm_row.time_series
 
@@ -249,16 +296,20 @@ class GDMFile:
         print(f"Reading GDMFile from {csv_file}")
 
         gdm_file = cls()
-        
+
         csv_df = read_chunks_gdm_csv(csv_file, metadata_only=metadata_only)
 
         for i, row in csv_df.iterrows():
-            gdm_row = GDMRow.parse_from_csv_df_row(row, source_csv_file=csv_file, source_csv_row_index= i + 1)
+            gdm_row = GDMRow.parse_from_csv_df_row(
+                row, source_csv_file=csv_file, source_csv_row_index=i + 1
+            )
             gdm_file.append_gdm_row(gdm_row)
 
         return gdm_file
 
-    def check_load_data_if_missing(self, indices_to_check: Sequence[int]= None):
+    def check_load_data_if_missing(
+        self, indices_to_check: Sequence[int] = None
+    ):
         """
         Loads data for each row in the sequence `indices_to_check` if available and not loaded
         (probably because GDMFile was loaded in "metadata_only" mode).
@@ -267,42 +318,56 @@ class GDMFile:
         """
 
         indices_to_check = indices_to_check or self.data_dict.keys()
-        indices_without_times_series = [int(k) for k in indices_to_check if self.data_dict[k] is None]
+        indices_without_times_series = [
+            int(k) for k in indices_to_check if self.data_dict[k] is None
+        ]
         if not len(indices_without_times_series):
             # all rows have times series
             return
 
-
         metadata_subset = self.metadata_df.loc[indices_without_times_series, :]
 
-        for source_csv_file, source_csv_file_df in metadata_subset.groupby("source_csv_file"):
-
+        for source_csv_file, source_csv_file_df in metadata_subset.groupby(
+            "source_csv_file"
+        ):
             csv_df = read_chunks_gdm_csv(
-                source_csv_file, limit_to_rows=source_csv_file_df["source_csv_row_index"].values)
+                source_csv_file,
+                limit_to_rows=source_csv_file_df[
+                    "source_csv_row_index"
+                ].values,
+            )
 
             source_csv_indices = sorted(source_csv_file_df.index.values)
             # rows of csv_df will be in the same order as in the source csv file, even if
             # `source_csv_file_df.index` is not sorted
 
             for ind, csv_df_row in csv_df.iterrows():
-                gdm_row_with_time_series = GDMRow.parse_from_csv_df_row(csv_df_row = csv_df_row)
-                self.data_dict[source_csv_indices[ind]] = gdm_row_with_time_series.time_series
-
+                gdm_row_with_time_series = GDMRow.parse_from_csv_df_row(
+                    csv_df_row=csv_df_row
+                )
+                self.data_dict[source_csv_indices[ind]] = (
+                    gdm_row_with_time_series.time_series
+                )
 
     def write_to_csv(self, filename):
 
         metadata_df = pd.DataFrame()
         trace_df = pd.DataFrame()
         for gdm_ind in self.data_dict:
-
             gdm_row = self.__getitem__(gdm_ind)
 
             metadata_row, trace = gdm_row.get_ASCII_exportable_format()
-            frame_values_s = pd.Series({f"Frame{k}": v for k, v in enumerate(trace)})
+            frame_values_s = pd.Series(
+                {f"Frame{k}": v for k, v in enumerate(trace)}
+            )
             # metadata_df = metadata_df.append(pd.DataFrame(metadata_row).T, ignore_index=True) # .append will be deprecated
             # trace_df = trace_df.append(pd.DataFrame(frame_values_s).T, ignore_index=True)
-            metadata_df = pd.concat([metadata_df, pd.DataFrame(metadata_row).T], ignore_index=True)
-            trace_df = pd.concat([trace_df,pd.DataFrame(frame_values_s).T], ignore_index=True)
+            metadata_df = pd.concat(
+                [metadata_df, pd.DataFrame(metadata_row).T], ignore_index=True
+            )
+            trace_df = pd.concat(
+                [trace_df, pd.DataFrame(frame_values_s).T], ignore_index=True
+            )
 
         try:
             del metadata_df["source_csv_file"]
@@ -314,18 +379,29 @@ class GDMFile:
             # So catch here and do nothing, as we don't need to worry about deleting thoses columns
             # if they don't exist
 
-
         metadata_df["PlaceHolder"] = "Trace begins->"
-        columns_before_trace = \
-            ["StimONms", "StimLen", "Odour", "Stimulus", "OConc", "Cycle", "GloTag", "Measu", "Animal", "PlaceHolder"]
+        columns_before_trace = [
+            "StimONms",
+            "StimLen",
+            "Odour",
+            "Stimulus",
+            "OConc",
+            "Cycle",
+            "GloTag",
+            "Measu",
+            "Animal",
+            "PlaceHolder",
+        ]
         metadata_df = metadata_df[
-            [x for x in metadata_df.columns if x not in columns_before_trace] +
-            [x for x in columns_before_trace if x in metadata_df.columns]
+            [x for x in metadata_df.columns if x not in columns_before_trace]
+            + [x for x in columns_before_trace if x in metadata_df.columns]
         ]
         df = pd.concat([metadata_df, trace_df], axis=1, sort=False)
 
-        df.to_csv(filename, sep=';', header=True, index=False)
-        logging.getLogger("VIEW").info(f"Finished writing {filename}")
+        df.to_csv(filename, sep=";", header=True, index=False)
+        logging.getLogger("VIEW").info(
+            "Finished writing", extra={"csv file": filename}
+        )
 
     def get_data_as_numpy2D(self) -> np.ndarray:
         """
@@ -334,9 +410,13 @@ class GDMFile:
         :rtype: numpy.ndarray
         """
         if len(self.metadata_df["NumFrames"].unique()) == 1:
-            return np.array([x.magnitude for x in self.data_dict.values()])[:, :, 0]
+            return np.array([x.magnitude for x in self.data_dict.values()])[
+                :, :, 0
+            ]
         else:
-            raise ValueError("GDMFile has data of different lengths. Cannot create a numpy array")
+            raise ValueError(
+                "GDMFile has data of different lengths. Cannot create a numpy array"
+            )
 
     def _get_data_as_numpy2D_align_starts(self) -> np.ndarray:
         """
@@ -351,7 +431,9 @@ class GDMFile:
         padded_arrays = np.full((self.metadata_df.shape[0], max_len), np.nan)
 
         for ind, analog_signal in enumerate(self.data_dict.values()):
-            padded_arrays[ind, :analog_signal.shape[0]] = analog_signal.magnitude.T
+            padded_arrays[ind, : analog_signal.shape[0]] = (
+                analog_signal.magnitude.T
+            )
 
         return padded_arrays
 
@@ -362,11 +444,13 @@ class GDMFile:
         Can be used in a for loop
         """
         for grouping_inds, group_df in self.metadata_df.groupby(by=by):
-
-            yield grouping_inds, self.subset_based_on_indices(group_df.index.values)
+            yield (
+                grouping_inds,
+                self.subset_based_on_indices(group_df.index.values),
+            )
 
     def collapse_GDM_data_only(
-            self, collapse_using="nanmedian", temporal_alignment="align_starts"
+        self, collapse_using="nanmedian", temporal_alignment="align_starts"
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Temporally aligns the data of rows based on the parameter "temporal_alignment" and
@@ -379,11 +463,12 @@ class GDMFile:
         (1) 2D numpy ndarray containing data after alignment but before collapsing
         (2) 1D numpy ndarray containing data after alignment and collapsing
         """
-        if temporal_alignment == 'align_starts':
+        if temporal_alignment == "align_starts":
             gdm_data_aligned = self._get_data_as_numpy2D_align_starts()
         else:
             raise NotImplementedError(
-                f"A value of {temporal_alignment} was specified for 'temporal_alignment', which is implemented.")
+                f"A value of {temporal_alignment} was specified for 'temporal_alignment', which is implemented."
+            )
 
         if collapse_using == "nanmedian":
             return gdm_data_aligned, np.nanmedian(gdm_data_aligned, axis=0)
@@ -391,12 +476,16 @@ class GDMFile:
             return gdm_data_aligned, np.nanmean(gdm_data_aligned, axis=0)
         else:
             raise NotImplementedError(
-                f"A value of {collapse_using} was specified for 'collapse_using', which is implemented.")
+                f"A value of {collapse_using} was specified for 'collapse_using', which is implemented."
+            )
 
     def collapse_GDM(
-            self, collapse_using: str, temporal_alignment: str,
-            preferred_row_index: int = None,
-            report_axes: list[plt.Axes] = None) -> GDMRow:
+        self,
+        collapse_using: str,
+        temporal_alignment: str,
+        preferred_row_index: int = None,
+        report_axes: list[plt.Axes] = None,
+    ) -> GDMRow:
         """
         Checks if all rows have the same sampling rate, else raises and error.
         Else aligns the data in the rows based on the parameter `temporal_alignment` and
@@ -424,21 +513,26 @@ class GDMFile:
             else:
                 return "unequal_values"
 
-        collapsed_metadata = self.metadata_df.apply(collapse_metadata_column, axis=0)
+        collapsed_metadata = self.metadata_df.apply(
+            collapse_metadata_column, axis=0
+        )
         if "Animal" in collapsed_metadata:
-            collapsed_metadata["Animal"] = f"{collapse_using}-{temporal_alignment}"
+            collapsed_metadata["Animal"] = (
+                f"{collapse_using}-{temporal_alignment}"
+            )
         if "TraceOffset" in collapsed_metadata:
             collapsed_metadata["TraceOffset"] = 0.0
         # value needs to be a valid time offset
-        if 'ODORshift' in collapsed_metadata:
-            collapsed_metadata['ODORshift'] = 0
+        if "ODORshift" in collapsed_metadata:
+            collapsed_metadata["ODORshift"] = 0
         # value needs to be a valid time offset
-        if 'FIDshift' in collapsed_metadata:
-            collapsed_metadata['FIDshift'] = 0
+        if "FIDshift" in collapsed_metadata:
+            collapsed_metadata["FIDshift"] = 0
         # value needs to be a valid time offset
         if "estimate of noise standard deviation" in collapsed_metadata:
-            collapsed_metadata["estimate of noise standard deviation"] \
-                = self.metadata_df["estimate of noise standard deviation"].mean()
+            collapsed_metadata["estimate of noise standard deviation"] = (
+                self.metadata_df["estimate of noise standard deviation"].mean()
+            )
         # value needs to be a float and arguably valid, needed during cascade model fitting
 
         temp_gdm_file = GDMFile()
@@ -450,59 +544,85 @@ class GDMFile:
         temp_gdm_file.check_load_data_if_missing()
         # for the case where GDM file was loaded in metadata_only mode, this will make sure to read data
 
-        all_sampling_rates = [x.sampling_rate for x in temp_gdm_file.data_dict.values()]
+        all_sampling_rates = [
+            x.sampling_rate for x in temp_gdm_file.data_dict.values()
+        ]
 
         if not all(all_sampling_rates[0] == x for x in all_sampling_rates):
             raise ValueError(
-                f"All time traces don't have the same sampling rates ({all_sampling_rates})")
+                f"All time traces don't have the same sampling rates ({all_sampling_rates})"
+            )
         else:
-            data_aligned, collapsed_data = temp_gdm_file.collapse_GDM_data_only(
-                collapse_using=collapse_using, temporal_alignment=temporal_alignment
+            data_aligned, collapsed_data = (
+                temp_gdm_file.collapse_GDM_data_only(
+                    collapse_using=collapse_using,
+                    temporal_alignment=temporal_alignment,
+                )
             )
             collapsed_metadata["NumFrames"] = collapsed_data.shape[0]
             preferred_row = self.metadata_df.loc[preferred_row_index]
             collapsed_metadata["TraceOffset"] = preferred_row["TraceOffset"]
             collapsed_metadata["Cycle"] = preferred_row["Cycle"]
 
-            sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(collapsed_metadata)
+            sampling_period, t_start, _ = (
+                get_sampling_period_offset_from_metadata(collapsed_metadata)
+            )
 
             collapsed_gdm_row = GDMRow.from_data_and_metadata(
-                metadata_dict=collapsed_metadata, trace=collapsed_data,
-                sampling_period_ms= sampling_period,
-                starting_time_s=t_start
+                metadata_dict=collapsed_metadata,
+                trace=collapsed_data,
+                sampling_period_ms=sampling_period,
+                starting_time_s=t_start,
             )
 
             if report_axes:
-
-                for serial_ind, k in enumerate(temp_gdm_file.indices_iterator()):
+                for serial_ind, k in enumerate(
+                    temp_gdm_file.indices_iterator()
+                ):
                     trace_as = temp_gdm_file.get_trace(k)
                     trace_times_original_ms = trace_as.times / pq.ms
-                    stim_on_ms = self.metadata_df.loc[k, 'StimONms']
-                    trace_times_shifted_ms = trace_times_original_ms - trace_times_original_ms[0] - stim_on_ms
+                    stim_on_ms = self.metadata_df.loc[k, "StimONms"]
+                    trace_times_shifted_ms = (
+                        trace_times_original_ms
+                        - trace_times_original_ms[0]
+                        - stim_on_ms
+                    )
                     report_axes[0].plot(
                         trace_times_shifted_ms,
                         temp_gdm_file.get_trace(k).magnitude,
-                        'b-', alpha=0.5
+                        "b-",
+                        alpha=0.5,
                     )
-                    report_axes[0].set_xlabel('time (ms)')
-                    report_axes[0].set_title('original traces of GDM file; time axis shifted to align odor times at 0')
+                    report_axes[0].set_xlabel("time (ms)")
+                    report_axes[0].set_title(
+                        "original traces of GDM file; time axis shifted to align odor times at 0"
+                    )
 
-                    report_axes[1].plot(data_aligned[serial_ind, :], 'b-', alpha=0.5)
-                    report_axes[1].set_xlabel('time (ms)')
-                    report_axes[1].set_title(f"traces after alignment according based on config '{temporal_alignment}'")
+                    report_axes[1].plot(
+                        data_aligned[serial_ind, :], "b-", alpha=0.5
+                    )
+                    report_axes[1].set_xlabel("time (ms)")
+                    report_axes[1].set_title(
+                        f"traces after alignment according based on config '{temporal_alignment}'"
+                    )
 
-                    report_axes[2].plot(data_aligned[serial_ind, :], 'b-', alpha=0.5)
-                    report_axes[2].plot(collapsed_data, 'rx', ms=5)
-                    report_axes[2].set_xlabel('time (ms)')
-                    report_axes[2].set_title('Blue plots: traces after alignment; Red plot: collapsed trace')
+                    report_axes[2].plot(
+                        data_aligned[serial_ind, :], "b-", alpha=0.5
+                    )
+                    report_axes[2].plot(collapsed_data, "rx", ms=5)
+                    report_axes[2].set_xlabel("time (ms)")
+                    report_axes[2].set_title(
+                        "Blue plots: traces after alignment; Red plot: collapsed trace"
+                    )
 
             return collapsed_gdm_row
 
 
 def read_chunks_gdm_csv(
-        input_csv: PathLike, metadata_only: bool=False,
-        limit_to_rows: Sequence[int]=None
-    ):
+    input_csv: PathLike,
+    metadata_only: bool = False,
+    limit_to_rows: Sequence[int] = None,
+):
     """
     Read a csv containing gdm and FID chunks, parsing date and time columns properly
     :param str input_csv: path to the input csv
@@ -516,16 +636,16 @@ def read_chunks_gdm_csv(
     headers_df = pd.read_csv(input_csv, sep=";", nrows=1, header=0)
     try:
         place_holder_column_index = get_place_holder_index(headers_df.columns)
-    except StopIteration as ste:
-        raise f'Could not read {input_csv} as no column with header "PlaceHolder" was found'
+    except StopIteration:
+        raise f'Could not read {input_csv} as no column with header "PlaceHolder" was found' from None
 
-    basic_kwargs = dict(sep=";", header=0)
+    basic_kwargs = {"sep": ";", "header": 0}
 
     if limit_to_rows is not None:
 
         def skiprows(index):
 
-            return not((index == 0) or (index in limit_to_rows))
+            return not ((index == 0) or (index in limit_to_rows))
             # rows for which this function returns False are read in (index in 0-indexed)
 
         basic_kwargs["skiprows"] = skiprows
@@ -542,16 +662,21 @@ def read_chunks_gdm_csv(
             return line.split("_")[0]
         else:
             return line
+
     if "line" in gdm_df.columns:
         gdm_df["line"] = gdm_df["line"].apply(revise_line)
 
     return gdm_df
 
+
 def get_place_holder_index(headers):
 
     return next(i for i, x in enumerate(headers) if x == "PlaceHolder")
 
-def get_sampling_period_offset_from_metadata(metadata_row: pd.Series) -> tuple[float, float, int]:
+
+def get_sampling_period_offset_from_metadata(
+    metadata_row: pd.Series,
+) -> tuple[float, float, int]:
     """
     Parses and returns sampling period and offset from metadata
     :param pd.Series metadata_row:
@@ -569,11 +694,14 @@ def parse_odors_to_exclude(odor_to_exclude_str: str) -> Sequence[str]:
     # this could be 'LIOL1', i.e. single odor,
     # or multiple, either 'LIOL1, LIOL2' or "'LIOL1', 'LIOL2'"
     # therefore, convert into list
-    exclude = odor_to_exclude_str.split(',')
+    exclude = odor_to_exclude_str.split(",")
     return [item.strip().strip("'") for item in exclude]
 
+
 def parse_stim_info(
-        gdm_row_metadata: pd.Series, sort: bool = True, odors_to_exclude_str: str = None
+    gdm_row_metadata: pd.Series,
+    sort: bool = True,
+    odors_to_exclude_str: str = None,
 ) -> tuple[tuple[str, ...], tuple[float, ...], tuple[float, ...]]:
     """
     parses stimulus info from metadata columns "Odour", "StimONms" and "StimLen" to create and return lists of
@@ -604,14 +732,22 @@ def parse_stim_info(
         stimulus_durations = gdm_row_metadata["StimLen"]
 
     if type(stimulus_components) is str:
-        stimulus_times = stimulus_times,
-        stimulus_components = stimulus_components,
-        stimulus_durations = stimulus_durations,
+        stimulus_times = (stimulus_times,)
+        stimulus_components = (stimulus_components,)
+        stimulus_durations = (stimulus_durations,)
 
-    data = {"stim_comps": stimulus_components, "stim_times": stimulus_times, "stim_durs": stimulus_durations}
+    data = {
+        "stim_comps": stimulus_components,
+        "stim_times": stimulus_times,
+        "stim_durs": stimulus_durations,
+    }
     temp_df = pd.DataFrame(data=data)
 
-    indices_good = [i for i, x in temp_df["stim_comps"].items() if x not in odors_to_exclude]
+    indices_good = [
+        i
+        for i, x in temp_df["stim_comps"].items()
+        if x not in odors_to_exclude
+    ]
 
     temp_df_good = temp_df.loc[indices_good, :]
 
@@ -621,5 +757,5 @@ def parse_stim_info(
     return (
         tuple(temp_df_good["stim_comps"].values),
         tuple(temp_df_good["stim_times"].values),
-        tuple(temp_df_good["stim_durs"].values)
+        tuple(temp_df_good["stim_durs"].values),
     )

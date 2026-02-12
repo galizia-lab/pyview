@@ -13,7 +13,7 @@ def measurement_list_manager_loading(ext):
 
         to_exclude = ["fid_hanna9", "fidor", "log2settings"]
 
-        return any([yml_filename_lower.find(x) >= 0 for x in to_exclude])
+        return any(yml_filename_lower.find(x) >= 0 for x in to_exclude)
 
     for dataset_root in get_example_dataset_roots():
         yml_files = [
@@ -46,7 +46,7 @@ def test_reading_lst():
     Testing importing lst files into view.python_core.managers.measurement_list.LSTList
     """
 
-    for lst in measurement_list_manager_loading(".lst"):
+    for _lst in measurement_list_manager_loading(".lst"):
         pass
 
 
@@ -55,7 +55,7 @@ def test_reading_settingsXLS():
     Testing importing settings files into view.python_core.managers.measurement_list.SettingsXLSList
     """
 
-    for lst in measurement_list_manager_loading(".settings.xls"):
+    for _lst in measurement_list_manager_loading(".settings.xls"):
         pass
 
 
@@ -64,15 +64,14 @@ def test_reading_LSTXLS():
     Testing importing settings files into view.python_core.managers.measurement_list.LSTXLSList
     """
 
-    for lst in measurement_list_manager_loading(".lst.xls"):
+    for _lst in measurement_list_manager_loading(".lst.xls"):
         pass
 
 
 def run_get_p1_all(lst):
 
-    for ind, measu in enumerate(lst.get_measus()):
+    for ind, _measu in enumerate(lst.get_measus()):
         p1_metadata, extra_metadata = lst.get_p1_metadata_by_index(ind)
-        pass
 
 
 def test_lst2p1():
@@ -80,7 +79,7 @@ def test_lst2p1():
     Testing metadata in lst files to p1
     """
 
-    for ind, lst in enumerate(measurement_list_manager_loading(".lst")):
+    for _ind, lst in enumerate(measurement_list_manager_loading(".lst")):
         run_get_p1_all(lst)
 
 
@@ -89,7 +88,7 @@ def test_settings2p1():
     Testing metadata in settings files to p1
     """
 
-    for ind, lst in enumerate(
+    for _ind, lst in enumerate(
         measurement_list_manager_loading(".settings.xls")
     ):
         run_get_p1_all(lst)
@@ -100,7 +99,7 @@ def test_lstxls2p1():
     Testing metadata in lst.xls files to p1
     """
 
-    for ind, lst in enumerate(measurement_list_manager_loading(".lst.xls")):
+    for _ind, lst in enumerate(measurement_list_manager_loading(".lst.xls")):
         run_get_p1_all(lst)
 
 

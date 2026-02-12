@@ -1,14 +1,16 @@
-import view
 import pathlib as pl
+
+import view
+
 # this tells view all settings including the folder structure of your project
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
 
-# insert your current directory 
-#moaf = r"/Users/galizia/Documents/DATA/synthetic_data/"
+# insert your current directory
+# moaf = r"/Users/galizia/Documents/DATA/synthetic_data/"
 # or detect your directory, skipping the last folder
 moaf = pl.Path(__file__).parents[1]
 
-print('working in directory: ', moaf)
+print("working in directory: ", moaf)
 
 # this tells view all settings including the folder structure of your project
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
@@ -27,16 +29,15 @@ flags_to_update = {
 
 # list of animals for which moview are to be exported
 animals = [
-    "Synthetic_data_strip"#,
-    #""
+    "Synthetic_data_strip"  # ,
+    # ""
 ]
 
 
-Analyze_column_values_to_use = (-1,1)
+Analyze_column_values_to_use = (-1, 1)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # create a view object
     view_obj = view.VIEW()
@@ -54,7 +55,9 @@ if __name__ == '__main__':
         view_obj.initialize_animal(animal=animal)
 
         # iterate over measurements of the animal
-        for measu in view_obj.get_measus_for_current_animal(analyze_values_to_use=Analyze_column_values_to_use):
+        for measu in view_obj.get_measus_for_current_animal(
+            analyze_values_to_use=Analyze_column_values_to_use
+        ):
 
             # load a measurement for the animal
             view_obj.load_measurement_data_from_current_animal(measu)
@@ -67,5 +70,3 @@ if __name__ == '__main__':
 
     # backup this script and the yml file used next to the created GDMs
     view_obj.backup_script_flags_configs_for_movies(files=[__file__, ymlfile])
-    
-

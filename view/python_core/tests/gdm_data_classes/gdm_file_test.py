@@ -95,6 +95,7 @@ def test_groupby_function():
         grouping_column_sets,
         grouping_inds_expected_sets,
         group_gdm_file_sizes_expected_sets,
+        strict=True,
     ):
         for serial_ind, (grouping_inds, group_gdm_file) in enumerate(
             gdm_file1.groupby(grouping_cols)

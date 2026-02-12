@@ -7,8 +7,10 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from .file_selector_combobox import get_file_selector_combobox_using_settings
-from .main_function_widgets import MainFunctionAbstract
+from view.gui.file_selector_combobox import (
+    get_file_selector_combobox_using_settings,
+)
+from view.gui.main_function_widgets import MainFunctionAbstract
 
 
 class LogLoadWidget(QWidget):

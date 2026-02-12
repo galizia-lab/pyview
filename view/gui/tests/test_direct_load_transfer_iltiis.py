@@ -46,9 +46,7 @@ def test_direct_load_interaction(main_container_widget, qtbot):
     # Assert that the loader_object is an instance of SampleData666LoaderWidget
     assert isinstance(
         direct_loader.loader_object, SampleData666LoaderWidget
-    ), (
-        f"Expected loader_object to be an instance of SampleData666LoaderWidget, but got {type(direct_loader.loader_object)}."
-    )
+    ), f"Expected loader_object to be an instance of SampleData666LoaderWidget, but got {type(direct_loader.loader_object)}."
 
     # Simulate user click on the load button
     load_button = direct_loader.findChild(
@@ -58,12 +56,12 @@ def test_direct_load_interaction(main_container_widget, qtbot):
 
     data_labels = data_manager.get_all_internal_labels()
 
-    assert len(data_labels) == 1, (
-        "No entry found in data manager after direct load with 665"
-    )
-    assert data_labels[0] == "Fake", (
-        "Data label wrong after direct data load with 665"
-    )
+    assert (
+        len(data_labels) == 1
+    ), "No entry found in data manager after direct load with 665"
+    assert (
+        data_labels[0] == "Fake"
+    ), "Data label wrong after direct data load with 665"
 
     for function_name in ["generate_overview"]:
         assert central_widget.main_function_widgets[
@@ -74,9 +72,9 @@ def test_direct_load_interaction(main_container_widget, qtbot):
         button_name,
         button_widget,
     ) in central_widget.misc_function_buttons.items():
-        assert button_widget.isEnabled(), (
-            f"Misc. function button '{button_name}' not enabled."
-        )
+        assert (
+            button_widget.isEnabled()
+        ), f"Misc. function button '{button_name}' not enabled."
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -91,12 +89,12 @@ def test_direct_load_interaction(main_container_widget, qtbot):
 
     iltis_data_labels = data_selector.get_current_labels()
 
-    assert len(iltis_data_labels) == 1, (
-        "No entry found in data manager of ILTIS after direct load with 665 and transfer to ILTIS"
-    )
-    assert data_labels[0] == "Fake", (
-        "Data label wrong in ILTIS after direct data load with 665 and transfer to ILTIS"
-    )
+    assert (
+        len(iltis_data_labels) == 1
+    ), "No entry found in data manager of ILTIS after direct load with 665 and transfer to ILTIS"
+    assert (
+        data_labels[0] == "Fake"
+    ), "Data label wrong in ILTIS after direct data load with 665 and transfer to ILTIS"
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
+import pprint
+
 from view.gui.application_settings import initialize_app_settings
 from view.gui.flags_search import get_flags_index, query
 from view.python_core.flags import FlagsManager
-import pprint
 
 
 def test_index_creation():

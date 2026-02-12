@@ -11,7 +11,6 @@ from qtpy.QtWidgets import QPushButton
 
 from view.gui.tests.test_list_loading import load_data_yml_list
 from view.napari_pyview.main_pyview_widget_napari import NapariPyViewWidget
-from view.napari_pyview.tests.fixtures import napari_main_widget
 from view.napari_pyview.tests.test_napari_direct_load_transfer_iltis import (
     check_transfer_data_napari_plugin_iltis,
 )
@@ -54,9 +53,9 @@ def test_napari_list_load_transfer_iltis(
     ]
     napari_buttons = napari_functions_widget.findChildren(QPushButton)
     for button in napari_buttons:
-        assert button.isEnabled(), (
-            f"Napari button '{button.text()}' not enabled."
-        )
+        assert (
+            button.isEnabled()
+        ), f"Napari button '{button.text()}' not enabled."
 
     # Call the helper function to verify and transfer of data to ILTIS
     check_transfer_data_napari_plugin_iltis(napari_main_widget, qtbot)
@@ -65,19 +64,21 @@ def test_napari_list_load_transfer_iltis(
     iltis_window = napari_main_widget.iltis_window
 
     # Get data labels from ILTIS
-    data_selector = iltis_window.iltis_main_shell.MainWindow.Front_Control_Panel.Data_Selector
+    data_selector = (
+        iltis_window.iltis_main_shell.MainWindow.Front_Control_Panel.Data_Selector
+    )
     iltis_data_labels = data_selector.get_current_labels()
 
-    assert len(iltis_data_labels) == len(measurement_rows_to_select), (
-        f"Expected {len(measurement_rows_to_select)} entries in ILTIS data manager, but got {len(iltis_data_labels)}"
-    )
+    assert len(iltis_data_labels) == len(
+        measurement_rows_to_select
+    ), f"Expected {len(measurement_rows_to_select)} entries in ILTIS data manager, but got {len(iltis_data_labels)}"
 
     # Check that the data labels in ILTIS match the expected labels
     data_labels = napari_main_widget.data_manager.get_all_internal_labels()
     for label in data_labels:
-        assert label in iltis_data_labels, (
-            f"Data label '{label}' not found in ILTIS data manager"
-        )
+        assert (
+            label in iltis_data_labels
+        ), f"Data label '{label}' not found in ILTIS data manager"
 
 
 if __name__ == "__main__":

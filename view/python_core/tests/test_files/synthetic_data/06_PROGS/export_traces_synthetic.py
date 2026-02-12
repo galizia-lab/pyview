@@ -1,12 +1,13 @@
-import view
 import logging
 import pathlib as pl
+
+import view
 
 # this tells view all settings including the folder structure of your project
 # On Windows, if you copy paths from the file explorer, make sure the string below is always of the form r"......"
 from view.python_core.gdm_generation.gdm_data_classes import GDMFile
 
-#mother of all folders
+# mother of all folders
 moaf = pl.Path(__file__).parents[1]
 
 # this tells view all settings including the folder structure of your project
@@ -25,15 +26,14 @@ flags_to_update = {
 
 # list of animals for which traces are to be exported
 animals = [
-    "Synthetic_data_strip"#,
-    #""
+    "Synthetic_data_strip"  # ,
+    # ""
 ]
 
-Analyze_column_values_to_use = (-1,1)
+Analyze_column_values_to_use = (-1, 1)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # create a view object
     view_obj = view.VIEW()
 
@@ -45,7 +45,6 @@ if __name__ == '__main__':
 
     # iterate over animals
     for animal in animals:
-
         # initialize view object with animal
         view_obj.initialize_animal(animal=animal)
 
@@ -56,8 +55,9 @@ if __name__ == '__main__':
         gdm_file = GDMFile()
 
         # iterate over measurements of the animal
-        for measu in view_obj.get_measus_for_current_animal(analyze_values_to_use=Analyze_column_values_to_use):
-
+        for measu in view_obj.get_measus_for_current_animal(
+            analyze_values_to_use=Analyze_column_values_to_use
+        ):
             # load a measurement for the animal
             view_obj.load_measurement_data_from_current_animal(measu)
 
@@ -65,11 +65,12 @@ if __name__ == '__main__':
             view_obj.calculate_signals()
 
             # create glodatamix for the loaded measurement
-            gdm_file_this_measu, _ = view_obj.get_gdm_file_for_current_measurement(roi_data_dict)
+            gdm_file_this_measu, _ = (
+                view_obj.get_gdm_file_for_current_measurement(roi_data_dict)
+            )
 
             # accumulate
             gdm_file.append_from_a_gdm_file(gdm_file_this_measu)
-
 
         # compose output file name and create parent directory if needed
         output_file = view_obj.flags.get_gloDatamix_file_for_current_animal()
@@ -77,7 +78,11 @@ if __name__ == '__main__':
 
         # save gloDatamix file
         gdm_file.write_to_csv(output_file)
-        logging.getLogger("VIEW").info(f"Wrote gloDatamix to {output_file}")
+        logging.getLogger("VIEW").info(
+            "Wrote gloDatamix", extra={"output_file": output_file}
+        )
 
         # backup this script and the yml file used next to the created GDMs
-        view_obj.backup_script_flags_configs_for_GDMs(files=[__file__, ymlfile])
+        view_obj.backup_script_flags_configs_for_GDMs(
+            files=[__file__, ymlfile]
+        )

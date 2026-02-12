@@ -1,10 +1,12 @@
-import pandas as pd
-import numpy as np
-from view.python_core.utils.pil_helpers import add_string
 import logging
 
+import numpy as np
+import pandas as pd
 
-class DisplayTimeFormatterFull(object):
+from view.python_core.utils.pil_helpers import add_string
+
+
+class DisplayTimeFormatterFull:
 
     def __init__(self, frame_time):
 
@@ -41,7 +43,7 @@ class DisplayTimeWithoutMS(DisplayTimeFormatterFull):
         return f"{self.prefix}{self.minutes_string}{self.seconds:2.0f} s"
 
 
-class TimeStringAdderBlank(object):
+class TimeStringAdderBlank:
 
     def __init__(self):
 
@@ -54,8 +56,16 @@ class TimeStringAdderBlank(object):
 
 class TimeStringAdder(TimeStringAdderBlank):
 
-    def __init__(self, time_formatter, mv_ygap, right_xgap,
-                 color_for_pil, pulsed_stimuli_handler, font_file, font_size):
+    def __init__(
+        self,
+        time_formatter,
+        mv_ygap,
+        right_xgap,
+        color_for_pil,
+        pulsed_stimuli_handler,
+        font_file,
+        font_size,
+    ):
 
         super().__init__()
         self.time_formatter = time_formatter
@@ -67,27 +77,48 @@ class TimeStringAdder(TimeStringAdderBlank):
             self.offset = -stim_pulse_start_times.min()
         else:
             self.offset = pd.Timedelta(0)
-            logging.getLogger("VIEW").info("Since no stimulii were specified, first frame of the movie will have a display time of 0")
+            logging.getLogger("VIEW").info(
+                "Since no stimulii were specified, first frame of the movie will have a display time of 0"
+            )
         self.font_file = font_file
         self.font_size = font_size
 
     def add(self, pil_image, frame_time):
 
-        time_y_pos = pil_image.height - self.mv_ygap + int(0.1 * self.font_size)
+        time_y_pos = (
+            pil_image.height - self.mv_ygap + int(0.1 * self.font_size)
+        )
 
         frame_time_to_show = frame_time + self.offset
 
         frame_time_string = self.time_formatter(frame_time_to_show).format()
 
-        pil_image = add_string(pil_image, text=frame_time_string,
-                               position=(pil_image.width - self.right_xgap, time_y_pos + int(0.25 * self.font_size)),
-                               font_size=self.font_size, fill_color_for_pil=self.color_for_pil,
-                               horizontal_alignment="right", vertical_alignment="top", font_file=self.font_file)
+        pil_image = add_string(
+            pil_image,
+            text=frame_time_string,
+            position=(
+                pil_image.width - self.right_xgap,
+                time_y_pos + int(0.25 * self.font_size),
+            ),
+            font_size=self.font_size,
+            fill_color_for_pil=self.color_for_pil,
+            horizontal_alignment="right",
+            vertical_alignment="top",
+            font_file=self.font_file,
+        )
         return pil_image
 
 
-def get_time_string_adder(mv_display_time, mv_suppress_ms, right_xgap, mv_ygap, color_for_pil,
-                          pulsed_stimuli_handler, font_file, font_size):
+def get_time_string_adder(
+    mv_display_time,
+    mv_suppress_ms,
+    right_xgap,
+    mv_ygap,
+    color_for_pil,
+    pulsed_stimuli_handler,
+    font_file,
+    font_size,
+):
 
     if mv_suppress_ms:
         time_formatter = DisplayTimeWithoutMS
@@ -96,18 +127,15 @@ def get_time_string_adder(mv_display_time, mv_suppress_ms, right_xgap, mv_ygap, 
 
     if mv_display_time > 0:
         return TimeStringAdder(
-            mv_ygap=mv_ygap, time_formatter=time_formatter,
+            mv_ygap=mv_ygap,
+            time_formatter=time_formatter,
             right_xgap=right_xgap,
             color_for_pil=color_for_pil,
-            pulsed_stimuli_handler=pulsed_stimuli_handler, font_file=font_file,
-            font_size=font_size)
+            pulsed_stimuli_handler=pulsed_stimuli_handler,
+            font_file=font_file,
+            font_size=font_size,
+        )
 
     else:
 
         return TimeStringAdderBlank()
-
-
-
-
-
-

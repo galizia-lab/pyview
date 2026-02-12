@@ -11,7 +11,7 @@ import qtpy.compat
 import yaml
 from matplotlib import pyplot as plt
 from PyQt5.QtWidgets import QScrollArea
-from qtpy.QtCore import QObject, QSettings, QUrl, Signal, Slot
+from qtpy.QtCore import QObject, QUrl, Signal, Slot
 from qtpy.QtGui import QDesktopServices
 from qtpy.QtWidgets import (
     QGroupBox,
@@ -23,6 +23,23 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from view.gui.application_settings import get_view_qsettings_manager
+from view.gui.data_manager import DataManager
+from view.gui.direct_load import DirectDataLoader
+from view.gui.flags_box import FlagsMainWidget
+from view.gui.gdm_visualization import GDMViz
+from view.gui.ILTIS_transfer_dialog import ILTISTransferDialog
+from view.gui.load_measurement import (
+    LoadMeasurementsFromListWindow,
+    LoadMeasurementsFromVWSLogWindow,
+)
+from view.gui.loader_widgets import ListLoadWidget, LogLoadWidget
+from view.gui.logger import LoggerGroupBox
+from view.gui.main_function_widgets import (
+    MainFunctionAbstract,
+    OverviewGenWidget,
+)
+from view.gui.setup_calcmethod_choice import SetupChoice
 from view.idl_translation_core.ViewOverview import ExportMovie
 from view.python_core.flags import FlagsManager
 from view.python_core.foto import get_foto1_data, show_photo
@@ -32,22 +49,6 @@ from view.python_core.misc import get_system_temp_dir
 from view.python_core.movies import export_movie
 from view.python_core.overviews import pop_show_overview
 from view.python_core.p1_class import get_p1
-
-from .application_settings import get_view_qsettings_manager
-from .data_manager import DataManager
-from .direct_load import DirectDataLoader
-from .file_selector_combobox import get_file_selector_combobox_using_settings
-from .flags_box import FlagsDisplayChoiceTabs, FlagsMainWidget
-from .gdm_visualization import GDMViz
-from .ILTIS_transfer_dialog import ILTISTransferDialog
-from .load_measurement import (
-    LoadMeasurementsFromListWindow,
-    LoadMeasurementsFromVWSLogWindow,
-)
-from .loader_widgets import ListLoadWidget, LogLoadWidget
-from .logger import LoggerGroupBox
-from .main_function_widgets import MainFunctionAbstract, OverviewGenWidget
-from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
@@ -269,7 +270,7 @@ class CentralWidget(QWidget):
         self.flags_widget = FlagsMainWidget(parent=self, flags=self.flags)
 
         for (
-            subgroup_name,
+            _subgroup_name,
             subgroup_page,
         ) in self.flags_widget.flag_display_choice.subgroup_pages.items():
             subgroup_page.return_flag_signal.connect(
@@ -486,7 +487,7 @@ class CentralWidget(QWidget):
                 )
             )
             if len(stimulus_frames):
-                stim_onset, stim_offset = zip(*stimulus_frames)
+                stim_onset, stim_offset = zip(*stimulus_frames, strict=True)
             else:
                 stim_onset = stim_offset = ()
             # ILTIS needs only one set of stim_onset and stim_offset, irrespective of the number of
@@ -662,7 +663,7 @@ class CentralWidget(QWidget):
 
     def _update_functions_flags(self, flags):
 
-        for function_name, box in self.main_function_widgets.items():
+        for _function_name, box in self.main_function_widgets.items():
             if hasattr(box, "update_flag_defaults"):
                 box.update_flag_defaults(flags)
 
@@ -673,12 +674,11 @@ class CentralWidget(QWidget):
 
         try:
             yml_flags = read_check_yml_file(yml_filename, dict)
-        except (yaml.YAMLError, AssertionError) as e:
+        except (yaml.YAMLError, AssertionError):
             QMessageBox.critical(
                 self,
-                f"Error parsing YML file!",
-                f"An error was encountered while parsing {yml_filename}. "
-                f"Please check its validity.",
+                "Error parsing YML file!",
+                f"An error was encountered while parsing {yml_filename}. Please check its validity.",
             )
             return 0
 
@@ -755,7 +755,7 @@ class CentralWidget(QWidget):
             self.flags.write_flags_to_yml(filename)
             self.write_status(f"[success] Writing flags to {filename}")
             return
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"{str(e)}\n\n{traceback.format_exc()}"
             self.log_error(msg)
 
@@ -792,9 +792,9 @@ class CentralWidget(QWidget):
                 main_functions=["generate_overview"],
                 misc_functions=self.misc_function_buttons.keys(),
             )
-            self.write_status(f"[success] Finalizing loading data...")
+            self.write_status("[success] Finalizing loading data...")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"{str(e)}\n\n{traceback.format_exc()}"
             self.log_error(msg)
 
@@ -859,7 +859,7 @@ class CentralWidget(QWidget):
                     if not pl.Path(self.flags[flag]).is_dir():
                         temp_dir.mkdir(exist_ok=True)
                         flags_to_update[flag] = str(temp_dir)
-                except KeyError as ke:
+                except KeyError:
                     temp_dir.mkdir(exist_ok=True)
                     flags_to_update[flag] = str(temp_dir)
 
@@ -890,7 +890,7 @@ class CentralWidget(QWidget):
                 QMessageBox.critical(
                     self, "Problem getting measurement metadata", str(ase)
                 )
-                self.write_status(f"Problem getting measurement metadata")
+                self.write_status("Problem getting measurement metadata")
                 self.write_status(
                     f"[failure] Loading meta data for measu={measu} from {lst_or_log_filepath}."
                 )
@@ -913,8 +913,7 @@ class CentralWidget(QWidget):
             )
 
             self.write_status(
-                f"[working] Loading raw data for measu={measu} from {lst_or_log_filepath} with "
-                f"LE_loadExp={self.flags['LE_loadExp']}."
+                f"[working] Loading raw data for measu={measu} from {lst_or_log_filepath} with LE_loadExp={self.flags['LE_loadExp']}."
             )
 
             try:
@@ -931,20 +930,17 @@ class CentralWidget(QWidget):
                 return
 
             self.write_status(
-                f"[success] Loading raw data for measu={measu} from {lst_or_log_filepath} with "
-                f"LE_loadExp={self.flags['LE_loadExp']}."
+                f"[success] Loading raw data for measu={measu} from {lst_or_log_filepath} with LE_loadExp={self.flags['LE_loadExp']}."
             )
 
             self.write_status(
-                f"[working] Calculating signal for measu={measu} from {lst_or_log_filepath} with "
-                f"LE_CalcMethod={self.flags['LE_CalcMethod']}."
+                f"[working] Calculating signal for measu={measu} from {lst_or_log_filepath} with LE_CalcMethod={self.flags['LE_CalcMethod']}."
             )
 
             p1.calculate_signals(self.flags)
 
             self.write_status(
-                f"[success] Calculating signal for measu={measu} from {lst_or_log_filepath} with "
-                f"LE_CalcMethod={self.flags['LE_CalcMethod']}."
+                f"[success] Calculating signal for measu={measu} from {lst_or_log_filepath} with LE_CalcMethod={self.flags['LE_CalcMethod']}."
             )
 
             label = self.flags.get_measurement_label(
@@ -980,13 +976,12 @@ class CentralWidget(QWidget):
             QMessageBox.critical(
                 self,
                 "Measu not found!",
-                f"Measu={measu_user_input} is not present in the current measurement list file"
-                f"{self.measurement_list.last_measurement_list_fle}",
+                f"Measu={measu_user_input} is not present in the current measurement list file{self.measurement_list.last_measurement_list_fle}",
             )
         try:
             self.load_lst_data(self.measurement_list, [measu_user_input])
             return
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"{str(e)}\n\n{traceback.format_exc()}"
             self.log_error(msg)
 
@@ -1022,13 +1017,13 @@ class CentralWidget(QWidget):
             self.write_status(
                 "Waiting for selection of measurement from 'Load Measurement' window"
             )
-        except ValueError as ve:
+        except ValueError:
             QMessageBox.critical(
                 self,
                 "Error finding list",
                 "Please load from a new list file first!",
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"{str(e)}\n\n{traceback.format_exc()}"
             self.log_error(msg)
 
@@ -1065,13 +1060,13 @@ class CentralWidget(QWidget):
             self.write_status(
                 "Waiting for selection of measurement from 'Load Measurement' window"
             )
-        except ValueError as ve:
+        except ValueError:
             QMessageBox.critical(
                 self,
                 "Error finding vws log file",
                 "Please load from a new vws log file first!",
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             msg = f"{str(e)}\n\n{traceback.format_exc()}"
             self.log_error(msg)
 
@@ -1117,7 +1112,7 @@ class CentralWidget(QWidget):
                 )
                 self.write_status("[success] Generating overview")
                 return
-            except NotImplementedError as nie:
+            except NotImplementedError:
                 QMessageBox.critical(
                     self,
                     "Not implemented Error",
@@ -1125,7 +1120,7 @@ class CentralWidget(QWidget):
                     f"\n------\nHere is the full error message:\n{traceback.format_exc()}",
                 )
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 QMessageBox.critical(
                     self,
                     f"VIEW encountered a {type(e).__name__}",
@@ -1180,15 +1175,15 @@ class CentralWidget(QWidget):
                 f"[success] Save movie with new method to {str(op_name_with_extension)}"
             )
             return
-        except Exception as e:
+        except Exception:  # noqa: BLE001
             exception_formatted = traceback.format_exception(*sys.exc_info())
             QMessageBox.critical(
                 self,
-                f"VIEW encountered an error!",
+                "VIEW encountered an error!",
                 "".join(exception_formatted),
             )
 
-        self.write_status(f"[failure] Save movie with new method")
+        self.write_status("[failure] Save movie with new method")
 
     def show_foto1(self):
 
@@ -1200,7 +1195,7 @@ class CentralWidget(QWidget):
             show_photo(foto1_data)
             self.write_status("[success] Show foto1")
             return
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             QMessageBox.critical(
                 self,
                 f"VIEW encountered a {type(e).__name__}",
@@ -1221,7 +1216,7 @@ class CentralWidget(QWidget):
                 "[success] Initializing GDM visualization window"
             )
             return
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             QMessageBox.critical(
                 self,
                 f"VIEW encountered a {type(e).__name__}",

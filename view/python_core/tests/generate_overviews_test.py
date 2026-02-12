@@ -7,7 +7,7 @@ from view import VIEW
 from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
-class OverviewsGenerator(object):
+class OverviewsGenerator:
     def __init__(self):
         self.test_yml, self.test_animal, self.test_measu = (
             initialize_test_yml_list_measurement()
@@ -266,8 +266,7 @@ def test_thresholdShowImage():
                     "SO_individualScale": 3,
                     "SO_indiScale3factor": 0.25,
                 },
-                f"SO_thresholdOn_foto1_val_-1000_Image_"
-                f"{threshold_show_image}_scale_{threshold_scale}",
+                f"SO_thresholdOn_foto1_val_-1000_Image_{threshold_show_image}_scale_{threshold_scale}",
             )
 
 

@@ -1,6 +1,8 @@
-from view.napari_pyview import NapariPyViewWidget
 import sys
+
 from qtpy.QtWidgets import QApplication
+
+from view.napari_pyview import NapariPyViewWidget
 
 
 def main():
@@ -13,5 +15,5 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

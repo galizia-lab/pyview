@@ -7,7 +7,7 @@ from view.python_core.gdm_generation.gdm_data_classes import GDMFile
 from view.python_core.tests.common import initialize_test_yml_list_measurement
 
 
-class TraceExporter(object):
+class TraceExporter:
     def __init__(self):
 
         super().__init__()
@@ -86,7 +86,7 @@ def test_export_traces_rois():
 
             exporter.load_and_export(
                 flags_to_update={"RM_ROITrace": 3},
-                file_suffix=f"_from_roi{fle.stem.lstrip('FakeData')}",
+                file_suffix=f"_from_roi{fle.stem.removeprefix('FakeData')}",
                 flags_suffix="_defaults",
             )
 
@@ -115,7 +115,7 @@ def test_export_traces_different_ctvs():
     for ctv in get_all_available_ctvs():
         exporter.load_and_export(
             flags_to_update={"RM_ROITrace": 3, "CTV_Method": ctv},
-            file_suffix=f"_from_roi",
+            file_suffix="_from_roi",
             flags_suffix=f"_ctv{ctv}",
         )
 

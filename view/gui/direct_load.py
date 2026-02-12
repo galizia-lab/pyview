@@ -7,10 +7,11 @@ from abc import abstractmethod
 from qtpy.QtCore import QObject, Signal, Slot
 from qtpy.QtWidgets import QMessageBox, QPushButton, QVBoxLayout, QWidget
 
+from view.gui.file_selector_combobox import (
+    get_file_selector_combobox_using_settings,
+)
 from view.python_core.flags import FlagsManager
-
-from ..python_core.p1_class import Default_P1_Getter, get_empty_p1
-from .file_selector_combobox import get_file_selector_combobox_using_settings
+from view.python_core.p1_class import Default_P1_Getter, get_empty_p1
 
 
 # modified version of solution from https://stackoverflow.com/questions/9374063/remove-all-items-from-a-layout
@@ -33,7 +34,7 @@ class DirectDataLoader(QWidget):
     def __init__(self, parent, default_LE_loadExp=3):
 
         super().__init__(parent=parent)
-        vbox = QVBoxLayout(self)
+        self.vbox = QVBoxLayout(self)
         self.refresh_layout(default_LE_loadExp)
 
     @Slot(int)
@@ -122,9 +123,7 @@ def get_a_tiff_combobox(parent):
         parent=parent,
         groupbox_title="VIEW-tif File(s)",
         use_list_in_settings="raw data files",
-        settings_list_value_filter=lambda x: (
-            x.endswith(".tif") or x.endswith(".tiff")
-        ),
+        settings_list_value_filter=lambda x: x.endswith((".tif", ".tiff")),
         default_directory=None,
         file_type="TIF",
         file_filter="TIF files(*.tif *.tiff)",
@@ -194,14 +193,12 @@ class BaseLoaderWidget(QObject):
         )
         try:
             p1.load_without_metadata(filenames=filenames, flags=flags)
-        except Exception as e:
+        except Exception:  # noqa: BLE001
             exception_formatted = traceback.format_exception(*sys.exc_info())
             QMessageBox.critical(
                 self.parent(),
                 "Error reading file",
-                f"Please check {filenames}.\n\n"
-                f"Complete error message:\n"
-                f"\n{''.join(exception_formatted)}",
+                f"Please check {filenames}.\n\nComplete error message:\n\n{''.join(exception_formatted)}",
             )
             self.write_status(
                 f"[failure] Loading raw data directly from {filenames}"
@@ -355,7 +352,7 @@ class ZeissSingleLoaderWidget(BaseLoaderWidget):
 
 
 def get_loader_interface_class(LE_loadExp):
-    if type(LE_loadExp) != int:
+    if not isinstance(LE_loadExp, int):
         LE_loadExp = int(LE_loadExp)  # in case this was a string
 
     if LE_loadExp == 3:
@@ -368,9 +365,7 @@ def get_loader_interface_class(LE_loadExp):
         return LifSingleLoaderWidget
     elif LE_loadExp == 32:
         return IngaSingleLoaderWidget
-    elif LE_loadExp == 33:
-        return VIEWTIFFLoaderWidget
-    elif LE_loadExp == 35:
+    elif LE_loadExp == 33 or LE_loadExp == 35:
         return VIEWTIFFLoaderWidget
     elif LE_loadExp in (665, 667, 676):
         return SampleData666LoaderWidget

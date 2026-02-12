@@ -12,13 +12,14 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from view.gui.custom_widgets import QTableWidgetPandasDF
+from view.gui.file_selector_combobox import (
+    get_file_selector_combobox_using_settings,
+)
 from view.python_core.measurement_list import (
     MeasurementList,
-    get_importer_class,
 )
-
-from .custom_widgets import QTableWidgetPandasDF
-from .file_selector_combobox import get_file_selector_combobox_using_settings
+from view.python_core.measurement_list.importers import get_importer_class
 
 
 class LoadMeasurementsFromFileWindow(QMainWindow):
@@ -123,7 +124,7 @@ class LoadMeasurementsFromFileWindow(QMainWindow):
             raise ValueError(
                 "Something went wrong in loading data. Could not find the column 'Measu' in "
                 "measurement selection table"
-            )
+            ) from ve
 
         if row_selection_model.hasSelection():
             selected_measus_widget_items = [
@@ -179,12 +180,12 @@ def measurement_filter(s):
 
     # exclude blocks with less than two frames or no calibration
     atleast_two_frames = False
-    if type(s["Timing_ms"]) is str:
-        if (
-            len(s["Timing_ms"].split(" ")) >= 2
-            and s["Timing_ms"].find("(No calibration available)") < 0
-        ):
-            atleast_two_frames = True
+    if (
+        isinstance(s["Timing_ms"], str)
+        and (len(s["Timing_ms"].split(" ")) >= 2)
+        and (s["Timing_ms"].find("(No calibration available)") < 0)
+    ):
+        atleast_two_frames = True
 
     return atleast_two_frames
 

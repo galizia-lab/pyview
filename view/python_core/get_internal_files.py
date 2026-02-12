@@ -1,5 +1,4 @@
 import importlib
-import pathlib as pl
 from collections import OrderedDict
 
 import pandas as pd
@@ -92,7 +91,7 @@ def get_setup_description_dict():
 
     setup_info_dict = OrderedDict()
 
-    for ind, (LE_loadExp, description) in setup_info_df.iterrows():
+    for _ind, (LE_loadExp, description) in setup_info_df.iterrows():
         setup_info_dict[f"{description} (LE_loadExp={LE_loadExp})"] = (
             LE_loadExp
         )

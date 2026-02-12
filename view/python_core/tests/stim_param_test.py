@@ -1,3 +1,4 @@
+import contextlib
 import pathlib as pl
 import tempfile
 
@@ -20,8 +21,10 @@ def test_valid_stim_params():
     )
 
     ml = MeasurementList.create_from_lst_file(valid_stim_list, LE_loadExp=4)
-    for measu_index, measu in enumerate(ml.get_measus()):
-        p1_metadata, extra_metadata = ml.get_p1_metadata_by_index(measu_index)
+    for measu_index, _measu in enumerate(ml.get_measus()):
+        _p1_metadata, _extra_metadata = ml.get_p1_metadata_by_index(
+            measu_index
+        )
 
 
 def test_invalid_stim_params():
@@ -37,13 +40,9 @@ def test_invalid_stim_params():
     )
 
     ml = MeasurementList.create_from_lst_file(invalid_stim_list, LE_loadExp=4)
-    for measu_index, measu in enumerate(ml.get_measus()):
-        try:
-            p1_metadata, extra_metadata = ml.get_p1_metadata_by_measu(measu)
-        except ValueError as e:
-            pass
-        except AssertionError as e:
-            pass
+    for _measu_index, measu in enumerate(ml.get_measus()):
+        with contextlib.suppress(AssertionError, ValueError):
+            _p1_metadata, _extra_metadata = ml.get_p1_metadata_by_measu(measu)
 
 
 def stim_spec_test_generator():
@@ -82,9 +81,8 @@ def test_importing_measurement_list(xls):
 
     # this works for expected files saved from linux when tested on linux and windows, filecmp.cmp does not.
     # might have something to do line terminators
-    with open(temp_out) as fho:
-        with open(expected_csv) as fhe:
-            assert fho.read() == fhe.read()
+    with open(temp_out) as fho, open(expected_csv) as fhe:
+        assert fho.read() == fhe.read()
 
 
 if __name__ == "__main__":

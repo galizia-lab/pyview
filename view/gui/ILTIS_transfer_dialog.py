@@ -5,9 +5,6 @@ from qtpy.QtWidgets import (
     QDesktopWidget,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
-    QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -15,7 +12,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from .custom_widgets import QTableWidgetPandasDF
+from view.gui.custom_widgets import QTableWidgetPandasDF
 
 
 class ILTISTransferDialog(QMainWindow):

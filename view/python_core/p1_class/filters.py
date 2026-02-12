@@ -1,6 +1,6 @@
-from scipy.ndimage.filters import median_filter, uniform_filter
 import numpy as np
-from scipy.signal import kaiserord, firwin, freqz, lfilter
+from scipy.ndimage.filters import median_filter, uniform_filter
+from scipy.signal import firwin, kaiserord, lfilter
 
 
 def apply_filter(matrix_in: np.ndarray, view_flags, filter_type: str):
@@ -12,7 +12,9 @@ def apply_filter(matrix_in: np.ndarray, view_flags, filter_type: str):
         func = uniform_filter
         interpretation_func = view_flags.interpret_mean_filter_params
     else:
-        raise NotImplementedError(f"Filter type can be either 'median' or 'mean', got {filter_type}")
+        raise NotImplementedError(
+            f"Filter type can be either 'median' or 'mean', got {filter_type}"
+        )
 
     size_in_space, size_in_time = interpretation_func()
 
@@ -20,7 +22,11 @@ def apply_filter(matrix_in: np.ndarray, view_flags, filter_type: str):
         return matrix_in
 
     if len(matrix_in.shape) == 3:  # assume data format is XYT
-        sizes_along_dimension_of_input = (size_in_space, size_in_space, size_in_time)
+        sizes_along_dimension_of_input = (
+            size_in_space,
+            size_in_space,
+            size_in_time,
+        )
     elif len(matrix_in.shape) == 2:  # assume data format is XY
         sizes_along_dimension_of_input = (size_in_space, size_in_space)
     elif len(matrix_in.shape) == 1:  # assume data is a time trace
@@ -31,7 +37,9 @@ def apply_filter(matrix_in: np.ndarray, view_flags, filter_type: str):
     return func(matrix_in, size=sizes_along_dimension_of_input, mode="nearest")
 
 
-def filter_kaisord_highpass(signal, sampling_rate, cutoff=100, transitionWidth=40, rippleDB=20):
+def filter_kaisord_highpass(
+    signal, sampling_rate, cutoff=100, transitionWidth=40, rippleDB=20
+):
     """
     Applies a digital high pass filter to <signal>.
     :param Sequence signal: sequence of floats representing the signal to be filtered
@@ -47,7 +55,7 @@ def filter_kaisord_highpass(signal, sampling_rate, cutoff=100, transitionWidth=4
 
     N, beta = kaiserord(rippleDB, transitionWidth / nyqFreq)
 
-    tapsLP = firwin(N, cutoff / nyqFreq, window=('kaiser', beta))
+    tapsLP = firwin(N, cutoff / nyqFreq, window=("kaiser", beta))
 
     delay_samples = int((N - 1) * 0.5)
 
@@ -55,12 +63,14 @@ def filter_kaisord_highpass(signal, sampling_rate, cutoff=100, transitionWidth=4
     temp[delay_samples] = 1
     tapsHP = temp - tapsLP
 
-    temp = np.empty((len(signal) + 2 * delay_samples))
+    temp = np.empty(len(signal) + 2 * delay_samples)
     temp[:delay_samples] = signal[0]
-    temp[delay_samples: delay_samples + len(signal)] = signal
+    temp[delay_samples : delay_samples + len(signal)] = signal
     temp[-delay_samples:] = signal[-1]
     temp1 = lfilter(tapsHP, 1.0, temp)
-    signal_filtered = temp1[2 * delay_samples: 2 * delay_samples + len(signal)]
+    signal_filtered = temp1[
+        2 * delay_samples : 2 * delay_samples + len(signal)
+    ]
 
     # ----- code for debugging ----
     # from matplotlib import pyplot as plt

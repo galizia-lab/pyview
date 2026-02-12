@@ -43,7 +43,7 @@ RM_differentViews: false
 RM_separateLayers: 0
 RM_unsharpmask: false
 SO_Method: 10
-SO_individualScale 0
+  SO_individualScale 0
 SO_withinArea: 0
 STG_Datapath: not set yet
 STG_Measu: -1

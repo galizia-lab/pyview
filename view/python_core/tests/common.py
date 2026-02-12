@@ -16,9 +16,7 @@ def get_example_data_root_path():
 
         else:
             raise FileNotFoundError(
-                f"Could not find the following folder, to which VIEW is configured for storing test data."
-                f"\n\n{existing_test_data_path_str}.\n\nPlease download and register test data with VIEW "
-                f"as described in https://github.com/galizia-lab/pyview/wiki/Download-and-register-test-data"
+                f"Could not find the following folder, to which VIEW is configured for storing test data.\n\n{existing_test_data_path_str}.\n\nPlease download and register test data with VIEW as described in https://github.com/galizia-lab/pyview/wiki/Download-and-register-test-data"
             )
 
     else:

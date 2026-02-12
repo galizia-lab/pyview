@@ -84,6 +84,13 @@ napari_pyview = "view.napari_pyview:napari.yaml"
 [tool.black]
 line-length = 79
 target-version = ['py310', 'py311', 'py312', 'py313']
+exclude = '''
+/(?:
+    view/idl_folder_translation
+    | view/idl_translation_core
+    | view/python_core/tests/test_files/pro_tests/grl_A_5803a_expected.yml
+)/
+'''
 
 [tool.ruff]
 line-length = 79
@@ -102,5 +109,10 @@ lint.select = [
 ]
 lint.ignore = [
     "E501", # line too long. let black handle this   
-    "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.                                     ║
+    "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.                                    ║
+]
+exclude = [
+    "view/idl_folder_translation",
+    "view/idl_translation_core",
+    "view/python_core/tests/test_files/pro_tests/grl_A_5803a_expected.yml"
 ]

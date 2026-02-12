@@ -1,5 +1,5 @@
-from qtpy.QtWidgets import QMainWindow, QDesktopWidget, QMessageBox
 from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QDesktopWidget, QMainWindow, QMessageBox
 
 from view.iltis_shell.main_shell import ILTISMainShell
 
@@ -13,7 +13,7 @@ class ILTISWindowNapari(QMainWindow):
         self.iltis_main_shell = ILTISMainShell(self)
         self.setCentralWidget(self.iltis_main_shell.MainWindow)
 
-        self.setWindowTitle('ILTIS in Napari')
+        self.setWindowTitle("ILTIS in Napari")
         self.setGeometry(200, 400, 600, 800)
 
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -30,10 +30,10 @@ class ILTISWindowNapari(QMainWindow):
 
         reply = QMessageBox.critical(
             self,
-            f"Are you sure to quit?",
+            "Are you sure to quit?",
             "NOTE: this will also clear all data in ILTIS",
-            QMessageBox.Yes |
-            QMessageBox.No, QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         )
 
         if reply == QMessageBox.Yes:

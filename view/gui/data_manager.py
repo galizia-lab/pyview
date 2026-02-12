@@ -1,19 +1,24 @@
-from view.gui.custom_widgets import QTableWidgetPandasDFDeletable
-from qtpy.QtWidgets import QAbstractItemView, QHeaderView, QLineEdit, QWidget
-from qtpy.QtCore import Slot, QObject, Signal
 import pandas as pd
+from qtpy.QtCore import QObject, Signal, Slot
+from qtpy.QtWidgets import QAbstractItemView, QHeaderView, QLineEdit, QWidget
+
+from view.gui.custom_widgets import QTableWidgetPandasDFDeletable
 from view.python_core.utils.deduplicator import dedupilicate
-from collections import OrderedDict
-import copy
 
 
 class DataManager(QObject):
 
     remove_data_signal = Signal(str, name="remove data signal")
 
-    def __init__(self, parent: QWidget, flag_values_to_use: dict,
-                 p1_values_to_use: dict, label_joiner: str,
-                 default_label_cols: list, precedence_order: list):
+    def __init__(
+        self,
+        parent: QWidget,
+        flag_values_to_use: dict,
+        p1_values_to_use: dict,
+        label_joiner: str,
+        default_label_cols: list,
+        precedence_order: list,
+    ):
         """
         The columns for gui-table are composed as follows: The column for the user-editable data label, followed by
         those defined in <p1_values_to_use>, followed by those defined in <flag_values_to_use>.
@@ -37,17 +42,22 @@ class DataManager(QObject):
         self.ui_table = None
         self.flag_values_to_use = flag_values_to_use
         self.p1_values_to_use = p1_values_to_use
-        column_headers = \
-            [self.label_col_name] + \
-            self.reorder_column_names(
-                list(self.flag_values_to_use.keys()) + list(self.p1_values_to_use.keys()), precedence_order)
+        column_headers = [self.label_col_name] + self.reorder_column_names(
+            list(self.flag_values_to_use.keys())
+            + list(self.p1_values_to_use.keys()),
+            precedence_order,
+        )
         self.init_ui(parent, column_headers)
         self.df = pd.DataFrame(columns=column_headers[1:])
 
     def reorder_column_names(self, column_names: list, precedence_order: list):
 
-        precedence_order2retain = [x for x in precedence_order if x in column_names]
-        other_col_names = [x for x in column_names if x not in precedence_order]
+        precedence_order2retain = [
+            x for x in precedence_order if x in column_names
+        ]
+        other_col_names = [
+            x for x in column_names if x not in precedence_order
+        ]
 
         return precedence_order2retain + other_col_names
 
@@ -56,7 +66,9 @@ class DataManager(QObject):
         self.ui_table = QTableWidgetPandasDFDeletable(parent=parent)
         self.ui_table.setColumnCount(len(horizontal_headers))
         self.ui_table.setHorizontalHeaderLabels(horizontal_headers)
-        self.ui_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
         self.ui_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ui_table.remove_data_signal.connect(self.row_deleted)
@@ -70,7 +82,7 @@ class DataManager(QObject):
 
     def add_data(self, flags, p1, label_suggestion):
 
-        row = pd.Series(dtype='float64')
+        row = pd.Series(dtype="float64")
 
         for k, v in self.p1_values_to_use.items():
             row[k] = str(v(p1))
@@ -78,11 +90,14 @@ class DataManager(QObject):
         for k, v in self.flag_values_to_use.items():
             row[k] = str(flags[v])
 
-        label = dedupilicate(value=label_suggestion, existing_values=self.get_all_internal_labels())
+        label = dedupilicate(
+            value=label_suggestion,
+            existing_values=self.get_all_internal_labels(),
+        )
         self.ui_table.add_row(row)
 
         row.name = label
-        #self.df = self.df.append(row) - since this is append of a series, the concat translation is with to_frame.T
+        # self.df = self.df.append(row) - since this is append of a series, the concat translation is with to_frame.T
         self.df = pd.concat([self.df, row.to_frame().T])
 
         le = QLineEdit(label)
@@ -95,7 +110,9 @@ class DataManager(QObject):
 
     def get_selected_data_label(self):
 
-        return self.df.index.values[self.ui_table.selectionModel().selectedRows()[0].row()]
+        return self.df.index.values[
+            self.ui_table.selectionModel().selectedRows()[0].row()
+        ]
 
     def get_all_internal_labels(self):
 
@@ -108,12 +125,3 @@ class DataManager(QObject):
         del self.label_line_edits[label_of_data_to_delete]
         self.df.drop(index=label_of_data_to_delete, inplace=True)
         self.remove_data_signal.emit(label_of_data_to_delete)
-
-
-
-
-
-
-
-
-

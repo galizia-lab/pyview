@@ -1,6 +1,5 @@
 import pathlib as pl
-from collections.abc import Callable
-from typing import Sequence
+from collections.abc import Callable, Sequence
 
 import pandas as pd
 import pytest

@@ -1,23 +1,21 @@
-import pandas as pd
-from moviepy.editor import ImageSequenceClip
-import multiprocessing
 import logging
+import multiprocessing
 import pathlib as pl
+
 import numpy as np
+import pandas as pd
 import tifffile
+from moviepy.editor import ImageSequenceClip
 
 
 def get_extension_from_codec(codec):
 
-    codec_map = {"libx264": ".mp4",
-                 "ayuv": ".avi"
-                 }
+    codec_map = {"libx264": ".mp4", "ayuv": ".avi"}
 
     return codec_map[codec]
 
 
-class MovieWriter(object):
-
+class MovieWriter:
     def __init__(self, flags):
 
         super().__init__()
@@ -33,15 +31,18 @@ class MovieWriter(object):
         data_numpy_list_for_moviepy = []
 
         for frame_data_numpy in data_numpy_list:
-
             # need to swap axes as our axis order is XY and moviepy expects YX
             frame_data_numpy_swapped = frame_data_numpy.swapaxes(0, 1)
 
             # need to convert it to 8 bit from float
-            frame_data_numpy_swapped_uint8 = np.array(frame_data_numpy_swapped * 255, dtype=np.uint8)
+            frame_data_numpy_swapped_uint8 = np.array(
+                frame_data_numpy_swapped * 255, dtype=np.uint8
+            )
 
             # flip Y since origin in moviepy is top left
-            frame_data_for_clip = np.flip(frame_data_numpy_swapped_uint8, axis=0)
+            frame_data_for_clip = np.flip(
+                frame_data_numpy_swapped_uint8, axis=0
+            )
 
             data_numpy_list_for_moviepy.append(frame_data_for_clip)
 
@@ -49,22 +50,28 @@ class MovieWriter(object):
 
         return clip
 
-    def write(self, data_numpy_list, data_sampling_period, full_filename_without_extension):
+    def write(
+        self,
+        data_numpy_list,
+        data_sampling_period,
+        full_filename_without_extension,
+    ):
 
         if data_sampling_period == pd.Timedelta(0):
-
-            raise ValueError("Error saving movie! The inter frame period was either not specified or set to 0, "
-                             "the frame-per-second value for movie output could therefore not be calculated.\n"
-                             "Tip: You can save the movie as a TIFF-Stack by setting the flags 'mv_exportFormat' in "
-                             "the tab 'movie' to 'stack_tif' and view the resulting TIFF-Stack in ImageJ")
+            raise ValueError(
+                "Error saving movie! The inter frame period was either not specified or set to 0, "
+                "the frame-per-second value for movie output could therefore not be calculated.\n"
+                "Tip: You can save the movie as a TIFF-Stack by setting the flags 'mv_exportFormat' in "
+                "the tab 'movie' to 'stack_tif' and view the resulting TIFF-Stack in ImageJ"
+            )
 
         clip = self.get_clip(data_numpy_list, data_sampling_period)
 
         out_name = f"{full_filename_without_extension}{get_extension_from_codec(self.codec)}"
 
-        ffmpeg_params = []
-        if self.codec == "libx264":
-            ffmpeg_params = ["-crf", '1']
+        # ffmpeg_params = []
+        # if self.codec == "libx264":
+        #     ffmpeg_params = ["-crf", '1']
 
         # clip.write_videofile(filename=out_name,
         #                      codec=self.codec,
@@ -76,27 +83,35 @@ class MovieWriter(object):
         #                      )
         # the upper part was AJs code, does not work on windows, so using the following instead
         clip.write_videofile(
-                            filename=out_name,
-                            codec=self.codec,
-#                            ffmpeg_params=["-preset", "veryslow"],
-                            threads=multiprocessing.cpu_count() - 1,
-                            logger="bar",
-                            bitrate=self.bitrate
-                            )
-        logging.getLogger("VIEW").info(f"Wrote a movie: {out_name}")
+            filename=out_name,
+            codec=self.codec,
+            # ffmpeg_params=["-preset", "veryslow"],
+            threads=multiprocessing.cpu_count() - 1,
+            logger="bar",
+            bitrate=self.bitrate,
+        )
+        logging.getLogger("VIEW").info(
+            "Wrote a movie.", extra={"out_name": out_name}
+        )
         return out_name
 
 
 class MovieWriterIndividualTif(MovieWriter):
-
     def __init__(self, flags):
 
         super().__init__(flags)
 
-    def write(self, data_numpy_list, data_sampling_period, full_filename_without_extension):
+    def write(
+        self,
+        data_numpy_list,
+        data_sampling_period,
+        full_filename_without_extension,
+    ):
 
         if data_sampling_period == pd.Timedelta(0):
-            data_sampling_period = pd.Timedelta("1s")  # fake value, as it will not be written
+            data_sampling_period = pd.Timedelta(
+                "1s"
+            )  # fake value, as it will not be written
 
         clip = self.get_clip(data_numpy_list, data_sampling_period)
 
@@ -106,20 +121,26 @@ class MovieWriterIndividualTif(MovieWriter):
 
         filename_format = f"{str(out_dir_path / out_dir_path.name)}%03d.tif"
 
-        clip.write_images_sequence(nameformat=filename_format,
-                                   logger="bar")
-        logging.getLogger("VIEW").info(f"Wrote a sequence of images to the folder {str(out_dir_path)}")
+        clip.write_images_sequence(nameformat=filename_format, logger="bar")
+        logging.getLogger("VIEW").info(
+            "Wrote a sequence of images to the folder",
+            extra={"out_dir_path": str(out_dir_path)},
+        )
 
         return out_dir_path
 
 
-class MovieWriterStackTif(object):
-
+class MovieWriterStackTif:
     def __init__(self):
 
         super().__init__()
 
-    def write(self, data_numpy_list, data_sampling_period, full_filename_without_extension):
+    def write(
+        self,
+        data_numpy_list,
+        data_sampling_period,
+        full_filename_without_extension,
+    ):
 
         # each image in data_numpy_list is of the format X,Y,Color.
         # Stacking them to get 4D data in the format Z, X, Y, Color
@@ -140,7 +161,9 @@ class MovieWriterStackTif(object):
         outfile_path = f"{full_filename_without_extension}.tif"
 
         tifffile.imwrite(outfile_path, data=data_4D_formatted, imagej=True)
-        logging.getLogger("VIEW").info(f"Wrote a tiff stack to {str(outfile_path)}")
+        logging.getLogger("VIEW").info(
+            "Wrote a tiff stack", extra={"outfile_path": str(outfile_path)}
+        )
 
         return outfile_path
 
@@ -148,11 +171,9 @@ class MovieWriterStackTif(object):
 def get_writer(flags):
 
     if flags["mv_exportFormat"] == "single_tif":
-
         return MovieWriterIndividualTif(flags)
 
     elif flags["mv_exportFormat"] == "stack_tif":
-
         return MovieWriterStackTif()
 
     else:

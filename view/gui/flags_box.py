@@ -21,7 +21,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from .flags_search import get_flags_index, query
+from view.gui.flags_search import get_flags_index, query
 
 
 class ButtonCopyableLabel(QPushButton):

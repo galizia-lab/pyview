@@ -1,10 +1,12 @@
+import pathlib as pl
+import pprint
 import typing
+
 import numpy as np
 import pandas as pd
-import pathlib as pl
 from PIL import Image
-from .tapestry_config import TapestryConfig
-import pprint
+
+from view.python_core.tapestries.tapestry_config import TapestryConfig
 
 
 def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
@@ -16,8 +18,7 @@ def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
     return formats
 
 
-class EmptyPatch(object):
-
+class EmptyPatch:
     def __init__(self):
 
         super().__init__()
@@ -31,10 +32,15 @@ class EmptyPatch(object):
 
 
 class Patch(EmptyPatch):
-
-    def __init__(self, overview: np.ndarray, data_limits: typing.Iterable[float],
-                 measurement_row: pd.Series, animal: str, measu: int, flag_changes: dict,
-                 ):
+    def __init__(
+        self,
+        overview: np.ndarray,
+        data_limits: typing.Iterable[float],
+        measurement_row: pd.Series,
+        animal: str,
+        measu: int,
+        flag_changes: dict,
+    ):
 
         super().__init__()
         self.overview = overview
@@ -42,7 +48,9 @@ class Patch(EmptyPatch):
         self.pil_image = Image.fromarray(overview)
         self.data_limits = data_limits
 
-        self.text_right_bottom, self.text_right_top = [f"{x:.3g}" for x in data_limits]
+        self.text_right_bottom, self.text_right_top = [
+            f"{x:.3g}" for x in data_limits
+        ]
 
         self.measurement_row = measurement_row
 
@@ -61,42 +69,73 @@ class Patch(EmptyPatch):
         self.text_below = tapestry_config.text_below_func(self.measurement_row)
 
         if tapestry_config.text_right_top_func is not None:
-            self.text_right_top = tapestry_config.text_right_top_func(self.measurement_row)
+            self.text_right_top = tapestry_config.text_right_top_func(
+                self.measurement_row
+            )
 
         if tapestry_config.text_right_bottom_func is not None:
-            self.text_right_bottom = tapestry_config.text_right_bottom_func(self.measurement_row)
+            self.text_right_bottom = tapestry_config.text_right_bottom_func(
+                self.measurement_row
+            )
 
-    def write_overview_movie_files(self, extra_formats: typing.Iterable[str], op_folder_path: pl.Path, row_string: str):
+    def write_overview_movie_files(
+        self,
+        extra_formats: typing.Iterable[str],
+        op_folder_path: pl.Path,
+        row_string: str,
+    ):
 
-        assert self.text_below != "uninitialized", "text_below has not been initialized! Please call the function" \
-                                                   "'initialize_texts' first and try again!"
+        assert self.text_below != "uninitialized", (
+            "text_below has not been initialized! Please call the function"
+            "'initialize_texts' first and try again!"
+        )
 
         op_animal_folder_path = op_folder_path / self.animal
         op_animal_folder_path.mkdir(parents=True, exist_ok=True)
 
-        image_op_stem = op_animal_folder_path / f"{row_string}_{self.measu}_{self.text_below}"
+        image_op_stem = (
+            op_animal_folder_path
+            / f"{row_string}_{self.measu}_{self.text_below}"
+        )
 
-        self.image_relative_path = f"{image_op_stem.relative_to(op_folder_path.parent)}.png"
+        self.image_relative_path = (
+            f"{image_op_stem.relative_to(op_folder_path.parent)}.png"
+        )
 
-        for format in sanitize_formats(extra_formats):
-            measu_op_file = f"{image_op_stem}.{format}"
+        for output_extension in sanitize_formats(extra_formats):
+            measu_op_file = f"{image_op_stem}.{output_extension}"
             self.pil_image.save(measu_op_file)
 
         return image_op_stem
 
 
 class PatchWithMovie(Patch):
+    def __init__(
+        self,
+        overview: np.ndarray,
+        data_limits: typing.Iterable[float],
+        measurement_row: pd.Series,
+        animal: str,
+        measu: int,
+        flag_changes: dict,
+        op_movie_file: str,
+    ):
 
-    def __init__(self, overview: np.ndarray, data_limits: typing.Iterable[float],
-                 measurement_row: pd.Series, animal: str, measu: int, flag_changes: dict,
-                 op_movie_file: str):
-
-        super().__init__(overview, data_limits, measurement_row, animal, measu, flag_changes)
+        super().__init__(
+            overview, data_limits, measurement_row, animal, measu, flag_changes
+        )
         self.movie_file = op_movie_file
 
-    def write_overview_movie_files(self, extra_formats: typing.Iterable[str], op_folder_path: pl.Path, row_string: str):
+    def write_overview_movie_files(
+        self,
+        extra_formats: typing.Iterable[str],
+        op_folder_path: pl.Path,
+        row_string: str,
+    ):
 
-        image_op_stem = super().write_overview_movie_files(extra_formats, op_folder_path, row_string)
+        image_op_stem = super().write_overview_movie_files(
+            extra_formats, op_folder_path, row_string
+        )
 
         # move movie next to the created overview files
         temp_movie_path = pl.Path(self.movie_file)
@@ -106,21 +145,28 @@ class PatchWithMovie(Patch):
         self.movie_file = movie_op_file_path
 
 
-def get_nonempty_patch(overview, data_limits, measurement_row, animal, measu, flag_changes, op_movie_file):
+def get_nonempty_patch(
+    overview,
+    data_limits,
+    measurement_row,
+    animal,
+    measu,
+    flag_changes,
+    op_movie_file,
+):
 
     if op_movie_file is None:
-
-        return Patch(overview, data_limits, measurement_row, animal, measu, flag_changes)
+        return Patch(
+            overview, data_limits, measurement_row, animal, measu, flag_changes
+        )
 
     else:
-
-        return PatchWithMovie(overview, data_limits, measurement_row, animal, measu, flag_changes, op_movie_file)
-
-
-
-
-
-
-
-
-
+        return PatchWithMovie(
+            overview,
+            data_limits,
+            measurement_row,
+            animal,
+            measu,
+            flag_changes,
+            op_movie_file,
+        )

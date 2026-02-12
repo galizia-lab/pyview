@@ -314,7 +314,7 @@ class NapariPyViewWidget(CentralWidget):
         self.flags_widget = FlagsMainWidget(flags=self.flags)
 
         for (
-            subgroup_name,
+            _subgroup_name,
             subgroup_page,
         ) in self.flags_widget.flag_display_choice.subgroup_pages.items():
             subgroup_page.return_flag_signal.connect(
@@ -441,9 +441,9 @@ class NapariPyViewWidget(CentralWidget):
         if self.napari_viewer is None:
             QMessageBox.critical(
                 self,
-                f"Napari not found!",
-                f"The plugin was started without a napari viewer."
-                f" Please start the plugin from within napari.",
+                "Napari not found!",
+                "The plugin was started without a napari viewer."
+                " Please start the plugin from within napari.",
             )
 
         (

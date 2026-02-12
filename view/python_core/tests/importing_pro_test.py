@@ -34,9 +34,8 @@ def test_parsing_pro():
 
     # this works for expected files saved from linux when tested on linux and windows, filecmp.cmp does not.
     # might have something to do line terminators
-    with open(pro_data_temp_op) as fho:
-        with open(expected_csv) as fhe:
-            assert fho.read() == fhe.read()
+    with open(pro_data_temp_op) as fho, open(expected_csv) as fhe:
+        assert fho.read() == fhe.read()
 
 
 def test_converting_pro():
@@ -47,7 +46,6 @@ def test_converting_pro():
 
     test_file = (
         pl.Path(get_internal_test_files_path())
-        / "pro_tests"
         / "pro_tests"
         / "grl_A_5803a.pro"
     )
@@ -64,15 +62,13 @@ def test_converting_pro():
     expected_yml = (
         pl.Path(get_internal_test_files_path())
         / "pro_tests"
-        / "pro_tests"
         / "grl_A_5803a_expected.yml"
     )
 
     # this works for expected files saved from linux when tested on linux and windows, filecmp.cmp does not.
     # might have something to do line terminators
-    with open(expected_yml) as fho:
-        with open(test_op_yml) as fhe:
-            assert fho.read() == fhe.read()
+    with open(expected_yml) as fho, open(test_op_yml) as fhe:
+        assert fho.read() == fhe.read()
 
 
 if __name__ == "__main__":

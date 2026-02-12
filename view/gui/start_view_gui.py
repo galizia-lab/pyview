@@ -1,12 +1,18 @@
 import logging
-
-from qtpy.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
 import sys
+
+import numpy as np
+from matplotlib import pyplot as plt
+from qtpy.QtWidgets import (
+    QApplication,
+    QMessageBox,
+    QTabWidget,
+)
+
 from view.gui.application_settings import initialize_app_settings
 from view.gui.main_window import VIEWMainWindow
 from view.iltis_shell.main_shell import ILTISMainShell
-from matplotlib import pyplot as plt
-import numpy as np
+
 
 class ContainerWidget(QTabWidget):
 
@@ -18,11 +24,19 @@ class ContainerWidget(QTabWidget):
         self.iltis_main_object = ILTISMainShell()
 
         view_central_widget = self.view_main_window.centralWidget()
-        self.iltis_main_object.import_action.triggered.connect(view_central_widget.spawn_export_dialog)
-        view_central_widget.export_data_to_iltis_signal.connect(self.iltis_main_object.import_data)
-        view_central_widget.reset_iltis_signal.connect(self.iltis_main_object.reset)
+        self.iltis_main_object.import_action.triggered.connect(
+            view_central_widget.spawn_export_dialog
+        )
+        view_central_widget.export_data_to_iltis_signal.connect(
+            self.iltis_main_object.import_data
+        )
+        view_central_widget.reset_iltis_signal.connect(
+            self.iltis_main_object.reset
+        )
 
-        self.iltis_main_object.import_action_quick.triggered.connect(view_central_widget.export_data_to_iltis_all)
+        self.iltis_main_object.import_action_quick.triggered.connect(
+            view_central_widget.export_data_to_iltis_all
+        )
 
         self.addTab(self.view_main_window, "VIEW")
         self.addTab(self.iltis_main_object.MainWindow, "ILTIS")
@@ -30,9 +44,13 @@ class ContainerWidget(QTabWidget):
     def closeEvent(self, event):
 
         msg = "Are you sure to quit?"
-        reply = QMessageBox.question(self, 'Message',
-                                     msg, QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Message",
+            msg,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
 
         if reply == QMessageBox.Yes:
             plt.close("all")
@@ -43,7 +61,7 @@ class ContainerWidget(QTabWidget):
 
 
 def main():
-    np.set_printoptions(legacy="1.25") # numpy 2.0.0 includes type info. 
+    np.set_printoptions(legacy="1.25")  # numpy 2.0.0 includes type info.
     # This forces old style print
     # Initialize application Name, Organization Name and Domain
     initialize_app_settings()
@@ -54,5 +72,5 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

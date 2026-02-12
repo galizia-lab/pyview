@@ -20,7 +20,6 @@ from view.gui.tests.test_setup_choice import (
 )
 from view.napari_pyview.iltis_window_napari import ILTISWindowNapari
 from view.napari_pyview.main_pyview_widget_napari import NapariPyViewWidget
-from view.napari_pyview.tests.fixtures import napari_main_widget
 
 
 def test_napari_direct_load_transfer_iltis(
@@ -47,9 +46,7 @@ def test_napari_direct_load_transfer_iltis(
     # Assert that the loader_object is an instance of SampleData666LoaderWidget
     assert isinstance(
         direct_loader.loader_object, SampleData666LoaderWidget
-    ), (
-        f"Expected loader_object to be an instance of SampleData666LoaderWidget, but got {type(direct_loader.loader_object)}."
-    )
+    ), f"Expected loader_object to be an instance of SampleData666LoaderWidget, but got {type(direct_loader.loader_object)}."
 
     # Simulate user click on the load button
     load_button = direct_loader.findChild(
@@ -59,12 +56,12 @@ def test_napari_direct_load_transfer_iltis(
 
     data_labels = data_manager.get_all_internal_labels()
 
-    assert len(data_labels) == 1, (
-        "No entry found in data manager after direct load with 665"
-    )
-    assert data_labels[0] == "Fake", (
-        "Data label wrong after direct data load with 665"
-    )
+    assert (
+        len(data_labels) == 1
+    ), "No entry found in data manager after direct load with 665"
+    assert (
+        data_labels[0] == "Fake"
+    ), "Data label wrong after direct data load with 665"
 
     for function_name in ["generate_overview"]:
         assert napari_main_widget.main_function_widgets[
@@ -75,9 +72,9 @@ def test_napari_direct_load_transfer_iltis(
         button_name,
         button_widget,
     ) in napari_main_widget.misc_function_buttons.items():
-        assert button_widget.isEnabled(), (
-            f"Misc. function button '{button_name}' not enabled."
-        )
+        assert (
+            button_widget.isEnabled()
+        ), f"Misc. function button '{button_name}' not enabled."
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -87,9 +84,9 @@ def test_napari_direct_load_transfer_iltis(
     ]
     napari_buttons = napari_functions_widget.findChildren(QPushButton)
     for button in napari_buttons:
-        assert button.isEnabled(), (
-            f"Napari button '{button.text()}' not enabled."
-        )
+        assert (
+            button.isEnabled()
+        ), f"Napari button '{button.text()}' not enabled."
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -100,15 +97,17 @@ def test_napari_direct_load_transfer_iltis(
     iltis_window = napari_main_widget.iltis_window
 
     # Get data labels from ILTIS
-    data_selector = iltis_window.iltis_main_shell.MainWindow.Front_Control_Panel.Data_Selector
+    data_selector = (
+        iltis_window.iltis_main_shell.MainWindow.Front_Control_Panel.Data_Selector
+    )
     iltis_data_labels = data_selector.get_current_labels()
 
-    assert len(iltis_data_labels) == 1, (
-        "No entry found in data manager of ILTIS after direct load with 665 and transfer to ILTIS"
-    )
-    assert iltis_data_labels[0] == "Fake", (
-        "Data label wrong in ILTIS after direct data load with 665 and transfer to ILTIS"
-    )
+    assert (
+        len(iltis_data_labels) == 1
+    ), "No entry found in data manager of ILTIS after direct load with 665 and transfer to ILTIS"
+    assert (
+        iltis_data_labels[0] == "Fake"
+    ), "Data label wrong in ILTIS after direct data load with 665 and transfer to ILTIS"
 
 
 def check_transfer_data_napari_plugin_iltis(
@@ -124,9 +123,9 @@ def check_transfer_data_napari_plugin_iltis(
     iltis_buttons = iltis_functions_widget.findChildren(QPushButton)
     open_iltis_button = None
     for button in iltis_buttons:
-        assert button.isEnabled(), (
-            f"ILTIS button '{button.text()}' not enabled."
-        )
+        assert (
+            button.isEnabled()
+        ), f"ILTIS button '{button.text()}' not enabled."
 
         if button.text() == "Open ILTIS and\nlaunch transfer dialog":
             open_iltis_button = button
@@ -141,9 +140,9 @@ def check_transfer_data_napari_plugin_iltis(
     # Verify that NapariPyViewWidget.iltis_window is not None and of type "ILTISWindowNapari" and is open.
     iltis_window = napari_main_widget.iltis_window
     assert iltis_window is not None, "ILTIS window is None."
-    assert isinstance(iltis_window, ILTISWindowNapari), (
-        "ILTIS window is not of type ILTISWindowNapari."
-    )
+    assert isinstance(
+        iltis_window, ILTISWindowNapari
+    ), "ILTIS window is not of type ILTISWindowNapari."
     assert iltis_window.isVisible(), "ILTIS window is not visible."
 
     # Verify that a window of type ILTISTransferDialog has also been opened.
@@ -161,9 +160,9 @@ def check_transfer_data_napari_plugin_iltis(
     qtbot.mouseClick(import_all_button, Qt.LeftButton)
 
     # Verify that this window is closed after this click.
-    assert not transfer_dialog.isVisible(), (
-        "ILTIS transfer dialog is still visible after clicking Import all."
-    )
+    assert (
+        not transfer_dialog.isVisible()
+    ), "ILTIS transfer dialog is still visible after clicking Import all."
 
 
 if __name__ == "__main__":
