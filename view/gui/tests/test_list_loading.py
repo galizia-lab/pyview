@@ -12,7 +12,6 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QPushButton
 
 from view.gui.central_widget import CentralWidget
-from view.gui.tests.fixtures import central_widget
 from view.gui.tests.test_yml_load_widget import select_yml_file_and_verify
 from view.python_core.tests.common import get_synthetic_data_yml_path
 
@@ -49,18 +48,18 @@ def load_data_yml_list(
     qtbot.mouseClick(new_load_button, Qt.LeftButton)
 
     # Check if the LoadMeasurementFromListWindow is opened
-    assert hasattr(central_widget, "load_measurement_window"), (
-        "LoadMeasurementFromListWindow was not opened"
-    )
+    assert hasattr(
+        central_widget, "load_measurement_window"
+    ), "LoadMeasurementFromListWindow was not opened"
 
     # 3. Simulate user selection of the entry that starts with "--Select a new"
     load_measurement_window = central_widget.load_measurement_window
     combobox = load_measurement_window.lst_file_selector.combo_box
 
     select_new_index = combobox.findText("--Select a new LST/settings file--")
-    assert select_new_index >= 0, (
-        "Could not find '--Select a new LST/settings file--' option in combobox"
-    )
+    assert (
+        select_new_index >= 0
+    ), "Could not find '--Select a new LST/settings file--' option in combobox"
 
     # Simulate user selecting the list file in the resulting FileOpenDialog
     monkeypatch.setattr(
@@ -74,9 +73,9 @@ def load_data_yml_list(
 
     # Assert that this populates the table with 9 entries
     table = load_measurement_window.lst_display_table
-    assert table.rowCount() == 9, (
-        f"Expected table to have 9 entries, but got {table.rowCount()}"
-    )
+    assert (
+        table.rowCount() == 9
+    ), f"Expected table to have 9 entries, but got {table.rowCount()}"
 
     # 4. Simulate user selecting rows in the table and pressing the button "Load Measurement"
     for row_ind in measurement_rows_to_select:
@@ -89,29 +88,29 @@ def load_data_yml_list(
             load_measurement_button = child
             break
 
-    assert load_measurement_button is not None, (
-        "Could not find 'Load Measurement' button"
-    )
+    assert (
+        load_measurement_button is not None
+    ), "Could not find 'Load Measurement' button"
     qtbot.mouseClick(load_measurement_button, Qt.LeftButton)
 
     # Check that the central_widget has the expected number of entries in its Data Manager
     data_labels = central_widget.data_manager.get_all_internal_labels()
 
-    assert len(data_labels) == len(measurement_rows_to_select), (
-        f"Expected Data Manager to have {len(measurement_rows_to_select)} entries, but got {len(data_labels)}"
-    )
+    assert len(data_labels) == len(
+        measurement_rows_to_select
+    ), f"Expected Data Manager to have {len(measurement_rows_to_select)} entries, but got {len(data_labels)}"
 
     # Assert that the widget ListLoadWidget.current_measurement_label shows the absolute path of the .lst.xls file chosen above
     current_measurement_label = list_load_widget.current_measurement_label
-    assert current_measurement_label.text() == os.path.abspath(lst_file), (
-        f"Expected current_measurement_label to show '{os.path.abspath(lst_file)}', but got '{current_measurement_label.text()}'"
-    )
+    assert current_measurement_label.text() == os.path.abspath(
+        lst_file
+    ), f"Expected current_measurement_label to show '{os.path.abspath(lst_file)}', but got '{current_measurement_label.text()}'"
 
     # Assert that the button ListLoadWidget.choose_from_current_list is enabled
     choose_from_current_list_button = list_load_widget.choose_from_current_list
-    assert choose_from_current_list_button.isEnabled(), (
-        "Expected choose_from_current_list button to be enabled"
-    )
+    assert (
+        choose_from_current_list_button.isEnabled()
+    ), "Expected choose_from_current_list button to be enabled"
 
 
 def test_list_loading(

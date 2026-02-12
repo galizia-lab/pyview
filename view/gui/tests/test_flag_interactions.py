@@ -11,7 +11,6 @@ This test verifies that:
 import pytest
 
 from view.gui.central_widget import CentralWidget
-from view.gui.tests.fixtures import central_widget
 from view.gui.tests.test_flags_box import simulate_flag_selection
 from view.gui.tests.test_setup_choice import (
     select_item_and_check_in_setup_choice_box,

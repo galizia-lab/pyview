@@ -3,12 +3,10 @@
 Test file for FlagsDisplayChoiceTabs and related functionality.
 """
 
-import pytest
 from pytestqt.qtbot import QtBot
 from qtpy.QtCore import Qt
 
 from view.gui.flags_box import FlagsDisplayChoiceTabs
-from view.gui.tests.fixtures import central_widget, flags_display_choice_tabs
 
 
 def simulate_flag_selection(
@@ -52,10 +50,9 @@ def simulate_flag_selection(
     flag_value = subgroup_page.flag_values_descriptions_df.loc[
         flag_name, "Flag Value"
     ]
-    assert flag_value == target_value, (
-        f"Expected flag value to be '{target_value}', but got '{flag_value}'. "
-        f"Simulated user selection might not have worked."
-    )
+    assert (
+        flag_value == target_value
+    ), f"Expected flag value to be '{target_value}', but got '{flag_value}'. Simulated user selection might not have worked."
 
 
 def test_simulate_flag_selection_le_loadExp(

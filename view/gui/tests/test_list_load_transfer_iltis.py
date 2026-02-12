@@ -9,7 +9,6 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from view.gui.start_view_gui import ContainerWidget
-from view.gui.tests.fixtures import main_container_widget
 from view.gui.tests.test_list_loading import load_data_yml_list
 from view.python_core.tests.common import get_synthetic_data_yml_path
 

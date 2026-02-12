@@ -15,7 +15,6 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QPushButton
 
 from view.gui.direct_load import DirectDataLoader, SampleData666LoaderWidget
-from view.gui.tests.fixtures import main_container_widget
 from view.gui.tests.test_setup_choice import (
     select_item_and_check_in_setup_choice_box,
 )

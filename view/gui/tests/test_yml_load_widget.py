@@ -11,7 +11,6 @@ from qtpy.QtCore import Qt
 from qtpy.QtTest import QSignalSpy
 
 from view.gui.loader_widgets import ListLoadWidget
-from view.gui.tests.fixtures import list_load_widget
 from view.python_core.tests.common import get_synthetic_data_yml_path
 
 
@@ -31,9 +30,9 @@ def select_yml_file_and_verify(
         monkeypatch: pytest-qt fixture for monkey patching
     """
     # 1. Assert the YML file exists on disk
-    assert os.path.isfile(yml_file), (
-        f"YML file '{yml_file}' does not exist on disk"
-    )
+    assert os.path.isfile(
+        yml_file
+    ), f"YML file '{yml_file}' does not exist on disk"
 
     # Use monkeypatch to replace qtpy.compat.getopenfilename with our test file
     monkeypatch.setattr(
@@ -49,9 +48,9 @@ def select_yml_file_and_verify(
     # 2. Simulate user selecting "--Select a new YML file--" option
     combobox = list_load_widget.yaml_loader.combo_box
     select_new_index = combobox.findText("--Select a new YML file--")
-    assert select_new_index >= 0, (
-        "Could not find '--Select a new YML file--' option in combobox"
-    )
+    assert (
+        select_new_index >= 0
+    ), "Could not find '--Select a new YML file--' option in combobox"
 
     qtbot.mouseClick(combobox, Qt.LeftButton)
     qtbot.keyClicks(combobox, "--Select a new YML file--")
@@ -59,9 +58,9 @@ def select_yml_file_and_verify(
 
     # 3. Assert that the file name is shown in the combobox
     current_text = combobox.currentText()
-    assert current_text == yml_file, (
-        f"Expected combobox to show '{yml_file}', but got '{current_text}'"
-    )
+    assert (
+        current_text == yml_file
+    ), f"Expected combobox to show '{yml_file}', but got '{current_text}'"
 
     # 4. Assert that the signal was fired with the correct file name
     # We need to capture the signal emission using QSignalSpy
@@ -74,9 +73,9 @@ def select_yml_file_and_verify(
     assert len(signal_args) > 0, "Signal was not called with any arguments"
 
     emitted_filename = signal_args[0]  # First argument is the filename
-    assert emitted_filename == yml_file, (
-        f"Expected signal to emit '{yml_file}', but got '{emitted_filename}'"
-    )
+    assert (
+        emitted_filename == yml_file
+    ), f"Expected signal to emit '{yml_file}', but got '{emitted_filename}'"
 
 
 def test_yml_file_selection(

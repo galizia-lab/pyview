@@ -8,12 +8,10 @@ This test verifies that:
 
 """
 
-import pytest
 from pytestqt.qtbot import QtBot
 from qtpy.QtCore import Qt
 
 from view.gui.setup_calcmethod_choice import SetupChoice
-from view.gui.tests.fixtures import setup_choice_box
 
 
 def select_item_and_check_in_setup_choice_box(
