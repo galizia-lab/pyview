@@ -1,20 +1,33 @@
-from qtpy.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QGroupBox, \
-    QMessageBox, QDesktopWidget, QListWidget, QListWidgetItem, QPushButton, QHeaderView
-from qtpy.QtCore import Signal, Slot
-from .custom_widgets import QTableWidgetPandasDF
 import pandas as pd
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtWidgets import (
+    QAbstractItemView,
+    QDesktopWidget,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .custom_widgets import QTableWidgetPandasDF
 
 
 class ILTISTransferDialog(QMainWindow):
-
     send_data_signal = Signal(list, list, name="send data")
 
     def __init__(self, parent, data_loaded_df, metadata_to_choose_from):
 
         super().__init__(parent)
 
-        metadata_to_choose_from = \
-            [x.replace("\n", "---") for x in metadata_to_choose_from]
+        metadata_to_choose_from = [
+            x.replace("\n", "---") for x in metadata_to_choose_from
+        ]
 
         self.data_loaded_df = data_loaded_df
 
@@ -28,14 +41,20 @@ class ILTISTransferDialog(QMainWindow):
 
         main_vbox.addWidget(self.table)
 
-        metadata_choice_box = QGroupBox("Select one or more metadata that will be used to "
-                                        "construct the dataset name in iltis")
+        metadata_choice_box = QGroupBox(
+            "Select one or more metadata that will be used to "
+            "construct the dataset name in iltis"
+        )
         metadata_choice_vboxlayout = QVBoxLayout(metadata_choice_box)
         self.metadata_choice_list = QTableWidgetPandasDF(self)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.metadata_choice_list.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.metadata_choice_list.setSelectionMode(
+            QAbstractItemView.MultiSelection
+        )
         self.metadata_choice_list.refresh(
-            pd.DataFrame.from_dict({"Metadata to choose from": metadata_to_choose_from})
+            pd.DataFrame.from_dict(
+                {"Metadata to choose from": metadata_to_choose_from}
+            )
         )
         self.metadata_choice_list.resizeColumnsToContents()
 
@@ -45,21 +64,20 @@ class ILTISTransferDialog(QMainWindow):
 
         import_hbox = QWidget(self)
         import_hbox_layout = QHBoxLayout(import_hbox)
-        import_button = QPushButton("Import")
+        import_button = QPushButton("Import", self)
         import_button.clicked.connect(self.send_data)
 
         import_hbox_layout.addWidget(import_button)
 
-        import_all_button = QPushButton("Import all")
+        import_all_button = QPushButton("Import all", self)
         import_all_button.clicked.connect(self.send_all_data)
         import_hbox_layout.addWidget(import_all_button)
 
         main_vbox.addWidget(import_hbox)
 
-
         self.setCentralWidget(centralWidget)
 
-        self.setWindowTitle('Transfer Data to ILTIS')
+        self.setWindowTitle("Transfer Data to ILTIS")
         self.setGeometry(300, 300, 500, 700)
         self.center()
 
@@ -73,14 +91,20 @@ class ILTISTransferDialog(QMainWindow):
     def send_data(self):
 
         indices = [x.row() for x in self.table.selectionModel().selectedRows()]
-        metadata_cols = [self.metadata_choice_list.item(x.row(), 0).text()
-                         for x in self.metadata_choice_list.selectionModel().selectedRows()]
+        metadata_cols = [
+            self.metadata_choice_list.item(x.row(), 0).text()
+            for x in self.metadata_choice_list.selectionModel().selectedRows()
+        ]
 
         # the inverse replacement was done for visualization purposes in self.__init__()
         metadata_cols = [x.replace("---", "\n") for x in metadata_cols]
 
         if not indices:
-            QMessageBox.critical(self, "No data Selected!", "Please select some data to continue transfer to ILTIS")
+            QMessageBox.critical(
+                self,
+                "No data Selected!",
+                "Please select some data to continue transfer to ILTIS",
+            )
         else:
             self.send_data_signal.emit(indices, metadata_cols)
             self.close()

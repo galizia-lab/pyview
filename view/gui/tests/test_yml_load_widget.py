@@ -6,33 +6,20 @@ Test file for ListLoadWidget functionality.
 import os
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 from pytestqt.qtbot import QtBot
 from qtpy.QtCore import Qt
 from qtpy.QtTest import QSignalSpy
 
 from view.gui.loader_widgets import ListLoadWidget
-from view.python_core.flags import FlagsManager
+from view.gui.tests.fixtures import list_load_widget
 from view.python_core.tests.common import get_synthetic_data_yml_path
-
-
-@pytest.fixture
-def list_load_widget(qtbot):
-    """Fixture to provide a ListLoadWidget instance for the tests."""
-
-    flags = FlagsManager()
-
-    widget = ListLoadWidget(parent=None, default_flags=flags.flags)
-
-    qtbot.addWidget(widget)
-    return widget
 
 
 def select_yml_file_and_verify(
     list_load_widget: ListLoadWidget,
     yml_file: str,
     qtbot: QtBot,
-    monkeypatch: MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch,
 ):
     """
     Helper function to simulate user selection of a YML file in ListLoadWidget.
@@ -93,7 +80,9 @@ def select_yml_file_and_verify(
 
 
 def test_yml_file_selection(
-    list_load_widget: ListLoadWidget, qtbot: QtBot, monkeypatch: MonkeyPatch
+    list_load_widget: ListLoadWidget,
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
 ):
 
     test_yml_file = str(get_synthetic_data_yml_path())
