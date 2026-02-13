@@ -1,8 +1,9 @@
+import pytest
+
 from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 import tifffile
 import pathlib as pl
-from nose.tools import raises
 
 
 class OverviewsGenerator(object):
@@ -110,13 +111,13 @@ def test_scale_flags():
             generate_overviews(flags, f"SO_individualScale{indiscale}_factor0{label}")
 
 
-@raises(ValueError)
 def test_large_bordercut():
     """
     Testing generation of overview when SO_cutborder is inappropriately large
     """
 
-    generate_overviews({"SO_cutborder": 106}, "_impossible")
+    with pytest.raises(ValueError):
+        generate_overviews({"SO_cutborder": 106}, "_impossible")
 
 
 def test_filters():

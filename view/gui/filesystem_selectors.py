@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QGroupBox, QLabel, QSizePolicy, QPushButton, \
-    QHBoxLayout, QFileDialog, QMessageBox
+from qtpy.QtWidgets import QGroupBox, QLabel, QSizePolicy, QPushButton, \
+    QHBoxLayout, QMessageBox, QFileDialog
+import qtpy.compat
 import os
 
 
@@ -61,8 +62,8 @@ class DirSelector(PathChooser):
 
     def choose_path(self):
 
-        return QFileDialog.getExistingDirectory(parent=self,
-                                                dir=self.dialogDefaultPath,
+        return qtpy.compat.getexistingdirectory(parent=self,
+                                                basedir=self.dialogDefaultPath,
                                                 caption=self.dialogTitle,
                                                 options=QFileDialog.ShowDirsOnly
                                                 )
@@ -114,10 +115,10 @@ class FileSelectorExisting(FileSelector):
             # pass
 
     def choose_path(self):
-        filePath, filter = QFileDialog.getOpenFileName(parent=self,
+        filePath, filter = qtpy.compat.getopenfilename(parent=self,
                                                        caption=self.dialogTitle,
-                                                       directory=self.dialogDefaultPath,
-                                                       filter=self.dialogFileTypeFilter)
+                                                       basedir=self.dialogDefaultPath,
+                                                       filters=self.dialogFileTypeFilter)
         return filePath
 
 
@@ -129,9 +130,9 @@ class FileSaver(FileSelector):
 
     def choose_path(self):
 
-        filename, file_filter = QFileDialog.getSaveFileName(parent=self,
+        filename, file_filter = qtpy.compat.getsavefilename(parent=self,
                                                              caption=self.dialogTitle,
-                                                             directory=self.dialogDefaultPath,
-                                                             filter=self.dialogFileTypeFilter)
+                                                             basedir=self.dialogDefaultPath,
+                                                             filters=self.dialogFileTypeFilter)
 
         return filename

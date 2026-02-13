@@ -1,6 +1,6 @@
 from view.gui.custom_widgets import QTableWidgetPandasDFDeletable
-from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QLineEdit, QWidget
-from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
+from qtpy.QtWidgets import QAbstractItemView, QHeaderView, QLineEdit, QWidget
+from qtpy.QtCore import Slot, QObject, Signal
 import pandas as pd
 from view.python_core.utils.deduplicator import dedupilicate
 from collections import OrderedDict
@@ -9,7 +9,7 @@ import copy
 
 class DataManager(QObject):
 
-    remove_data_signal = pyqtSignal(str, name="remove data signal")
+    remove_data_signal = Signal(str, name="remove data signal")
 
     def __init__(self, parent: QWidget, flag_values_to_use: dict,
                  p1_values_to_use: dict, label_joiner: str,
@@ -101,19 +101,13 @@ class DataManager(QObject):
 
         return self.df.index.values.tolist()
 
-    @pyqtSlot(int, name="row deleted")
+    @Slot(int, name="row deleted")
     def row_deleted(self, row_ind):
 
         label_of_data_to_delete = self.df.index.values[row_ind]
         del self.label_line_edits[label_of_data_to_delete]
         self.df.drop(index=label_of_data_to_delete, inplace=True)
         self.remove_data_signal.emit(label_of_data_to_delete)
-
-
-
-
-
-
 
 
 

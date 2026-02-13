@@ -8,10 +8,11 @@ name = 'view'
 # version = "0.0.1"  # Remove any existing version parameter.
 dynamic = ["version"]
 description = 'a general purpose tool to analyze calcium imaging data of responses to sensory stimuli.'
-requires-python = ">=3.7"
+requires-python = ">=3.10"
+readme = "README.md"
+license = "BSD-3-Clause"
 dependencies = [
-
-                    "PyQt5>=5.12.2,<6",
+                    "qtpy>=2.4.3",
                     "pandas>=0.24.2",
                     "openpyxl>=3.0.3",
                     "scipy >=1.2.1",
@@ -19,16 +20,16 @@ dependencies = [
                     "matplotlib>=3.0.3",
                     "pyyaml>=3.3",
                     "Pillow>=6.0.0",
-                    "moviepy>=1.0.0",
+                    "moviepy>=1.0.0,<2",
                     "scikit-image>=0.15.0",
                     "appdirs>=1.4.3",
                     # iltis ported to PyQt5 is needed, old iltis built using PyQt4 will not work.
                     # Source code available at https://gitlab.inf.uni-konstanz.de/ag-galizia/iltis.
                     # See wiki on https://gitlab.inf.uni-konstanz.de/ag-galizia/view for more info
-                    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@1.7",
+                    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@napari-plugin",
                     "tillvisionio@git+https://git@github.com/galizia-lab/tillvisionio.git@1.2",
                     "tifffile>=2019.7.26",
-                    "easygui>=0.98.1",
+                    "easygui>=0.98.3",
                     "jinja2>=2.10.3",
                     "whoosh>=2.7.4",
                     "seaborn>=0.10.0",
@@ -40,8 +41,14 @@ dependencies = [
                     "neo>=0.9.0",
                     "readlif>=0.6.5"
 ]
-readme = "README.md"
-license = "BSD-3-Clause"
+
+[project.optional-dependencies]
+pyqt5 = [
+    "PyQt5>=5.12.2,<6"
+]
+napari = [
+    "napari[all]"
+]
 
 [project.scripts]
 view = 'view.gui.start_view_gui:main'
@@ -58,3 +65,7 @@ view  = [
             "jinja_templates/*",
             "idl_folder_translation/*template.txt"
         ]
+
+# napari-plugin related
+[project.entry-points."napari.manifest"]
+napari_pyview = "view.napari_pyview:napari.yaml"

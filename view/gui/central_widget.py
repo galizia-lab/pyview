@@ -8,10 +8,11 @@ from inspect import currentframe, getframeinfo
 
 import pandas as pd
 import yaml
-from PyQt5.QtCore import pyqtSlot, QSettings, pyqtSignal, QObject, QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QLabel, \
-    QPushButton, QFileDialog, QTabWidget
+from PyQt5.QtWidgets import QScrollArea
+from qtpy.QtCore import Slot, QSettings, Signal, QObject, QUrl
+from qtpy.QtGui import QDesktopServices
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QHBoxLayout, QGroupBox, QPushButton, QTabWidget
+import qtpy.compat
 from matplotlib import pyplot as plt
 
 from view.idl_translation_core.ViewOverview import ExportMovie
@@ -28,17 +29,18 @@ from .application_settings import get_view_qsettings_manager
 from .data_manager import DataManager
 from .direct_load import DirectDataLoader
 from .file_selector_combobox import get_file_selector_combobox_using_settings
-from .flags_box import FlagsDisplayChoiceTabs
+from .flags_box import FlagsDisplayChoiceTabs, FlagsMainWidget
 from .gdm_visualization import GDMViz
 from .load_measurement import LoadMeasurementsFromVWSLogWindow, LoadMeasurementsFromListWindow
+from .loader_widgets import LogLoadWidget, ListLoadWidget
 from .logger import LoggerGroupBox
 from .main_function_widgets import MainFunctionAbstract, OverviewGenWidget
 from .setup_calcmethod_choice import SetupChoice
 
 
 class CentralWidget(QWidget):
-    export_data_signal = pyqtSignal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data")
-    reset_iltis_signal = pyqtSignal(name="reset ILTIS")
+    export_data_to_iltis_signal = Signal(list, list, pd.DataFrame, int, tuple, tuple, int, name="export data to ILTIS")
+    reset_iltis_signal = Signal(name="reset ILTIS")
 
     def __init__(self, parent):
 
@@ -47,6 +49,7 @@ class CentralWidget(QWidget):
         # declare windows that might be generated
         self.gdm_viz_window = None
         self.load_measurement_window = None
+        self.transfer_dialog = None
 
         self.main_function_widgets = {}
         self.misc_function_buttons = {}
@@ -71,7 +74,8 @@ class CentralWidget(QWidget):
 
     def init_ui(self):
 
-        main_hbox = QHBoxLayout(self)
+        content_widget = QWidget(self)
+        contents_hbox = QHBoxLayout(content_widget)
 
         main_functions_vboxlayout = QVBoxLayout()
 
@@ -109,98 +113,30 @@ class CentralWidget(QWidget):
         direct_loader = DirectDataLoader(self, self.setup_choice_box.get_current_LE_loadExp())
         direct_loader.data_loaded_signal.connect(self.direct_load_finalize)
         self.setup_choice_box.return_LE_loadExp.connect(direct_loader.refresh_layout)
-
         loader_tabs.addTab(direct_loader, "Direct load from raw file (no pre-requirements)")
 
-        log_load_box = QWidget(self)
-        log_load_box_layout = QVBoxLayout(log_load_box)
+        log_load_widget = LogLoadWidget(self)
+        log_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
+        log_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
+        loader_tabs.addTab(log_load_widget, "Direct load from log file (no pre-requirements)")
 
-        new_vws_log_load = QPushButton("Load from new vws log file")
-        new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-
-        log_load_box_layout.addWidget(new_vws_log_load)
-
-        choose_from_current_vws_log = QPushButton("Select from current vws.log")
-        choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-
-        log_load_box_layout.addWidget(choose_from_current_vws_log)
-
-        loader_tabs.addTab(log_load_box, "Direct load from log file (no pre-requirements)")
-
-        list_load_box = QWidget(self)
-        list_load_vboxlayout = QVBoxLayout(list_load_box)
-
-        yaml_loader = get_file_selector_combobox_using_settings()(
-            groupbox_title="The YML file",
-            file_filter="YML File(*.yml)",
-            file_type="YML",
-            parent=self,
-            use_list_in_settings="yml_file_list",
-        )
-
-        yaml_loader.return_filename_signal.connect(self.load_yml_flags)
-
-        list_load_vboxlayout.addWidget(yaml_loader)
-
-        loading_hbox = QHBoxLayout()
-
-        list_vbox = QVBoxLayout()
-
-        new_load = QPushButton("Load from new list file")
-        new_load.clicked.connect(self.load_from_new_list)
-
-        list_vbox.addWidget(new_load)
-
-        self.main_function_widgets["load_lst"] = new_load
-
-        choose_from_current_list = QPushButton("Select row from current list")
-        choose_from_current_list.clicked.connect(self.choose_row_from_current_list)
-
-        self.main_function_widgets["select row from current list"] = choose_from_current_list
-
-        list_vbox.addWidget(choose_from_current_list)
-
-        new_vws_log_load = QPushButton("Load from new vws log file")
-        new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
-
-        list_vbox.addWidget(new_vws_log_load)
-
-        self.main_function_widgets["select row from new vws log file"] = new_vws_log_load
-
-        choose_from_current_vws_log = QPushButton("Select from current vws.log")
-        choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
-
-        self.main_function_widgets["select row from current vws log file"] = choose_from_current_vws_log
-
-        list_vbox.addWidget(choose_from_current_vws_log)
-
-        quick_load_from_current_lst_box_flags = ["STG_Measu"]
-
-        quick_load_from_current_lst_box = MainFunctionAbstract(parent=self,
-                                                               group_name="Quick Load",
-                                                               button_names=["Quick Load from current list"],
-                                                               flag_names=quick_load_from_current_lst_box_flags,
-                                                               flag_defaults=[self.flags[f] for f in
-                                                                              quick_load_from_current_lst_box_flags],
-                                                               stack_vertically=False)
-        loading_hbox.addLayout(list_vbox)
-
-        quick_load_from_current_lst_box.send_data.connect(self.quick_load_from_current_lst)
-        quick_load_from_current_lst_box.flag_update_signal.connect(self.flag_update_request_gui)
-
-        self.main_function_widgets["quick load from current list"] = quick_load_from_current_lst_box
-        loading_hbox.addWidget(quick_load_from_current_lst_box)
-
-        list_load_vboxlayout.addLayout(loading_hbox)
-        selected_list_file_box = QGroupBox("List/VWS.LOG file selected", self)
-        self.current_measurement_label = QLabel("None selected yet")
-        layout = QHBoxLayout(selected_list_file_box)
-        layout.addWidget(self.current_measurement_label)
-        self.main_function_widgets["selected list file"] = selected_list_file_box
-        list_load_vboxlayout.addWidget(selected_list_file_box)
-
-        loader_tabs.addTab(list_load_box, "List load (pre-requirements: YML File, folder structure, "
-                                          "measurement list files)")
+        list_load_widget = ListLoadWidget(self)
+        list_load_widget.new_load.clicked.connect(self.load_from_new_list)
+        list_load_widget.choose_from_current_list.clicked.connect(self.choose_row_from_current_list)
+        list_load_widget.new_vws_log_load.clicked.connect(self.load_from_new_vws_log)
+        list_load_widget.choose_from_current_vws_log.clicked.connect(self.choose_row_from_current_vws_log)
+        list_load_widget.yaml_loader.return_filename_signal.connect(self.load_yml_flags)
+        list_load_widget.quick_load_from_current_lst_box.send_data.connect(self.quick_load_from_current_lst)
+        list_load_widget.quick_load_from_current_lst_box.flag_update_signal.connect(self.flag_update_request_gui)
+        self.main_function_widgets["load_lst"] = list_load_widget.new_load
+        self.main_function_widgets["select row from current list"] = list_load_widget.choose_from_current_list
+        self.main_function_widgets["select row from new vws log file"] = list_load_widget.new_vws_log_load
+        self.main_function_widgets["select row from current vws log file"] = list_load_widget.choose_from_current_vws_log
+        self.main_function_widgets["quick load from current list"] = list_load_widget.quick_load_from_current_lst_box
+        self.main_function_widgets["selected list file"] = list_load_widget.selected_list_file_box
+        self.current_measurement_label = list_load_widget.current_measurement_label
+        loader_tabs.addTab(list_load_widget, "List load (pre-requirements: YML File, folder structure, "
+                                           "measurement list files)")
 
         # --------------------------------------------------------------------------------------------------------------
         overview_gdm_hbox = QHBoxLayout()
@@ -211,7 +147,7 @@ class CentralWidget(QWidget):
         self.main_function_widgets["generate_overview"] = gen_overviews_box
         overview_gdm_hbox.addWidget(gen_overviews_box)
 
-        # --------------------------------------------------------------------------------------------------------------
+
         gdm_viz_box_flags = ["RM_ROITrace"]
         gdm_viz_box = MainFunctionAbstract(
             parent=self, button_names=["Visualize GDM traces"],
@@ -250,32 +186,22 @@ class CentralWidget(QWidget):
 
         main_functions_vboxlayout.addWidget(misc_functions)
 
-        main_hbox.addLayout(main_functions_vboxlayout)
+        contents_hbox.addLayout(main_functions_vboxlayout)
 
         # --------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
 
         right_vbox = QVBoxLayout()
 
-        self.flag_display_choice = FlagsDisplayChoiceTabs(self, self.flags)
+        self.flags_widget = FlagsMainWidget(parent=self, flags=self.flags)
 
-        for subgroup_name, subgroup_page in self.flag_display_choice.subgroup_pages.items():
+        for subgroup_name, subgroup_page in self.flags_widget.flag_display_choice.subgroup_pages.items():
             subgroup_page.return_flag_signal.connect(self.flag_update_request_gui)
 
-        flags_group_box = QGroupBox("Flags Viewer/Editor/Saver")
-        flags_vbox = QVBoxLayout(flags_group_box)
-        header_hbox = QHBoxLayout()
-        header_hbox.addWidget(QLabel("Tip: Click on flag names for description"))
-        wiki_link_button = QPushButton("Go to VIEW WIKI")
-        wiki_link_button.clicked.connect(self.go_to_wiki)
-        header_hbox.addWidget(wiki_link_button)
-        save_button = QPushButton("Write flags to file")
-        save_button.clicked.connect(self.write_yml_file)
-        header_hbox.addWidget(save_button)
-        flags_vbox.addLayout(header_hbox)
-        flags_vbox.addWidget(self.flag_display_choice)
+        self.flags_widget.wiki_link_button.clicked.connect(self.go_to_wiki)
+        self.flags_widget.save_button.clicked.connect(self.write_yml_file)
 
-        right_vbox.addWidget(flags_group_box)
+        right_vbox.addWidget(self.flags_widget)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -327,7 +253,19 @@ class CentralWidget(QWidget):
 
         right_vbox.addWidget(self.log_pte)
 
-        main_hbox.addLayout(right_vbox)
+        # --------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
+
+        scroll_area = QScrollArea(self)
+        contents_hbox.addLayout(right_vbox)
+        scroll_area.setWidget(content_widget)
+        scroll_area.setWidgetResizable(True)  # Critical for scrollbars to appear
+
+
+        main_hbox = QVBoxLayout(self)
+        main_hbox.addWidget(scroll_area)
+
+        # --------------------------------------------------------------------------------------------------------------
 
         # disable all actions other than YML loader
         self.enable_disable_functions_all(
@@ -367,41 +305,45 @@ class CentralWidget(QWidget):
 
         return dict2return
 
-    @pyqtSlot(name="respond to data request from iltis")
+    @Slot(name="respond to data request from iltis")
     def spawn_export_dialog(self):
 
         if len(self.p1s) == 0:
             QMessageBox.critical(self, "No data loaded!", "Please load some data before transferring data to ILTIS")
+            return None
         else:
             data_manager_df = self.data_manager.df
             all_metadata_columns = data_manager_df.columns.values.tolist()
             metadata_to_choose_from = set(all_metadata_columns) \
                                       - set(self.data_manager.defaultLabelCols + [self.data_manager.label_col_name])
-            metadata_to_choose_from = \
-                [x.replace("\n", "---") for x in all_metadata_columns if x in metadata_to_choose_from]
-
-            self.transfer_dialog = ILTISTransferDialog(
-                data_loaded_df=data_manager_df, metadata_to_choose_from=metadata_to_choose_from
+            metadata_to_choose_from_list = list(metadata_to_choose_from)
+            transfer_dialog = ILTISTransferDialog(
+                parent=self,
+                data_loaded_df=data_manager_df, metadata_to_choose_from=metadata_to_choose_from_list
                 )
-            self.transfer_dialog.send_data_signal.connect(self.export_data)
-            self.transfer_dialog.show()
+            transfer_dialog.send_data_signal.connect(self.export_data_to_iltis)
+            transfer_dialog.show()
             self.write_status("Waiting for data selection before transfer to ILTIS")
+            return transfer_dialog
+            # this returned value is used in napari plugin
 
-    def export_data(self, indices, metadata_list_for_label):
-        '''
+    def get_data_for_iltis_export(self, indices, metadata_list_for_label=None):
+        """
         goes through indices (i.e. the selected measurements to move to ILTIS)
-        and copies data (p1.raw1) and signals (p1.sig1) etc. into the variables for ILTIS
-        i.e. raw_data_list, signals_list etc.
-        '''
+        curates raw data, signals, n_frames
+        """
+        if metadata_list_for_label is None:
+            metadata_list_for_label = []
 
         raw_data_list = []
         signals_list = []
         n_frames_list = []
+        stim_onset = ()
+        stim_offset = ()
 
         dm_df = self.data_manager.df.copy()
         metadata_to_send = dm_df.iloc[indices]
-        stim_onset = []
-        stim_offset = []
+
         for label, metadata_row in metadata_to_send.iterrows():
 
             p1 = self.p1s[label]
@@ -411,12 +353,12 @@ class CentralWidget(QWidget):
                 stim_onset, stim_offset = zip(*stimulus_frames)
             else:
                 stim_onset = stim_offset = ()
+            # ILTIS needs only one set of stim_onset and stim_offset, irrespective of the number of
+            # images we transfer
 
             LE_loadExp = metadata_row["LE_loadExp"]
             le_label = self.data_manager.label_line_edits[label].text()
 
-            # the inverse replacement was done for visualization purposes in self.spawn_export_dialog
-            metadata_list_for_label = [x.replace("---", "\n") for x in metadata_list_for_label]
             other_metadata_to_send = metadata_row.loc[metadata_list_for_label].values.tolist()
             label_to_use = self.data_manager.label_joiner.join([le_label] + [str(x) for x in other_metadata_to_send])
             if LE_loadExp == 4:
@@ -426,28 +368,48 @@ class CentralWidget(QWidget):
             signals_list.append(p1.sig1)
             n_frames_list.append(p1.metadata.frames)
 
+        return metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset
+
+    def export_data_to_iltis(self, indices, metadata_list_for_label):
+        '''
+        goes through indices (i.e. the selected measurements to move to ILTIS)
+        and copies data (p1.raw1) and signals (p1.sig1) etc. into the variables for ILTIS
+        i.e. raw_data_list, signals_list etc.
+        '''
+
+        metadata_to_send, raw_data_list, signals_list, n_frames_list, stim_onset, stim_offset \
+            = self.get_data_for_iltis_export(indices, metadata_list_for_label)
+
         for path_flag in self.flags.compound_path_flags:
             if path_flag not in self.flags.compound_path_flags_with_defaults:
                 metadata_to_send[path_flag] = self.flags[path_flag]
 
-        self.export_data_signal.emit(
+        self.export_data_to_iltis_signal.emit(
             raw_data_list, signals_list,
             metadata_to_send, max(n_frames_list), stim_onset, stim_offset, self.flags["RM_Radius"])
 
-    @pyqtSlot(name="export all data")
-    def export_data_all(self):
+    @Slot(name="export all data")
+    def export_data_to_iltis_all(self):
         """
         sends all data loaded into VIEW to ILTIS using export_data above
         """
 
-        self.export_data(indices=slice(None), metadata_list_for_label=[])
+        self.export_data_to_iltis(indices=slice(None), metadata_list_for_label=[])
 
     def write_status(self, msg):
 
         self.parent().statusBar().showMessage(msg)
+        self.log_info(msg)
+
+    def log_info(self, msg):
+
         logging.getLogger("VIEW").info(msg)
 
-    @pyqtSlot(str, str, name="flag_update_request_from_gui")
+    def log_error(self, msg):
+
+        logging.getLogger("VIEW").error(msg)
+
+    @Slot(str, str, name="flag_update_request_from_gui")
     def flag_update_request_gui(self, flag_name, flag_value):
 
         if not self.check_update_flags_and_gui({flag_name: flag_value}):
@@ -457,20 +419,20 @@ class CentralWidget(QWidget):
     def check_apply_gui_limitations(self, flags):
 
         if "LE_BleachCorrMethod" in flags and flags["LE_BleachCorrMethod"] == "log_pixelwise":
-            self.flag_display_choice.block_flags_update_signals(True)
+            self.flags_widget.flag_display_choice.block_flags_update_signals(True)
             QMessageBox.warning(
                 self, "Unavailable bleach correction setting",
                 "Pixelwise bleach correction is not supported in VIEW-GUI. Uniform bleach correction"
                 "will be applied instead. "
                 "If you want to turn bleach correction off, set the flag LE_BleachCorrMethod to None"
             )
-            self.flag_display_choice.block_flags_update_signals(False)
+            self.flags_widget.flag_display_choice.block_flags_update_signals(False)
 
             flags["LE_BleachCorrMethod"] = "log_uniform"
 
         return flags
 
-    def check_update_flags_and_gui(self, flags):
+    def check_update_flags_and_gui(self, flags: dict):
 
         flags = self.check_apply_gui_limitations(flags)
 
@@ -481,22 +443,22 @@ class CentralWidget(QWidget):
                 try:
                     self.flags.update_flags(this_flag_dict)
                 except AssertionError as ase:
-                    self.flag_display_choice.block_flags_update_signals(True)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(True)
                     QMessageBox.critical(self, f"Error setting flag {flag_name} to {flag_value}", str(ase))
                     self.write_status(f"[failure] Updating flag {flag_name} to {flag_value}")
-                    self.flag_display_choice.block_flags_update_signals(False)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(False)
                     return 0
                 except (FileNotFoundError, OSError) as fnfe:
-                    self.flag_display_choice.block_flags_update_signals(True)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(True)
                     QMessageBox.critical(self, f"Error setting flag {flag_name}",
                                          f"There is a problem with the current folder structure and the path flags "
                                          f"specified. Specifically, the value of the flag {flag_name} is inconsistent."
                                          f"\n------\nHere is the full error message:\n{fnfe}")
                     self.write_status(f"[failure] Updating flag {flag_name} to {flag_value}")
-                    self.flag_display_choice.block_flags_update_signals(False)
+                    self.flags_widget.flag_display_choice.block_flags_update_signals(False)
                     return 0
                 self._update_functions_flags(this_flag_dict)
-                self.flag_display_choice.set_flags(this_flag_dict)
+                self.flags_widget.flag_display_choice.set_flags(this_flag_dict)
                 self.write_status(f"[success] Updating flag {flag_name} to {flag_value}")
             else:
                 self.write_status(f"[info] Ignoring update request for unknown flag {flag_name}")
@@ -508,7 +470,7 @@ class CentralWidget(QWidget):
             if hasattr(box, "update_flag_defaults"):
                 box.update_flag_defaults(flags)
 
-    @pyqtSlot(str, name="load yml flags")
+    @Slot(str, name="load yml flags")
     def load_yml_flags(self, yml_filename):
 
         self.write_status(f"[working] Reading flags from {yml_filename}")
@@ -561,17 +523,17 @@ class CentralWidget(QWidget):
             )
         )
 
-    @pyqtSlot(name="go to wiki")
+    @Slot(name="go to wiki")
     def go_to_wiki(self):
         QDesktopServices.openUrl(QUrl("https://github.com/galizia-lab/pyview/wiki"))
 
 
-    @pyqtSlot(name="write yml file")
+    @Slot(name="write yml file")
     def write_yml_file(self):
 
-        filename, filters = QFileDialog.getSaveFileName(caption="Select a YML file for saving flags",
-                                                        filter="YML File(*.yml)",
-                                                        directory=self.get_default_directory(),
+        filename, filters = qtpy.compat.getsavefilename(caption="Select a YML file for saving flags",
+                                                        filters="YML File(*.yml)",
+                                                        basedir=self.get_default_directory(),
                                                         parent=self)
 
         self.write_status(f"[working] Writing flags to {filename}")
@@ -581,27 +543,50 @@ class CentralWidget(QWidget):
             return
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+                )
 
     def get_selected_data_p1(self):
 
         data_label = self.data_manager.get_selected_data_label()
         return self.p1s[data_label]
 
-    @pyqtSlot(dict, FlagsManager)
-    def direct_load_finalize(self, label_p1_mapping, flags_used):
+    @Slot(dict, FlagsManager)
+    def direct_load_finalize(self, label_p1_mapping: dict, flags_used: FlagsManager):
 
-        for label, p1 in label_p1_mapping.items():
-            revised_label = self.data_manager.add_data(flags_used, p1, label)
-            self.p1s[revised_label] = p1
+        self.write_status("[working] Finalizing loading data...")
 
-        self.flags = flags_used
-        self.yml_file = None
+        try:
+            for label, p1 in label_p1_mapping.items():
+                revised_label = self.data_manager.add_data(flags_used, p1, label)
+                self.p1s[revised_label] = p1
 
-        self.enable_disable_functions(enable=True, main_functions=["generate_overview"],
-                                      misc_functions=self.misc_function_buttons.keys())
+            for k, v in flags_used.items():
+                self.flag_update_request_gui(k, v)
 
-    @pyqtSlot(name="launch lst file window")
+            self.yml_file = None
+
+            self.enable_disable_functions(enable=True, main_functions=["generate_overview"],
+                                          misc_functions=self.misc_function_buttons.keys())
+            self.write_status(f"[success] Finalizing loading data...")
+
+        except Exception as e:
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
+
+    @Slot(name="launch lst file window")
     def load_from_new_list(self):
 
         self.load_measurement_window = LoadMeasurementsFromListWindow(
@@ -611,7 +596,7 @@ class CentralWidget(QWidget):
 
         self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
 
-    @pyqtSlot(name="launch vws log file window")
+    @Slot(name="launch vws log file window")
     def load_from_new_vws_log(self):
 
         data_path = self.flags.get_raw_data_dir_str()
@@ -626,7 +611,7 @@ class CentralWidget(QWidget):
 
         self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
 
-    @pyqtSlot(MeasurementList, list, name="load lst data")
+    @Slot(MeasurementList, list, name="load lst data")
     def load_lst_data(self, measurement_list, selected_measus):
 
         self.measurement_list = measurement_list
@@ -707,7 +692,7 @@ class CentralWidget(QWidget):
         # enable all functions
         self.enable_disable_functions_all(enable=True)
 
-    @pyqtSlot(str, dict, name="reload from last lst file")
+    @Slot(str, dict, name="reload from last lst file")
     def quick_load_from_current_lst(self, button_name, flags):
 
         if not self.check_update_flags_and_gui(flags):
@@ -734,9 +719,16 @@ class CentralWidget(QWidget):
             return
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
 
-    @pyqtSlot(name="choose from current list")
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
+
+    @Slot(name="choose from current list")
     def choose_row_from_current_list(self):
 
         if self.measurement_list is None:
@@ -754,11 +746,23 @@ class CentralWidget(QWidget):
             self.load_measurement_window.send_data_signal.connect(self.load_lst_data)
             self.load_measurement_window.show()
             self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
+        except ValueError as ve:
+            QMessageBox.critical(
+                self,
+                "Error finding list",
+                "Please load from a new list file first!")
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
 
-    @pyqtSlot(name="choose from current vws log")
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
+
+    @Slot(name="choose from current vws log")
     def choose_row_from_current_vws_log(self):
 
         if self.measurement_list is None:
@@ -777,9 +781,22 @@ class CentralWidget(QWidget):
             self.load_measurement_window.send_data_signal.connect(self.load_lst_data)
             self.load_measurement_window.show()
             self.write_status("Waiting for selection of measurement from 'Load Measurement' window")
+        except ValueError as ve:
+            QMessageBox.critical(
+                self,
+                "Error finding vws log file",
+                "Please load from a new vws log file first!")
         except Exception as e:
 
-            QMessageBox.critical(self, f"VIEW encountered a {type(e).__name__}", str(e))
+            msg = f"{str(e)}\n\n{traceback.format_exc()}"
+            self.log_error(msg)
+
+            QMessageBox.critical(
+                self,
+                f"VIEW encountered a {type(e).__name__}",
+                msg
+            )
+
 
     def get_default_directory(self):
 
@@ -798,7 +815,7 @@ class CentralWidget(QWidget):
         del self.p1s[label]
         gc.collect()
 
-    @pyqtSlot(str, dict, bool, bool, name="generate overview")
+    @Slot(str, dict, bool, bool, name="generate overview")
     def generate_overview(self, button_name, flags, use_all_features, use_all_stimuli):
 
         if not self.check_update_flags_and_gui(flags):

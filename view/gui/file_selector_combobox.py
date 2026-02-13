@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QGroupBox, QComboBox, QVBoxLayout, QFileDialog, QSizePolicy, QLabel
-from PyQt5.QtCore import QSettings, pyqtSlot, pyqtSignal, QCoreApplication
+from qtpy.QtWidgets import QGroupBox, QComboBox, QVBoxLayout, QSizePolicy, QLabel
+from qtpy.QtCore import QSettings, Slot, Signal, QCoreApplication
+import qtpy.compat
 import os
 import pathlib as pl
 from collections import OrderedDict
@@ -9,13 +10,13 @@ from view.gui.application_settings import get_view_qsettings_manager
 
 class SingleFileSelectorHComboBox(QGroupBox):
 
-    return_filename_signal = pyqtSignal(str, name="return filename")
+    return_filename_signal = Signal(str, name="return filename")
 
     def new_selection_handler(self, label):
-        filename, used_filter = QFileDialog.getOpenFileName(parent=self,
+        filename, used_filter = qtpy.compat.getopenfilename(parent=self,
                                                             caption=f"Select a {self.file_type} file",
-                                                            directory=self.get_default_directory(),
-                                                            filter=self.file_filter)
+                                                            basedir=self.get_default_directory(),
+                                                            filters=self.file_filter)
 
         possibly_index = self.combo_box.findText(filename)
 
@@ -102,7 +103,7 @@ class SingleFileSelectorHComboBox(QGroupBox):
         else:
             return current_text
 
-    @pyqtSlot(int, name="combo box activation handler")
+    @Slot(int, name="combo box activation handler")
     def combo_box_activated(self, index):
 
         label = self.combo_box.itemText(index)
@@ -125,13 +126,13 @@ class SingleFileSelectorHComboBox(QGroupBox):
 
 class MultiFileSelectorHComboBox(SingleFileSelectorHComboBox):
 
-    return_filenames_signal = pyqtSignal(list, name="return filename")
+    return_filenames_signal = Signal(list, name="return filename")
 
     def multi_selection_handler(self, label):
-        filenames, used_filter = QFileDialog.getOpenFileNames(parent=self,
+        filenames, used_filter = qtpy.compat.getopenfilenames(parent=self,
                                                               caption=f"Select a {self.file_type} file",
-                                                              directory=self.get_default_directory(),
-                                                              filter=self.file_filter)
+                                                              basedir=self.get_default_directory(),
+                                                              filters=self.file_filter)
 
         if len(filenames):
             entry = ",".join([pl.Path(x).name for x in filenames])

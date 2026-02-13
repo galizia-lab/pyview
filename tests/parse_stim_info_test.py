@@ -15,7 +15,7 @@ def base_io_fun(input_metadata: pd.Series, expected_output: tuple, **kwargs):
     assert stim_durs == expected_output[2]
 
 
-def basic_functionality_test_one_odor():
+def test_basic_functionality_one_odor():
     """
     parse_stim_info: basic functionality test one odour
     """
@@ -25,7 +25,7 @@ def basic_functionality_test_one_odor():
         expected_output=(("odor1",), (5.4, ), (23, ))
     )
 
-def basic_functionality_test_multiple_odor():
+def test_basic_functionality_multiple_odor():
     """
     parse_stim_info: basic functionality test multiple odor (sort=True, not excluding odors)
     """
@@ -36,7 +36,7 @@ def basic_functionality_test_multiple_odor():
         sort=False
     )
 
-def sorting_test():
+def test_sorting():
     """
     parse_stim_info: testing with sort=False
     """
@@ -46,7 +46,7 @@ def sorting_test():
         sort=True
     )
 
-def excluding_single_odor_test():
+def test_excluding_single_odor():
     """
     parse_stim_info: excluding single odor
     """
@@ -57,7 +57,7 @@ def excluding_single_odor_test():
         odors_to_exclude_str='odor2'
     )
 
-def excluding_multiple_odors_test():
+def test_excluding_multiple_odors():
     """
     parse_stim_info: excluding multiple odors
     """

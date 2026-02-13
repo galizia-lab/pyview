@@ -23,20 +23,17 @@ def measurement_list_manager_loading(ext):
             yml_file = yml_files[0]
             flags = FlagsManager()
 
-            try:
-                flags.read_flags_from_yml(yml_file)
+            flags.read_flags_from_yml(yml_file)
 
-                list_dir = pl.Path(flags["STG_OdorInfoPath"])
+            list_dir = pl.Path(flags["STG_OdorInfoPath"])
 
-                if list_dir.is_dir():
-                    for fle in list_dir.iterdir():
+            if list_dir.is_dir():
+                for fle in list_dir.iterdir():
 
-                        if fle.name.endswith(ext) and not fle.name.startswith("."):
+                    if fle.name.endswith(ext) and not fle.name.startswith("."):
 
-                            measurement_list = MeasurementList.create_from_lst_file(str(fle), LE_loadExp=3)
-                            yield measurement_list
-            except FileNotFoundError as fnfe:
-                pass
+                        measurement_list = MeasurementList.create_from_lst_file(str(fle), LE_loadExp=3)
+                        yield measurement_list
 
 
 def test_reading_lst():

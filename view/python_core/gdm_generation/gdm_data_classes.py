@@ -3,14 +3,17 @@ from dataclasses import dataclass, field
 
 import pandas as pd
 from typing import Dict, Mapping, Sequence, Hashable
+from collections.abc import Callable
+
 from neo import AnalogSignal
 import quantities as pq
 import numpy as np
 from typing_extensions import Self
 from os import PathLike
+from matplotlib import pyplot as plt
 
 
-def parse_data_metadata_from_csv_row(csv_df_row: pd.Series) -> (Sequence[float], pd.Series):
+def parse_data_metadata_from_csv_row(csv_df_row: pd.Series) -> tuple[Sequence[float]|None, dict]:
 
     try:
         place_holder_column_index = get_place_holder_index(csv_df_row.index)
@@ -21,7 +24,7 @@ def parse_data_metadata_from_csv_row(csv_df_row: pd.Series) -> (Sequence[float],
         trace_start_pos = place_holder_column_index + 1
         n_samples = csv_df_row.get("NumFrames", None)
         trace = [float(x) for x in csv_df_row.iloc[trace_start_pos: trace_start_pos + n_samples].values]
-        return trace, csv_df_row.iloc[:trace_start_pos].to_dict()
+        return trace, csv_df_row.iloc[:place_holder_column_index].to_dict()
     except Exception as e:
         logging.debug(f'Problem creating a trace', exc_info=e)
 
@@ -99,7 +102,8 @@ class GDMRow:
 
             csv_df_row = read_chunks_gdm_csv(
                 input_csv=gdm_row.metadata["source_csv_file"],
-                only_one_row_at_index=gdm_row.metadata["source_csv_row_index"]).iloc[0, :]
+                limit_to_rows=[gdm_row.metadata["source_csv_row_index"]]
+            ).iloc[0, :]
 
             gdm_row_with_data = cls.parse_from_csv_df_row(csv_df_row)
             gdm_row_with_data.metadata = gdm_row.metadata
@@ -132,6 +136,8 @@ class GDMFile:
             del df_copy["source_csv_file"]
             del df_copy["source_csv_row_index"]
             # delete these two metadata column added internally to keep track of csv file and row index
+            df_copy["estimate of noise standard deviation"] \
+                = df["estimate of noise standard deviation"].apply(lambda x: f"{x:.4f}")
 
             return df_copy.astype(str)
 
@@ -178,7 +184,7 @@ class GDMFile:
 
         return gdm_file
 
-    def subset_based_on_callable(self, metadata_filter) -> Self:
+    def subset_based_on_callable(self, metadata_filter: Callable[[pd.DataFrame], pd.Series]) -> Self:
         """
         Return a new GDMFile object with only those metadata and time series whose index is in indices
         :param Callable metadata_filter: a callable that can be used to select rows of metadata df
@@ -239,6 +245,9 @@ class GDMFile:
         :param bool metadata_only: whether to only read metadata, i.e., skip reading data
         :return: object of class GDMFile
         """
+
+        print(f"Reading GDMFile from {csv_file}")
+
         gdm_file = cls()
         
         csv_df = read_chunks_gdm_csv(csv_file, metadata_only=metadata_only)
@@ -257,15 +266,27 @@ class GDMFile:
                                                data will be loaded for all rows
         """
 
-        if indices_to_check is None:
-            indices_to_check = self.data_dict.keys()
+        indices_to_check = indices_to_check or self.data_dict.keys()
+        indices_without_times_series = [int(k) for k in indices_to_check if self.data_dict[k] is None]
+        if not len(indices_without_times_series):
+            # all rows have times series
+            return
 
-        for ind in indices_to_check:
 
-            if self.data_dict[ind] is None:
+        metadata_subset = self.metadata_df.loc[indices_without_times_series, :]
 
-                gdm_row_with_time_series = GDMRow.check_read_data_if_missing(self[ind])
-                self.data_dict[ind] = gdm_row_with_time_series.time_series
+        for source_csv_file, source_csv_file_df in metadata_subset.groupby("source_csv_file"):
+
+            csv_df = read_chunks_gdm_csv(
+                source_csv_file, limit_to_rows=source_csv_file_df["source_csv_row_index"].values)
+
+            source_csv_indices = sorted(source_csv_file_df.index.values)
+            # rows of csv_df will be in the same order as in the source csv file, even if
+            # `source_csv_file_df.index` is not sorted
+
+            for ind, csv_df_row in csv_df.iterrows():
+                gdm_row_with_time_series = GDMRow.parse_from_csv_df_row(csv_df_row = csv_df_row)
+                self.data_dict[source_csv_indices[ind]] = gdm_row_with_time_series.time_series
 
 
     def write_to_csv(self, filename):
@@ -334,13 +355,29 @@ class GDMFile:
 
         return padded_arrays
 
-    def collapse_GDM_data_only(self, collapse_using="nanmedian", temporal_alignment="align_starts") -> np.ndarray:
+    def groupby(self, by: str | Sequence[str]):
+        """
+        Generator function, similar to pd.groupby. Every iteration returns a tuple (grouping_inds, group_gdm_file)
+        which are respectively the grouping indices and the GDMFile object of that iteration.
+        Can be used in a for loop
+        """
+        for grouping_inds, group_df in self.metadata_df.groupby(by=by):
+
+            yield grouping_inds, self.subset_based_on_indices(group_df.index.values)
+
+    def collapse_GDM_data_only(
+            self, collapse_using="nanmedian", temporal_alignment="align_starts"
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Temporally aligns the data of rows based on the parameter "temporal_alignment" and
-        then applies a function based on the parameter "collapse_using" to reduce the data of all rows into one
-        numpy ndarray
-        :rtype: numpy.ndarray
-        :returns: data of all rows collapsed into a single numpy array
+        then applies a function based on the parameter "collapse_using" to reduce ("collapse) the data of all rows into
+        one numpy ndarray
+        :param collapse_using: see description
+        :param temporal_alignment: see description
+        :rtype: tuple
+        :returns: a tuple of:
+        (1) 2D numpy ndarray containing data after alignment but before collapsing
+        (2) 1D numpy ndarray containing data after alignment and collapsing
         """
         if temporal_alignment == 'align_starts':
             gdm_data_aligned = self._get_data_as_numpy2D_align_starts()
@@ -349,25 +386,35 @@ class GDMFile:
                 f"A value of {temporal_alignment} was specified for 'temporal_alignment', which is implemented.")
 
         if collapse_using == "nanmedian":
-            return np.nanmedian(gdm_data_aligned, axis=0)
+            return gdm_data_aligned, np.nanmedian(gdm_data_aligned, axis=0)
+        elif collapse_using == "nanmean":
+            return gdm_data_aligned, np.nanmean(gdm_data_aligned, axis=0)
         else:
             raise NotImplementedError(
                 f"A value of {collapse_using} was specified for 'collapse_using', which is implemented.")
 
-
-    def collapse_GDM(self, groupby: list, collapse_using: str, temporal_alignment: str) -> Self:
+    def collapse_GDM(
+            self, collapse_using: str, temporal_alignment: str,
+            preferred_row_index: int = None,
+            report_axes: list[plt.Axes] = None) -> GDMRow:
         """
-        Groups rows based on the metadata in the parameter `groupby`. For each group, checks if all rows have the
-        same sampling rate, else raises and error. Else aligns the data in the rows based on the parameter
-        `temporal_alignment` and collapses the data into a single time series based on the parameter `collapse_using`.
-        The metadata of each group is collapsed by retaining indentical metadata in a group while replacing
+        Checks if all rows have the same sampling rate, else raises and error.
+        Else aligns the data in the rows based on the parameter `temporal_alignment` and
+        collapses the data into a single time series based on the parameter `collapse_using`.
+        The metadata is collapsed by retaining identical metadata in a group while replacing
         non-identical metadata with "unequal values".
-        :param list groupby: list of column values for grouping where each group then gets collapsed/reduced
-        :param str collapse_using: string, see documentation of `collapse_GDM_data_only`
-        :param str temporal_alignment: string, see documentation of `collapse_GDM_data_only`
-        :rtype: GDMFile
-        :returns: a GDMFile object with one row per unique combination of metadata specified in `groupby`
+        :param str collapse_using: see documentation of `collapse_GDM_data_only`
+        :param str temporal_alignment: see documentation of `collapse_GDM_data_only`
+        :param preferred_row_index: row at this index will be used to calculate fictitious metadata
+        :param report_axes: no reports are generated if this is None. Else must be a sequence of matplotlib Axes.
+        Alignment report will be written into the first two axes, collapsing report to the third.
+        :returns: a GDMFile object with one row
         """
+
+        if preferred_row_index is None:
+            preferred_row_index = self.metadata_df.index.values[0]
+
+        assert preferred_row_index in self.metadata_df.index.values
 
         def collapse_metadata_column(metadata_column: pd.Series):
 
@@ -377,48 +424,93 @@ class GDMFile:
             else:
                 return "unequal_values"
 
-        collapsed_gdm_file = GDMFile()
+        collapsed_metadata = self.metadata_df.apply(collapse_metadata_column, axis=0)
+        if "Animal" in collapsed_metadata:
+            collapsed_metadata["Animal"] = f"{collapse_using}-{temporal_alignment}"
+        if "TraceOffset" in collapsed_metadata:
+            collapsed_metadata["TraceOffset"] = 0.0
+        # value needs to be a valid time offset
+        if 'ODORshift' in collapsed_metadata:
+            collapsed_metadata['ODORshift'] = 0
+        # value needs to be a valid time offset
+        if 'FIDshift' in collapsed_metadata:
+            collapsed_metadata['FIDshift'] = 0
+        # value needs to be a valid time offset
+        if "estimate of noise standard deviation" in collapsed_metadata:
+            collapsed_metadata["estimate of noise standard deviation"] \
+                = self.metadata_df["estimate of noise standard deviation"].mean()
+        # value needs to be a float and arguably valid, needed during cascade model fitting
 
-        for grouping_indices, group_metadata_df in self.metadata_df.groupby(groupby):
-            collapsed_metadata = group_metadata_df.apply(collapse_metadata_column, axis=0)
-            if "Animal" in collapsed_metadata:
-                collapsed_metadata["Animal"] = f"{collapse_using}-{temporal_alignment}"
-            if "TraceOffset" in collapsed_metadata:
-                collapsed_metadata["TraceOffset"] = 0.0
-            all_sampling_rates = [self.data_dict[x].sampling_rate for x in group_metadata_df.index.values]
+        temp_gdm_file = GDMFile()
 
-            if not all(all_sampling_rates[0] == x for x in all_sampling_rates):
-                raise ValueError(
-                    f"When grouping based on {groupby}, for the group with values {grouping_indices}, found"
-                    f"time traces with unequal sampling rates ({all_sampling_rates})")
-            else:
-                temp_gdm_file = GDMFile()
-                temp_gdm_file.metadata_df["NumFrames"] = group_metadata_df["NumFrames"].copy()
-                temp_gdm_file.data_dict = {k: self.data_dict[k] for k in group_metadata_df.index.values}
-                collapsed_data = temp_gdm_file.collapse_GDM_data_only(
-                    collapse_using=collapse_using, temporal_alignment=temporal_alignment)
-                collapsed_metadata["NumFrames"] = collapsed_data.shape[0]
-                collapsed_gdm_row = GDMRow.from_data_and_metadata(
-                    metadata_dict=collapsed_metadata, trace=collapsed_data,
-                    sampling_period_ms= (1 / all_sampling_rates[0]) / (1 * pq.ms)
-                )
-                collapsed_gdm_file.append_gdm_row(collapsed_gdm_row)
+        for column in ["NumFrames", "source_csv_file", "source_csv_row_index"]:
+            temp_gdm_file.metadata_df[column] = self.metadata_df[column].copy()
 
-        return collapsed_gdm_file
+        temp_gdm_file.data_dict = self.data_dict.copy()
+        temp_gdm_file.check_load_data_if_missing()
+        # for the case where GDM file was loaded in metadata_only mode, this will make sure to read data
+
+        all_sampling_rates = [x.sampling_rate for x in temp_gdm_file.data_dict.values()]
+
+        if not all(all_sampling_rates[0] == x for x in all_sampling_rates):
+            raise ValueError(
+                f"All time traces don't have the same sampling rates ({all_sampling_rates})")
+        else:
+            data_aligned, collapsed_data = temp_gdm_file.collapse_GDM_data_only(
+                collapse_using=collapse_using, temporal_alignment=temporal_alignment
+            )
+            collapsed_metadata["NumFrames"] = collapsed_data.shape[0]
+            preferred_row = self.metadata_df.loc[preferred_row_index]
+            collapsed_metadata["TraceOffset"] = preferred_row["TraceOffset"]
+            collapsed_metadata["Cycle"] = preferred_row["Cycle"]
+
+            sampling_period, t_start, _ = get_sampling_period_offset_from_metadata(collapsed_metadata)
+
+            collapsed_gdm_row = GDMRow.from_data_and_metadata(
+                metadata_dict=collapsed_metadata, trace=collapsed_data,
+                sampling_period_ms= sampling_period,
+                starting_time_s=t_start
+            )
+
+            if report_axes:
+
+                for serial_ind, k in enumerate(temp_gdm_file.indices_iterator()):
+                    trace_as = temp_gdm_file.get_trace(k)
+                    trace_times_original_ms = trace_as.times / pq.ms
+                    stim_on_ms = self.metadata_df.loc[k, 'StimONms']
+                    trace_times_shifted_ms = trace_times_original_ms - trace_times_original_ms[0] - stim_on_ms
+                    report_axes[0].plot(
+                        trace_times_shifted_ms,
+                        temp_gdm_file.get_trace(k).magnitude,
+                        'b-', alpha=0.5
+                    )
+                    report_axes[0].set_xlabel('time (ms)')
+                    report_axes[0].set_title('original traces of GDM file; time axis shifted to align odor times at 0')
+
+                    report_axes[1].plot(data_aligned[serial_ind, :], 'b-', alpha=0.5)
+                    report_axes[1].set_xlabel('time (ms)')
+                    report_axes[1].set_title(f"traces after alignment according based on config '{temporal_alignment}'")
+
+                    report_axes[2].plot(data_aligned[serial_ind, :], 'b-', alpha=0.5)
+                    report_axes[2].plot(collapsed_data, 'rx', ms=5)
+                    report_axes[2].set_xlabel('time (ms)')
+                    report_axes[2].set_title('Blue plots: traces after alignment; Red plot: collapsed trace')
+
+            return collapsed_gdm_row
 
 
 def read_chunks_gdm_csv(
-        input_csv: PathLike, metadata_only: bool=False, only_one_row_at_index: int=None
+        input_csv: PathLike, metadata_only: bool=False,
+        limit_to_rows: Sequence[int]=None
     ):
     """
     Read a csv containing gdm and FID chunks, parsing date and time columns properly
     :param str input_csv: path to the input csv
-    :param bool metadata_only: whether to only read metadata, i.e., skip reading data
-    :param int only_one_row_at_index: read only one row at the given index
+    :param bool metadata_only: whether to only read metadata, i.e., skip reading time series data
+    :param Sequence[int] limit_to_rows: only rows with indices in this parameter are read, values are to 0-indexed,
+    i.e., first row has index 0. Also, first row is always read in and returned
     :return: pandas.DataFrame
     """
-
-    print(f"Reading {input_csv}")
 
     # read column headers (first line of csv)
     headers_df = pd.read_csv(input_csv, sep=";", nrows=1, header=0)
@@ -429,9 +521,14 @@ def read_chunks_gdm_csv(
 
     basic_kwargs = dict(sep=";", header=0)
 
-    if only_one_row_at_index:
-        basic_kwargs["skiprows"] = range(1, only_one_row_at_index)
-        basic_kwargs["nrows"] = 1
+    if limit_to_rows is not None:
+
+        def skiprows(index):
+
+            return not((index == 0) or (index in limit_to_rows))
+            # rows for which this function returns False are read in (index in 0-indexed)
+
+        basic_kwargs["skiprows"] = skiprows
 
     if metadata_only:
         gdm_df = pd.read_csv(

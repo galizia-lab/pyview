@@ -49,6 +49,10 @@ class ILTISMainShell(ILTISMain):
         self.quick_save_area_action.triggered.connect(self.quick_save_area)
         self.quick_save_area_action.setEnabled(False)
 
+        self.clear_data_menu = menu_bar.addMenu("&Clearing Data")
+        self.clear_all_data_action = self.clear_data_menu.addAction("Clear all data and reset")
+        self.clear_all_data_action.triggered.connect(self.reset)
+
         self.dialogs = []
 
         self.metadata = None

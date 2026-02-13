@@ -1,9 +1,10 @@
+import pytest
+
 from tests.common import initialize_test_yml_list_measurement
 from view import VIEW
 import logging
 import pathlib as pl
 import shutil
-from nose.tools import raises
 
 
 def export_fake_data_movie(flags_to_update, movie_name_suffix):
@@ -263,13 +264,13 @@ def test_mark_rois():
         export_fake_data_movie(flags_to_update=flags2use_new, movie_name_suffix=f"mv_showROIs{test_value}_cutborder5")
 
 
-@raises(ValueError)
 def test_large_bordercut():
     """
     Testing export movie when mv_cutborder is inappropriately large
     """
 
-    export_fake_data_movie({"mv_cutborder": 106}, "mv_impossible")
+    with pytest.raises(ValueError):
+        export_fake_data_movie({"mv_cutborder": 106}, "mv_impossible")
 
 
 def test_fonts():

@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
+import logging
+
+from qtpy.QtWidgets import QMainWindow, QAction, QApplication, QMessageBox, QDesktopWidget, QTabWidget
 import sys
 from view.gui.application_settings import initialize_app_settings
 from view.gui.main_window import VIEWMainWindow
@@ -17,10 +19,10 @@ class ContainerWidget(QTabWidget):
 
         view_central_widget = self.view_main_window.centralWidget()
         self.iltis_main_object.import_action.triggered.connect(view_central_widget.spawn_export_dialog)
-        view_central_widget.export_data_signal.connect(self.iltis_main_object.import_data)
+        view_central_widget.export_data_to_iltis_signal.connect(self.iltis_main_object.import_data)
         view_central_widget.reset_iltis_signal.connect(self.iltis_main_object.reset)
 
-        self.iltis_main_object.import_action_quick.triggered.connect(view_central_widget.export_data_all)
+        self.iltis_main_object.import_action_quick.triggered.connect(view_central_widget.export_data_to_iltis_all)
 
         self.addTab(self.view_main_window, "VIEW")
         self.addTab(self.iltis_main_object.MainWindow, "ILTIS")
@@ -34,6 +36,7 @@ class ContainerWidget(QTabWidget):
 
         if reply == QMessageBox.Yes:
             plt.close("all")
+            logging.shutdown()
             event.accept()
         else:
             event.ignore()

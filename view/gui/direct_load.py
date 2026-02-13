@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
+from qtpy.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
 from .file_selector_combobox import get_file_selector_combobox_using_settings
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
+from qtpy.QtCore import Slot, Signal, QObject
 from ..python_core.p1_class import Default_P1_Getter, get_empty_p1
 from view.python_core.flags import FlagsManager
 import pathlib as pl
@@ -24,7 +24,7 @@ def clear_layout(layout):
 
 class DirectDataLoader(QWidget):
 
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+    data_loaded_signal = Signal(dict, FlagsManager, name="Data loaded fixed connection")
 
     def __init__(self, parent, default_LE_loadExp=3):
 
@@ -32,13 +32,13 @@ class DirectDataLoader(QWidget):
         vbox = QVBoxLayout(self)
         self.refresh_layout(default_LE_loadExp)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def refresh_layout(self, LE_loadExp):
 
         loader_interface_class = get_loader_interface_class(LE_loadExp)
-        self.loader_interface = loader_interface_class(self)
-        self.loader_interface.refresh_layout(self)
-        self.loader_interface.data_loaded_signal.connect(self.data_loaded_signal)
+        self.loader_object = loader_interface_class(self)
+        self.loader_object.refresh_layout(self)
+        self.loader_object.data_loaded_signal.connect(self.data_loaded_signal)
 
 
 def get_a_pst_combobox(parent, multiple_selection_allowed=True):
@@ -106,9 +106,9 @@ def get_a_tiff_combobox(parent):
                           comment=None)
 
 
-class BaseLoaderInterface(QObject):
+class BaseLoaderWidget(QObject):
 
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+    data_loaded_signal = Signal(dict, FlagsManager, name="Data loaded dynamic connection")
 
     def __init__(self, parent):
 
@@ -117,10 +117,10 @@ class BaseLoaderInterface(QObject):
 
     def write_status(self, msg):
 
-        self.parent().parent().parent().parent().write_status(msg)
+        self.parent().parent().parent().parent().parent().parent().parent().write_status(msg)
 
-    @pyqtSlot(list)
-    @pyqtSlot(str)
+    @Slot(list)
+    @Slot(str)
     def load_list(self, filenames):
 
         filenames = self.check_revise_filenames(filenames)
@@ -128,7 +128,7 @@ class BaseLoaderInterface(QObject):
         temp_dir.mkdir(exist_ok=True)
 
         if filenames is not None:
-            current_flags = self.parent().parent().parent().parent().flags.copy()
+            current_flags = self.parent().parent().parent().parent().parent().parent().parent().flags.copy()
             # by default, compound path flags are not set, so set to parent of the raw files
             for flag_name in current_flags.compound_path_flags:
                 current_flags.update_flags({flag_name: str(temp_dir)})
@@ -171,7 +171,7 @@ class BaseLoaderInterface(QObject):
         pass
 
 
-class SampleData666LoaderInterface(BaseLoaderInterface):
+class SampleData666LoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -189,7 +189,7 @@ class SampleData666LoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(button)
 
 
-class VIEWTIFFLoaderInterface(BaseLoaderInterface):
+class VIEWTIFFLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -204,7 +204,7 @@ class VIEWTIFFLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(view_tif_combobox)
 
 
-class TillSingleLoaderInterface(BaseLoaderInterface):
+class TillSingleLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -219,7 +219,7 @@ class TillSingleLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(pst_combobox)
 
 
-class TillDualLoaderInterface(BaseLoaderInterface):
+class TillDualLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -241,7 +241,7 @@ class TillDualLoaderInterface(BaseLoaderInterface):
 
         widget.layout().addWidget(self.pst_2_combobox)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def check_revise_filenames(self, filenames):
 
         dbb1_filename = self.pst_1_combobox.get_current_entry()
@@ -255,7 +255,7 @@ class TillDualLoaderInterface(BaseLoaderInterface):
             return None
 
 
-class LifSingleLoaderInterface(BaseLoaderInterface):
+class LifSingleLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -271,7 +271,7 @@ class LifSingleLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(lif_combobox)
 
 
-class IngaSingleLoaderInterface(BaseLoaderInterface):
+class IngaSingleLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -287,7 +287,7 @@ class IngaSingleLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(inga_combobox)
 
 
-class ZeissSingleLoaderInterface(BaseLoaderInterface):
+class ZeissSingleLoaderWidget(BaseLoaderWidget):
 
     def __init__(self, parent):
 
@@ -308,21 +308,21 @@ def get_loader_interface_class(LE_loadExp):
         LE_loadExp = int(LE_loadExp) # in case this was a string
 
     if LE_loadExp == 3:
-        return TillSingleLoaderInterface
+        return TillSingleLoaderWidget
     elif LE_loadExp == 4:
-        return TillDualLoaderInterface
+        return TillDualLoaderWidget
     elif LE_loadExp == 20:
-        return ZeissSingleLoaderInterface
+        return ZeissSingleLoaderWidget
     elif LE_loadExp == 21:
-        return LifSingleLoaderInterface
+        return LifSingleLoaderWidget
     elif LE_loadExp == 32:
-        return IngaSingleLoaderInterface
+        return IngaSingleLoaderWidget
     elif LE_loadExp == 33:
-        return VIEWTIFFLoaderInterface
+        return VIEWTIFFLoaderWidget
     elif LE_loadExp == 35:
-        return VIEWTIFFLoaderInterface
+        return VIEWTIFFLoaderWidget
     elif LE_loadExp in (665, 667, 676):
-        return SampleData666LoaderInterface
+        return SampleData666LoaderWidget
     else:
         raise NotImplementedError
 

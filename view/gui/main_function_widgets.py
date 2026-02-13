@@ -1,15 +1,15 @@
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QGroupBox, QSizePolicy, \
+from qtpy.QtCore import Signal, QObject, Slot
+from qtpy.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QGroupBox, QSizePolicy, \
     QFormLayout, QWidget, QCheckBox
 
 
 class MainFunctionAbstract(QGroupBox):
 
-    send_data = pyqtSignal(str, dict)
-    flag_update_signal = pyqtSignal(str, str)
+    send_data = Signal(str, dict)
+    flag_update_signal = Signal(str, str)
 
     def __init__(
-            self, parent, button_names=(), flag_names=(),
+            self, parent=None, button_names=(), flag_names=(),
             flag_defaults=(), group_name="", comment=None, stack_vertically=True):
 
         super().__init__(group_name, parent)
@@ -85,7 +85,7 @@ class MainFunctionAbstract(QGroupBox):
 
 class OverviewGenWidget(MainFunctionAbstract):
 
-    send_data = pyqtSignal(str, dict, bool, bool)
+    send_data = Signal(str, dict, bool, bool)
     
     def __init__(self, parent, current_flags):
         
@@ -124,7 +124,7 @@ class OverviewGenWidget(MainFunctionAbstract):
 
         self.layout().insertLayout(1, extra_hbox)
 
-    @pyqtSlot(int, name="inactivate_flag")
+    @Slot(int, name="inactivate_flag")
     def inactivate_flag(self, state):
 
         sender = QObject.sender(self)
