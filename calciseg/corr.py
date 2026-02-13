@@ -6,6 +6,7 @@ from scipy.ndimage import gaussian_filter, binary_dilation, generate_binary_stru
 from skimage.feature import peak_local_max
 
 from calciseg.CS_config import config as flags  # import global config
+import matplotlib.pyplot as plt
 
 
 # -----------------------------------------------------------
@@ -253,7 +254,7 @@ def grow_global_region(seed_hw, corr_global, data,
 
 
 # -----------------------------------------------------------
-# 5) MERGING REGIONS
+# 5) MERGING or showing REGIONS
 # -----------------------------------------------------------
 
 def merge_overlapping_rois(rois, min_overlap=0.3):
@@ -286,6 +287,53 @@ def merge_overlapping_rois(rois, min_overlap=0.3):
 
     return merged
 
+def show_rois(rois, alpha=0.6, seed=0):
+    """
+    rois: list of boolean masks, shape (H, W)
+    """
+    if len(rois) == 0:
+        print("No ROIs to display.")
+        return
+
+    H, W = rois[0].shape
+    rgb = np.zeros((H, W, 3), dtype=float)
+
+    rng = np.random.default_rng(seed)
+
+    for roi in rois:
+        color = rng.random(3)  # random RGB color
+        for c in range(3):
+            rgb[..., c] += color[c] * roi
+
+    # clip to valid RGB range
+    rgb = np.clip(rgb, 0, 1)
+
+    plt.figure(figsize=(6, 6))
+    plt.imshow(rgb)
+    plt.axis("off")
+    plt.title(f"{len(rois)} ROIs")
+    plt.show()
+
+def show_rois_on_image(image, rois, alpha=0.5):
+    image = (image - image.min()) / (np.ptp(image) + 1e-8)
+    rgb = np.stack([image]*3, axis=-1)
+    rng = np.random.default_rng(0)
+
+    for roi in rois:
+        color = rng.random(3)
+        for c in range(3):
+            rgb[..., c] = np.where(
+                roi,
+                (1 - alpha) * rgb[..., c] + alpha * color[c],
+                rgb[..., c]
+            )
+
+    plt.imshow(rgb)
+    plt.axis("off")
+    plt.show()
+    
+
+
 
 # -----------------------------------------------------------
 # 6) MAIN PIPELINE
@@ -316,8 +364,13 @@ def run_correlation_segmentation(movie):
         roi = grow_global_region(s, corr_map, movie, threshold=corr_threshold)
         rois.append(roi)
 
-    rois = merge_overlapping_rois(rois)
+    #rois = merge_overlapping_rois(rois)
+    #show_rois(rois, alpha=0.6, seed=0)
+    
+    
     print(f"together with rois {time.time() - start:.2f} seconds")
     
 
     return corr_map, seeds, rois
+
+

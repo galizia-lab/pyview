@@ -17,6 +17,7 @@ externalize parameters (thresholds, etc.) and flag options
 import numpy as np
 import matplotlib.pyplot as plt
 
+from calciseg import corr
 from calciseg.io import load_movie_via_dialog
 from calciseg.compress import compress_movie_to_projection, compute_ica_projection   # you will create this
 from calciseg.localmax import find_local_maxima, segment_watershed_cells               # also create
@@ -122,11 +123,13 @@ def main():
     except NameError:
         pass
     else:   
-        mask_sum = np.sum(np.stack(rois), axis=0)
-        plt.imshow(mask_sum > 0, cmap="gray")   
-        plt.title("Correlation-based ROIs")
-        plt.show()
-
+        #mask_sum = np.sum(np.stack(rois), axis=0)
+        #plt.imshow(mask_sum > 0, cmap="gray")   
+        #plt.title("Correlation-based ROIs")
+        #plt.show()
+        #corr.show_rois(rois, alpha=0.6, seed=0)
+        corr.show_rois_on_image(proj, rois, alpha=0.5)
+        
 
     if CS_config.CS_proj_method in ['mean', 'max', 'std']:
         # show segmentation only if 'labels' has been calculated
