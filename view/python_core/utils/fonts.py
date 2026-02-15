@@ -1,8 +1,9 @@
 import pathlib as pl
 
 from matplotlib import font_manager
-from view.python_core.get_internal_files import get_internal_fonts_dir
 from PIL import ImageFont
+
+from view.python_core.get_internal_files import get_internal_fonts_dir
 
 
 def resolve_font_file(mv_fontName):
@@ -15,14 +16,21 @@ def resolve_font_file(mv_fontName):
     :returns: absolute filename of the font file
     """
 
-    font_file_lookup_hierarchy = [find_font_file_in_OS(font_name=mv_fontName, ext=".ttf"),
-                                  find_font_file_in_OS(font_name=mv_fontName, ext=".otf"),
-                                  find_font_file_in_dir(font_name=mv_fontName, where=get_internal_fonts_dir(),
-                                                        ext=".ttf"),
-                                  find_font_file_in_dir(font_name=mv_fontName, where=get_internal_fonts_dir(),
-                                                        ext=".otf"),
-                                  find_font_file_in_dir(font_name="PixelOperator8", where=get_internal_fonts_dir(),
-                                                        ext=".ttf")]
+    font_file_lookup_hierarchy = [
+        find_font_file_in_OS(font_name=mv_fontName, ext=".ttf"),
+        find_font_file_in_OS(font_name=mv_fontName, ext=".otf"),
+        find_font_file_in_dir(
+            font_name=mv_fontName, where=get_internal_fonts_dir(), ext=".ttf"
+        ),
+        find_font_file_in_dir(
+            font_name=mv_fontName, where=get_internal_fonts_dir(), ext=".otf"
+        ),
+        find_font_file_in_dir(
+            font_name="PixelOperator8",
+            where=get_internal_fonts_dir(),
+            ext=".ttf",
+        ),
+    ]
 
     existences = [x is not None for x in font_file_lookup_hierarchy]
     font2use = font_file_lookup_hierarchy[existences.index(True)]
@@ -34,17 +42,18 @@ def get_maximum_font_size_by_width(font_name, text, maximum_width):
 
     font = ImageFont.truetype(font=font_name, size=10)
 
-    try: #getsize is deprecated in newer pillow versions
+    try:  # getsize is deprecated in newer pillow versions
         w, h = font.getsize(text)
-    except (AttributeError):
+    except AttributeError:
         w = font.getlength(text)
 
     return int(10 * maximum_width / w)
 
 
 def resolve_font_size(suggested_font_size, maximum_width, text, font_name):
-    max_font_size = get_maximum_font_size_by_width(font_name=font_name, text=text,
-                                                   maximum_width=maximum_width)
+    max_font_size = get_maximum_font_size_by_width(
+        font_name=font_name, text=text, maximum_width=maximum_width
+    )
     max_font_size_with_margin = int(0.95 * max_font_size)
     return max(min(max_font_size_with_margin, suggested_font_size), 8)
 
@@ -52,7 +61,10 @@ def resolve_font_size(suggested_font_size, maximum_width, text, font_name):
 def find_font_file_in_dir(font_name, where=None, ext=".ttf"):
 
     font_files = font_manager.findSystemFonts(fontpaths=where)
-    matches = [pl.Path(f).name.lower() == f"{font_name}{ext}".lower() for f in font_files]
+    matches = [
+        pl.Path(f).name.lower() == f"{font_name}{ext}".lower()
+        for f in font_files
+    ]
 
     if any(matches):
         return font_files[matches.index(True)]

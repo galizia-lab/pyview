@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Sep 15 13:42:30 2018
 
@@ -8,19 +7,20 @@ collection of IDL commands
 and other useful snippets for the IDL_view->python translation
 """
 import logging
-from tkinter import filedialog
+import os
 import tkinter as tk
+from tkinter import filedialog
+
 import numpy as np
-import scipy.ndimage as sci
+
 #import skimage as ski
 import PIL as PIL
-from PIL import ImageDraw, ImageFont, ImageOps, Image
-import os
-
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-from matplotlib.colors import hsv_to_rgb
+import scipy.ndimage as sci
+from matplotlib.colors import (
+    ListedColormap,
+    hsv_to_rgb,
+)
+from PIL import Image
 
 
 #outFile = dialog_pickfile(/WRITE, path=flag[stg_odorReportPath],file='TIF_'+p1.experiment)
@@ -43,10 +43,10 @@ def dialog_pickfile(path, default = '', write=True, defaultextension = 'tif'):
         filename = filedialog.asksaveasfilename(parent = root, title='TIF export filename',defaultextension = 'tif',initialdir = path)
     else:
         filename = filedialog.askopenfilename(parent = root, title='Open existing file',defaultextension = defaultextension, initialdir = path)
-    return filename    
+    return filename
 #   outside: open file like this:
 #    file = open(name,'w')
-    
+
 def bytarr(x,y):
     return np.zeros([x,y], dtype=np.uint8)
 
@@ -69,13 +69,13 @@ def xyouts(x,y, text, img, orientation=90, fill=255, align = 'left'):
     x, y are lower left corner of text box for horizontal text
     '''
 #;           xyouts, NextPosition(0)+p1.format_x+border-2, NewSizeCanvas(1)-NextPosition(1)-p1.metadata.format_y, strTrim(string(fix(minimum*annotateFactor)),2), /device, ALIGNMENT=0, ORIENTATION=90
-#### analysis#;           xyouts, 
-#                               x coordinate: NextPosition(0)+p1.format_x+border-2, 
-#                               y coordinate: NewSizeCanvas(1)-NextPosition(1)-p1.format_y, 
-#                               text2write:   strTrim(string(fix(minimum*annotateFactor)),2), 
-#                               where to write: /device, 
+#### analysis#;           xyouts,
+#                               x coordinate: NextPosition(0)+p1.format_x+border-2,
+#                               y coordinate: NewSizeCanvas(1)-NextPosition(1)-p1.format_y,
+#                               text2write:   strTrim(string(fix(minimum*annotateFactor)),2),
+#                               where to write: /device,
 #                               ALIGNMENT=0, #0 means left alignment
-#                               ORIENTATION=90 #90 means vertical going up  
+#                               ORIENTATION=90 #90 means vertical going up
 #def add_vertical_text(x,y,text,img, fill):
     #adds text into img, vertically upwards
     width, height = img.size
@@ -110,10 +110,10 @@ def xyouts(x,y, text, img, orientation=90, fill=255, align = 'left'):
     # corect x axis if right alignement
     text_box_size = draw.textsize(text)
     if align.lower() == 'right':
-        rot_x = rot_x - text_box_size[0]      
+        rot_x = rot_x - text_box_size[0]
     if align.lower() == 'center':
         text_box_size = draw.textsize(text)
-        rot_x = rot_x - text_box_size[0]/2      
+        rot_x = rot_x - text_box_size[0]/2
     #coordinates are different from IDL, it seams - so shift the y by the text height
     rot_y = rot_y - text_box_size[1]
     #draw the text
@@ -128,7 +128,7 @@ def gio_get_filenames(extension, title):
     import tkinter as tk
     from tkinter.filedialog import askopenfilenames
     root = tk.Tk()
-    root.withdraw() # so that windows closes after file chosen 
+    root.withdraw() # so that windows closes after file chosen
     root.attributes('-topmost', True)
     filenames = askopenfilenames(
                 parent=root,
@@ -143,11 +143,11 @@ def restore_maskframe(flag):
         #os.path.isfile(areaFileName)
     if not(os.path.isfile(areafilename)):
         print('CalcSigAll3000.pro: AreaFileName does not exist :', areafilename)
-        ## pick the right file name, to do. 
+        ## pick the right file name, to do.
         areafilename = gio_get_filenames('.Area', "Choose perimeter file .Area")[0] #only the first file name, if more were chosen
 #		areaFileName = Dialog_Pickfile(Path=flag[stg_OdorMaskPath], get_Path = inPath, Filter='*.Area', title='Choose perimeter file!')
 #		flag[stg_OdorMaskPath] = inpath
-    from scipy.io.idl import readsav #command to read IDL files
+    from scipy.io.idl import readsav  #command to read IDL files
     #temp = readsav(areaFileName, verbose=True) #reads IDL structure into temp. The Area file is in maskframe
     maskframe = readsav(areafilename).maskframe #only works because it was saved with the name maskFrame
     print('IDL.py: restored area file ',areafilename)
@@ -193,7 +193,7 @@ def write_tiff(outfile, MyArray, red, green, blue, xresol=100, yresol=100):
     # add palette
     #make sure colors are 8bit
     palette = palette_IDL2PIL(red,green,blue)
-    img.putpalette(palette)    
+    img.putpalette(palette)
     #save to file
     img.save(outfile, dpi=(xresol, yresol))
     print('IDL.write_tiff: written 8bit tiff file to: ', outfile)
@@ -224,9 +224,9 @@ def palette_IDL2PIL(red,green,blue):
     return palette
 
 def palette_PIL2IDL(palette):
-    red = palette[0::3]    
-    green = palette[1::3]    
-    blue = palette[2::3]    
+    red = palette[0::3]
+    green = palette[1::3]
+    blue = palette[2::3]
     return (red, green, blue)
 
 def palette_pyplot2PIL(pyplot_cm):
@@ -264,11 +264,11 @@ def createPalette(SO_MV_colortable):
     hsv[:, 2] = 1. # np.linspace(0, 1, 512)[:, np.newaxis]
     rgba = np.ones((256, 4))
     rgba[:,0:3] = hsv_to_rgb(hsv) # transparency a  fixed to 1
-    
+
     #define color map 11
 #    IDLcm11 = ListedColormap(rgba, name='HSVconst')
     rgba_11 = rgba.copy()
-    
+
     #;into 12, set bottom white, top black
     #r1 = r    & g1 = g    & b1 = b
     #r1(0)=255 & g1(0)=255 & b1(0)=255
@@ -278,20 +278,20 @@ def createPalette(SO_MV_colortable):
     rgba[-1,:] = [0,0,0,1]
 #    IDLcm12 = ListedColormap(rgba, name='HSVconstWB')
     rgba_12 = rgba.copy()
-    
-    
+
+
     #;into 13, set bottom black, top white
     rgba[-1,:] = [1,1,1,1]
     rgba[0,:] = [0,0,0,1]
 #    IDLcm13 = ListedColormap(rgba, name='HSVconstBW')
     rgba_13 = rgba.copy()
 
-    
+
     #;into 14, set center range centersize to gray
     #;left part via cyan to blue
     #;right part via yellow to red
     #;0 to black; 255 to white
-    
+
     rgba[0,:] = [1,1,1,1] #r1(255)=255 & g1(255)=255 & b1(255)=255
     rgba[-1,:] = [0,0,0,1] #r1(*)=0     & g1(*)=0     & b1(*)=0
     centersize = 10
@@ -418,11 +418,10 @@ def createPalette(SO_MV_colortable):
 ##debugging section
 if __name__ == "__main__":
     print('')
-    
-    #enter 
+
+    #enter
 #    outfile = 'dummytiff.tiff'
 #    write_tiff(outfile, myImage, red, green, blue, 100, 100)
 #    (i,p) = read_tiff(outfile)
 
 
-    

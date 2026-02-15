@@ -1,15 +1,21 @@
 import typing
+
 import numpy as np
 from skimage.draw import rectangle
 
-from .base_classes import BaseROIData
-from .iltis_rois.text_based import BaseTextROIData
+from view.python_core.rois.base_classes import BaseROIData
+from view.python_core.rois.iltis_rois.text_based import BaseTextROIData
 
 
 class SquareIDLROIData(BaseTextROIData):
-
-    def __init__(self, label: str, center_x: int, center_y: int, half_width: int,
-                 basic_text_description="A square IDL ROI"):
+    def __init__(
+        self,
+        label: str,
+        center_x: int,
+        center_y: int,
+        half_width: int,
+        basic_text_description="A square IDL ROI",
+    ):
         """
         Initialize a square ROI object
         :param label: str, unique identifier for the ROI
@@ -35,7 +41,13 @@ class SquareIDLROIData(BaseTextROIData):
         text_parts = cls.split_line(text_line)
         label = text_parts[2].lstrip("\t ")
         x, y = (int(temp) for temp in text_parts[:2])
-        return cls(label=label, center_x=x, center_y=y, half_width=0, basic_text_description=text_line)
+        return cls(
+            label=label,
+            center_x=x,
+            center_y=y,
+            half_width=0,
+            basic_text_description=text_line,
+        )
 
     def write_to_text_line(self) -> str:
 
@@ -50,8 +62,16 @@ class SquareIDLROIData(BaseTextROIData):
         mask = np.zeros(frame_size, dtype=bool)
 
         # clip to within frame, in case values extend outside
-        x_start, x_end = np.clip([self.center_x - self.half_width, self.center_x + self.half_width], 0, frame_size[0])
-        y_start, y_end = np.clip([self.center_y - self.half_width, self.center_y + self.half_width], 0, frame_size[1])
+        x_start, x_end = np.clip(
+            [self.center_x - self.half_width, self.center_x + self.half_width],
+            0,
+            frame_size[0],
+        )
+        y_start, y_end = np.clip(
+            [self.center_y - self.half_width, self.center_y + self.half_width],
+            0,
+            frame_size[1],
+        )
 
         # function rectangle draws a rectangle that includes both start and end points
         rr, cc = rectangle(start=(x_start, y_start), end=(x_end, y_end))
@@ -61,9 +81,12 @@ class SquareIDLROIData(BaseTextROIData):
 
 
 class TIFFIDLROIData(BaseROIData):
-
     def __init__(
-            self, label: str, idl_tiff_frame: np.ndarray, basic_text_description="AREA TIFF IDL ROI"):
+        self,
+        label: str,
+        idl_tiff_frame: np.ndarray,
+        basic_text_description="AREA TIFF IDL ROI",
+    ):
 
         super().__init__(label, basic_text_description)
         self.idl_tiff_frame = idl_tiff_frame
@@ -76,4 +99,3 @@ class TIFFIDLROIData(BaseROIData):
         """
 
         return self.idl_tiff_frame > 0
-

@@ -1,7 +1,8 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-import logging
 
 
 # for the linear fit on the logarithm, to estimate initial parameters
@@ -147,7 +148,7 @@ def fitlogdecay(lineIn, weights, showresults=False, measurement_label=""):
                 ]
             )
             logging.getLogger("VIEW").debug("Fitting log function converged! Using Log fit")
-        except RuntimeError as rte:
+        except RuntimeError:
             opt_parms = (A, K, offset)
             logging.getLogger("VIEW").debug("Fitting log function did NOT converge. Using linear parameters.")
 

@@ -1,9 +1,11 @@
 import importlib
 import pathlib as pl
 import re
+
 import pandas as pd
 import textfsm
 import yaml
+
 from view import idl_folder_translation
 
 
@@ -48,7 +50,7 @@ def parse_animal_tag(pro_file):
     """
 
     pro_filename = pl.Path(pro_file).name
-    match = re.fullmatch("gr[^_]*_(\w+).pro", pro_filename, re.IGNORECASE)
+    match = re.fullmatch(r"gr[^_]*_(\w+).pro", pro_filename, re.IGNORECASE)
 
     if not match:
         raise ValueError(f"Could not figure out the animal id of the pro file: {pro_file}")
@@ -61,7 +63,7 @@ def convert_pro_to_tapestry_config(input_pro_file, output_yml_file, animal_tag, 
     Parse info in a .pro file and convert it to a tapestry config file
     :param str input_pro_file: path of an input .pro file
     :param str output_yml_file: path of the output yml file to be created
-    :param dict flags_to_override: these flags will override flags from .pro file if present, else be added
+    :param dict flags_to_override: these flags will override flags from view.pro file if present, else be added
     """
 
     pro_df = parse_pro_file(input_pro_file)

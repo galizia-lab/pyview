@@ -4,26 +4,38 @@ from itertools import product
 
 def check_for_existing_dbb1(data_dir_path, dbb1, extension, animal_tag):
 
-    dbb1 = str(dbb1).replace("\\", "/")  # dbb1 for settings files generated in windows can contain "\\"
+    dbb1 = str(dbb1).replace(
+        "\\", "/"
+    )  # dbb1 for settings files generated in windows can contain "\\"
     dbb1_parts = pl.Path(dbb1).parts
     without_ORline_value_trailing = "_".join(animal_tag.split("_")[:-1])
-    possible_paths = [data_dir_path / dbb1,
-                      data_dir_path / f"{dbb1}{extension}",
-                      data_dir_path / animal_tag / dbb1,
-                      data_dir_path / animal_tag / f"{dbb1}{extension}",
-                      data_dir_path / f"{animal_tag}{extension}" / f"{dbb1}{extension}",
-                      # for till vision setups, structure could be
-                      # {STG_Datapath} / {STG_ReportTag} / {STG_ReportTag}.pst / {dbb1}.pst
-                      data_dir_path / animal_tag / f"{animal_tag}{extension}" / dbb1,
-                      data_dir_path / animal_tag / f"{animal_tag}{extension}" / f"{dbb1}{extension}",
-                      data_dir_path / without_ORline_value_trailing / dbb1,
-                      data_dir_path / without_ORline_value_trailing / f"{dbb1}{extension}",
-                      data_dir_path / without_ORline_value_trailing / f"{animal_tag}{extension}" / dbb1,
-                      data_dir_path / without_ORline_value_trailing / f"{animal_tag}{extension}" / f"{dbb1}{extension}",
-                        # for GCMS Gerstel, when several folders are used for one animal, structure could be
-                      data_dir_path / dbb1_parts[0] / dbb1
-                      ]
-    
+    possible_paths = [
+        data_dir_path / dbb1,
+        data_dir_path / f"{dbb1}{extension}",
+        data_dir_path / animal_tag / dbb1,
+        data_dir_path / animal_tag / f"{dbb1}{extension}",
+        data_dir_path / f"{animal_tag}{extension}" / f"{dbb1}{extension}",
+        # for till vision setups, structure could be
+        # {STG_Datapath} / {STG_ReportTag} / {STG_ReportTag}.pst / {dbb1}.pst
+        data_dir_path / animal_tag / f"{animal_tag}{extension}" / dbb1,
+        data_dir_path
+        / animal_tag
+        / f"{animal_tag}{extension}"
+        / f"{dbb1}{extension}",
+        data_dir_path / without_ORline_value_trailing / dbb1,
+        data_dir_path / without_ORline_value_trailing / f"{dbb1}{extension}",
+        data_dir_path
+        / without_ORline_value_trailing
+        / f"{animal_tag}{extension}"
+        / dbb1,
+        data_dir_path
+        / without_ORline_value_trailing
+        / f"{animal_tag}{extension}"
+        / f"{dbb1}{extension}",
+        # for GCMS Gerstel, when several folders are used for one animal, structure could be
+        data_dir_path / dbb1_parts[0] / dbb1,
+    ]
+
     # resolution required for cross OS compatibility, i.e., for example, when settings files was generated in Windows
     # and used on linux/mac
     existences = [x.resolve(strict=False).is_file() for x in possible_paths]
@@ -44,7 +56,7 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
     if dbb1_path.is_absolute() and dbb1_path.is_file():
         possible_filenames.append(str(dbb))
 
-    if  flags.is_flag_state_default("STG_ReportTag"):
+    if flags.is_flag_state_default("STG_ReportTag"):
         # flags["STG_ReportTag"] has not been set yet
         # this section introduced for several .lst measurements in subfolder of each animal
         # dbb is complete, but lacks extension
@@ -52,10 +64,14 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
         for extension in extensions:
             # check if dbb1 can be interpreted relative to data directory
             possible_existing_filename = check_for_existing_dbb1(
-                data_dir_path=data_dir_path, dbb1=dbb, extension=extension, animal_tag='')
+                data_dir_path=data_dir_path,
+                dbb1=dbb,
+                extension=extension,
+                animal_tag="",
+            )
             possible_filenames.append(possible_existing_filename)
-        
-    else: #gio nov 2023: this was the only section here
+
+    else:  # gio nov 2023: this was the only section here
         animal_tag = flags["STG_ReportTag"]
 
         if not flags.is_flag_state_default("STG_Datapath"):
@@ -64,7 +80,11 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
             for extension in extensions:
                 # check if dbb1 can be interpreted relative to data directory
                 possible_existing_filename = check_for_existing_dbb1(
-                    data_dir_path=data_dir_path, dbb1=dbb, extension=extension, animal_tag=animal_tag)
+                    data_dir_path=data_dir_path,
+                    dbb1=dbb,
+                    extension=extension,
+                    animal_tag=animal_tag,
+                )
                 possible_filenames.append(possible_existing_filename)
 
         if not flags.is_flag_state_default("STG_MotherOfAllFolders"):
@@ -72,15 +92,21 @@ def get_existing_raw_data_filename(flags, dbb, extensions):
             for extension in extensions:
                 # check if dbb1 can be interpreted relative to mother of all folders directory
                 moaf = pl.Path(flags["STG_MotherOfAllFolders"])
-                possible_existing_filename = check_for_existing_dbb1(data_dir_path=moaf, dbb1=dbb, extension=extension,
-                                                                     animal_tag=animal_tag)
+                possible_existing_filename = check_for_existing_dbb1(
+                    data_dir_path=moaf,
+                    dbb1=dbb,
+                    extension=extension,
+                    animal_tag=animal_tag,
+                )
                 possible_filenames.append(possible_existing_filename)
 
     hits = [x is not None for x in possible_filenames]
     if any(hits):
         return possible_filenames[hits.index(True)]
     else:
-        raise FileNotFoundError(f"get_existing_raw_data_filename: Could not find raw file with dbb1={dbb} in {flags['STG_Datapath']}")
+        raise FileNotFoundError(
+            f"get_existing_raw_data_filename: Could not find raw file with dbb1={dbb} in {flags['STG_Datapath']}"
+        )
 
 
 def convert_to_path_for_current_os(path_str):
@@ -103,8 +129,10 @@ def convert_to_path_for_current_os(path_str):
             return possible_path
 
         else:
-            raise OSError(f"Either the specified path {path_str} does not exist or "
-                          f"cannot be interpreted for the current operating system")
+            raise OSError(
+                f"Either the specified path {path_str} does not exist or "
+                f"cannot be interpreted for the current operating system"
+            )
 
     else:
         # PureWindowsPath interprets paths with only posix separators, only windows separators or a mix of the two
@@ -124,7 +152,10 @@ def check_get_file_existence_in_folder(folder, stems, possible_extensions):
     """
 
     folder_path = pl.Path(folder)
-    paths = [folder_path / f"{stem}{ext}" for stem, ext in product(stems, possible_extensions)]
+    paths = [
+        folder_path / f"{stem}{ext}"
+        for stem, ext in product(stems, possible_extensions)
+    ]
     existences = [x.is_file() for x in paths]
 
     if any(existences):

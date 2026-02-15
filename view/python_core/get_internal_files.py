@@ -1,8 +1,11 @@
 import importlib
-import pandas as pd
 from collections import OrderedDict
-from view import flags_and_metadata_definitions, jinja_templates, fonts
+
+import pandas as pd
+
+from view import flags_and_metadata_definitions, fonts, jinja_templates
 from view.graphics import icons
+from view.python_core.tests import test_files
 
 
 def get_metadata_definition():
@@ -11,10 +14,8 @@ def get_metadata_definition():
     :return: pandas.DataFrame
     """
     with importlib.resources.path(
-            flags_and_metadata_definitions,
-            "metadata_definition.csv"
+        flags_and_metadata_definitions, "metadata_definition.csv"
     ) as metadata_def_csv:
-
         metadata_def_df = pd.read_csv(metadata_def_csv, index_col=0)
 
     return metadata_def_df
@@ -28,10 +29,8 @@ def get_internal_flags_def():
 
     # get the internal flag checks file depending on flags_type
     with importlib.resources.path(
-            flags_and_metadata_definitions,
-            "view_flags_definition.csv"
+        flags_and_metadata_definitions, "view_flags_definition.csv"
     ) as flags_def_XL:
-
         # read and return flag definitions
         return pd.read_csv(flags_def_XL, comment="#")
 
@@ -52,10 +51,7 @@ def get_internal_icons(icon_name):
     :return: string
     """
 
-    with importlib.resources.path(
-            icons,
-            icon_name
-    ) as fle:
+    with importlib.resources.path(icons, icon_name) as fle:
         return str(fle)
 
 
@@ -67,7 +63,7 @@ def get_internal_jinja_template(template_name):
     """
 
     with importlib.resources.path(
-           jinja_templates, template_name
+        jinja_templates, template_name
     ) as jinja2_template_filename:
         return jinja2_template_filename
 
@@ -79,8 +75,7 @@ def get_setup_info_df():
     """
 
     with importlib.resources.path(
-            flags_and_metadata_definitions,
-            "setup_definitions.csv"
+        flags_and_metadata_definitions, "setup_definitions.csv"
     ) as internal_setup_info_csv:
         return pd.read_csv(internal_setup_info_csv, comment="#")
 
@@ -96,9 +91,10 @@ def get_setup_description_dict():
 
     setup_info_dict = OrderedDict()
 
-    for ind, (LE_loadExp, description) in setup_info_df.iterrows():
-
-        setup_info_dict[f"{description} (LE_loadExp={LE_loadExp})"] = LE_loadExp
+    for _ind, (LE_loadExp, description) in setup_info_df.iterrows():
+        setup_info_dict[f"{description} (LE_loadExp={LE_loadExp})"] = (
+            LE_loadExp
+        )
 
     return setup_info_dict
 
@@ -108,6 +104,15 @@ def get_gdm_doc_df():
     Reads and returns pandas.Dataframe containing the descriptions of GDM columns
     """
     with importlib.resources.path(
-            flags_and_metadata_definitions, "glodatamix_columns_doc.csv"
+        flags_and_metadata_definitions, "glodatamix_columns_doc.csv"
     ) as gdm_doc_csv:
         return pd.read_csv(gdm_doc_csv)
+
+
+def get_internal_test_files_path():
+    """
+    Returns the path of the internal test files directory as string
+    :return: str
+    """
+
+    return test_files.__path__[0]

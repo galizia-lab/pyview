@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Sep 18 10:46:39 2018
 
@@ -8,8 +7,8 @@ file to collect the routines that were in the folder "View" in IDL
 """
 
 import numpy as np
-import scipy.ndimage as sci
 import scipy as sc
+import scipy.ndimage as sci
 
 
 def SpaceFilter(frame, filtersize):
@@ -29,7 +28,7 @@ def SpaceFilter(frame, filtersize):
         if kernelSize % 2 == 0: #number is even
             print('IncreaseCenterByOne not for even numbers')
             i = 1 # prevent eternal loops
-        if i > (kernelSize+1)/2: 
+        if i > (kernelSize+1)/2:
             print('View/SpaceFilter: working on kernel with i = ',i)
             #increase central region by one
             i -= 1
@@ -43,9 +42,9 @@ def SpaceFilter(frame, filtersize):
         kernelSize = filtersize
         #kernel = IDL.fltarr(kernelsize, kernelsize)
         kernel = np.ones([kernelSize, kernelSize])
-            
+
         DiagonalKernel(kernel,kernelSize, kernelSize)
-        
+
         frame = sc.signal.convolve(frame,  kernel, mode='same')
 #    if filtersize == 5:  ###example for Jasdan's solution
 #    kernel(*,*) = 	[1,1,1,1,1,		$ ; triangular 5x5
@@ -54,7 +53,7 @@ def SpaceFilter(frame, filtersize):
 #			 1,2,2,2,1,		$
 #			 1,1,1,1,1]
 #  END
-            
+
             ## default: all values are 1
     #;better than boxcar: triangular window average
     else: #negative filter: gaussian. In Jasdans version, it was a filter + convolve

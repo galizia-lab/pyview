@@ -1,15 +1,22 @@
-from qtpy.QtWidgets import QGroupBox, QLabel, QSizePolicy, QPushButton, \
-    QHBoxLayout, QMessageBox, QFileDialog
-import qtpy.compat
 import os
 
+import qtpy.compat
+from qtpy.QtWidgets import (
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+)
 
-def raiseInfo(str, parent):
-    QMessageBox.information(parent, 'Warning!', str)
+
+def raiseInfo(msg, parent):
+    QMessageBox.information(parent, "Warning!", msg)
 
 
 class PathChooser(QGroupBox):
-
     def choose_path_and_init(self):
 
         pass
@@ -22,7 +29,9 @@ class PathChooser(QGroupBox):
         self.path_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.choose_path_button = QPushButton(button_name)
         self.choose_path_button.setMaximumHeight(30)
-        self.choose_path_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.choose_path_button.setSizePolicy(
+            QSizePolicy.Fixed, QSizePolicy.Fixed
+        )
 
         self.choose_path_button.clicked.connect(self.choose_path_and_init)
 
@@ -45,14 +54,19 @@ class PathChooser(QGroupBox):
 
 
 class DirSelector(PathChooser):
-
-    def __init__(self, title, parent=None, dialogTitle='',
-                 dialogDefaultPath=None, **kwargs):
+    def __init__(
+        self,
+        title,
+        parent=None,
+        dialogTitle="",
+        dialogDefaultPath=None,
+        **kwargs,
+    ):
         super().__init__(title, parent, **kwargs)
 
         self.dialogTitle = dialogTitle
         if dialogDefaultPath is None or not os.path.isdir(dialogDefaultPath):
-            dialogDefaultPath = os.path.expanduser('~')
+            dialogDefaultPath = os.path.expanduser("~")
         self.dialogDefaultPath = dialogDefaultPath
 
     def choose_path_and_init(self):
@@ -62,23 +76,23 @@ class DirSelector(PathChooser):
 
     def choose_path(self):
 
-        return qtpy.compat.getexistingdirectory(parent=self,
-                                                basedir=self.dialogDefaultPath,
-                                                caption=self.dialogTitle,
-                                                options=QFileDialog.ShowDirsOnly
-                                                )
+        return qtpy.compat.getexistingdirectory(
+            parent=self,
+            basedir=self.dialogDefaultPath,
+            caption=self.dialogTitle,
+            options=QFileDialog.ShowDirsOnly,
+        )
 
     def setText(self, text):
 
-        if os.path.isdir(text) or os.path.isfile(text) or text is '':
+        if os.path.isdir(text) or os.path.isfile(text) or text == "":
             self.path_label.setText(text)
         else:
-            raiseInfo('No such file or directory: ' + text, self)
+            raiseInfo("No such file or directory: " + text, self)
             # pass
 
 
 class FileSelector(PathChooser):
-
     def choose_path_and_init(self):
 
         file_path = self.choose_path()
@@ -89,50 +103,58 @@ class FileSelector(PathChooser):
 
         pass
 
-    def __init__(self, widget_title, parent=None,
-                 dialog_title='', default_dir=None, filter='All Files(*.*)',
-                 **kwargs):
+    def __init__(
+        self,
+        widget_title,
+        parent=None,
+        dialog_title="",
+        default_dir=None,
+        file_type_filter="All Files(*.*)",
+        **kwargs,
+    ):
 
         super().__init__(widget_title, parent, **kwargs)
         self.dialogTitle = dialog_title
         if default_dir is None or not os.path.isdir(default_dir):
-            default_dir = os.path.expanduser('~')
+            default_dir = os.path.expanduser("~")
         self.dialogDefaultPath = default_dir
-        self.dialogFileTypeFilter = filter
+        self.dialogFileTypeFilter = file_type_filter
 
 
 class FileSelectorExisting(FileSelector):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def setText(self, text):
 
-        if os.path.isdir(text) or os.path.isfile(text) or text is '':
+        if os.path.isdir(text) or os.path.isfile(text) or text == "":
             self.path_label.setText(text)
         else:
-            raiseInfo('No such file or directory: ' + text, self)
+            raiseInfo("No such file or directory: " + text, self)
             # pass
 
     def choose_path(self):
-        filePath, filter = qtpy.compat.getopenfilename(parent=self,
-                                                       caption=self.dialogTitle,
-                                                       basedir=self.dialogDefaultPath,
-                                                       filters=self.dialogFileTypeFilter)
+        filePath, _filter = qtpy.compat.getopenfilename(
+            parent=self,
+            caption=self.dialogTitle,
+            basedir=self.dialogDefaultPath,
+            filters=self.dialogFileTypeFilter,
+        )
         return filePath
 
 
 class FileSaver(FileSelector):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.setText(self.dialogDefaultPath)
 
     def choose_path(self):
 
-        filename, file_filter = qtpy.compat.getsavefilename(parent=self,
-                                                             caption=self.dialogTitle,
-                                                             basedir=self.dialogDefaultPath,
-                                                             filters=self.dialogFileTypeFilter)
+        filename, file_filter = qtpy.compat.getsavefilename(
+            parent=self,
+            caption=self.dialogTitle,
+            basedir=self.dialogDefaultPath,
+            filters=self.dialogFileTypeFilter,
+        )
 
         return filename

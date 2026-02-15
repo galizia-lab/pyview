@@ -1,21 +1,23 @@
-from ..ctvs import get_ctv_function
 import numpy as np
 import pandas as pd
-from ..flags import FlagsManager
+
+from view.python_core.ctvs import get_ctv_function
+from view.python_core.flags import FlagsManager
 
 
-class PixelWiseCTVHandler(object):
-
+class PixelWiseCTVHandler:
     def __init__(self, flags: FlagsManager, p1):
 
         super().__init__()
 
         try:
             ctv_method_file = flags.get_ctv_method_file()
-        except FileNotFoundError as fnfe:
+        except FileNotFoundError:
             ctv_method_file = None
 
-        self.ctv_method = get_ctv_function(flags["CTV_Method"], ctv_method_file)
+        self.ctv_method = get_ctv_function(
+            flags["CTV_Method"], ctv_method_file
+        )
         self.ctv_firstframe = flags["CTV_firstframe"]
         self.ctv_lastframe = flags["CTV_lastframe"]
         self.sampling_period = p1.metadata.trial_ticks
@@ -67,27 +69,16 @@ class PixelWiseCTVHandler(object):
             stim_off_times=self.stim_off_times,
             stimulus_number=self.stimulus_number,
             flags=self.flags,
-            p1=self.p1)
+            p1=self.p1,
+        )
 
 
 def get_ctv_handler(flags, p1):
 
     if flags["SO_Method"] == 0:
-
         return PixelWiseCTVHandler(flags=flags, p1=p1)
 
     else:
         raise NotImplementedError(
-            f"Features with 'SO_Method' set to {flags['SO_Method']} have not yet been implemented\n")
-
-
-
-
-
-
-
-
-
-
-
-
+            f"Features with 'SO_Method' set to {flags['SO_Method']} have not yet been implemented\n"
+        )

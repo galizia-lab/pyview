@@ -1,13 +1,19 @@
-from qtpy.QtWidgets import QTableWidget, QTableWidgetItem, QWidget, QAbstractItemView
-from qtpy.QtGui import QIcon
-from qtpy.QtCore import Slot, Signal, Qt
-from view.python_core.get_internal_files import get_internal_icons
-import pandas as pd
 import logging
+
+import pandas as pd
+from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtGui import QIcon
+from qtpy.QtWidgets import (
+    QAbstractItemView,
+    QTableWidget,
+    QTableWidgetItem,
+    QWidget,
+)
+
+from view.python_core.get_internal_files import get_internal_icons
 
 
 class QTableWidgetPandasDF(QTableWidget):
-
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -32,13 +38,18 @@ class QTableWidgetPandasDF(QTableWidget):
                 table_widget_item.setData(Qt.DisplayRole, str(x))
                 table_widget_items.append(table_widget_item)
 
-            self._add_row_items(row_index=str(row_ind), items=table_widget_items)
+            self._add_row_items(
+                row_index=str(row_ind), items=table_widget_items
+            )
 
         self.setVerticalHeaderLabels([str(x) for x in df.index.values])
         self.setSortingEnabled(True)
 
     def get_headers(self):
-        return [self.horizontalHeaderItem(col_ind).text() for col_ind in range(self.columnCount())]
+        return [
+            self.horizontalHeaderItem(col_ind).text()
+            for col_ind in range(self.columnCount())
+        ]
 
     def add_row(self, s: pd.Series):
 
@@ -47,23 +58,26 @@ class QTableWidgetPandasDF(QTableWidget):
 
         # if header is empty initialize
         if len(headers) == 0:
-            assert self.rowCount() == 0 and self.columnCount() == 0, "Table has entries without headers, cannot " \
-                                                                     "figure out how to insert entries from series"
+            assert (
+                self.rowCount() == 0 and self.columnCount() == 0
+            ), "Table has entries without headers, cannot figure out how to insert entries from series"
             self.setHorizontalHeader(cols_input)
             vals2add = s.values
         else:
-
             vals2add = {k: v for k, v in enumerate(headers) if v in cols_input}
 
             cols_missing = set(vals2add.values()) - set(cols_input)
 
             if len(cols_missing) > 0:
+                logging.warning(
+                    "Adding a row: Ignoring the following columns, for which values were not specified",
+                    extra={"cols_missing": cols_missing},
+                )
 
-                logging.warning(f"Adding a row: Ignoring the following columns, for which values were not specified: "
-                                f"{cols_missing}")
-
-        ind_item_mapping = {col_ind: QTableWidgetItem(str(s[col_name]), 0)
-                            for col_ind, col_name in vals2add.items()}
+        ind_item_mapping = {
+            col_ind: QTableWidgetItem(str(s[col_name]), 0)
+            for col_ind, col_name in vals2add.items()
+        }
         self._add_row_items(row_index=s.name, items=ind_item_mapping)
 
     def _add_row_items(self, row_index: str, items):
@@ -77,8 +91,8 @@ class QTableWidgetPandasDF(QTableWidget):
 
         assert type(items) in (list, dict)
 
-        if type(items) == list:
-            items2use = {k: v for k, v in enumerate(items)}
+        if isinstance(items, list):
+            items2use = dict(enumerate(items))
         else:
             items2use = items
 
@@ -92,7 +106,6 @@ class QTableWidgetPandasDF(QTableWidget):
 
 
 class QTableWidgetPandasDFDeletable(QTableWidgetPandasDF):
-
     remove_data_signal = Signal(int, name="delete data")
 
     def __init__(self, parent):
@@ -116,13 +129,19 @@ class QTableWidgetPandasDFDeletable(QTableWidgetPandasDF):
     def _add_row_items(self, row_index, items):
 
         super()._add_row_items(row_index, items)
-        close_icon = QIcon(get_internal_icons("twotone-delete_forever-24px.svg"))
-        super().setItem(self.rowCount() - 1, 0, QTableWidgetItem(close_icon, "", 0))
+        close_icon = QIcon(
+            get_internal_icons("twotone-delete_forever-24px.svg")
+        )
+        super().setItem(
+            self.rowCount() - 1, 0, QTableWidgetItem(close_icon, "", 0)
+        )
 
     def setHorizontalHeaderLabels(self, Iterable, p_str=None):
 
         super().setHorizontalHeaderLabels([""] + list(Iterable))
-        close_icon = QIcon(get_internal_icons("twotone-delete_forever-24px.svg"))
+        close_icon = QIcon(
+            get_internal_icons("twotone-delete_forever-24px.svg")
+        )
         super().setHorizontalHeaderItem(0, QTableWidgetItem(close_icon, "", 0))
 
     def get_headers(self):
@@ -143,17 +162,3 @@ class QTableWidgetPandasDFDeletable(QTableWidgetPandasDF):
             row_count = self.rowCount()
             for row_ind in list(range(row_count))[::-1]:
                 self.send_delete_signal(row_ind=row_ind, col_ind=0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-

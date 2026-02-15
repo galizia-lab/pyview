@@ -1,37 +1,43 @@
 import logging
+import typing
 from abc import ABC, abstractmethod
+
 from view.python_core.areas import AreaMaskIO
 from view.python_core.flags import FlagsManager
 from view.python_core.io import read_tif_2Dor3D
 from view.python_core.paths import check_get_file_existence_in_folder
 from view.python_core.rois.idl_rois import SquareIDLROIData, TIFFIDLROIData
-from view.python_core.rois.iltis_rois import CircleILTISROIData, PolygonILTISROIData, SpatialFootprintROIData
-import typing
-
+from view.python_core.rois.iltis_rois.text_based import (
+    CircleILTISROIData,
+    PolygonILTISROIData,
+)
+from view.python_core.rois.iltis_rois.tiff_based import SpatialFootprintROIData
 from view.python_core.rois.non_file_based_rois import UniformROIData
 
 
 class BaseROIIO(ABC):
-
     def __init__(self):
 
         super().__init__()
 
     @classmethod
     @abstractmethod
-    def read(cls, flags: FlagsManager, measurement_label: str = "") -> typing.Tuple[dict, str]:
+    def read(
+        cls, flags: FlagsManager, measurement_label: str = ""
+    ) -> typing.Tuple[dict, str]:
 
-        return  # to be implemented in subclass
+        pass  # to be implemented in subclass
 
 
 class ROIFileIO(BaseROIIO, ABC):
-
     def __init__(self):
 
         super().__init__()
 
     @classmethod
-    def read(cls, flags: FlagsManager, measurement_label: str = "") -> typing.Tuple[dict, str]:
+    def read(
+        cls, flags: FlagsManager, measurement_label: str = ""
+    ) -> typing.Tuple[dict, str]:
         """
         Read ROI data from a ROI file indicated by <flags> and optionally <measurement_label>
         :param flags: view flags object
@@ -45,28 +51,30 @@ class ROIFileIO(BaseROIIO, ABC):
 
         for parent_folder in parent_folders:
             roi_file = check_get_file_existence_in_folder(
-                folder=parent_folder, possible_extensions=[cls.get_extension()],
-                stems=flags.get_file_stem_hierarchy(measurement_label)
+                folder=parent_folder,
+                possible_extensions=[cls.get_extension()],
+                stems=flags.get_file_stem_hierarchy(measurement_label),
             )
             if roi_file is not None:
                 break
         else:
             raise FileNotFoundError(
-                f"Could not find a ROI file\nin any of {parent_folders}\nfor animal={flags['STG_ReportTag']}"
-                f"\nand measurement_label={measurement_label}\nwith extension={cls.get_extension()}"
+                f"Could not find a ROI file\nin any of {parent_folders}\nfor animal={flags['STG_ReportTag']}\nand measurement_label={measurement_label}\nwith extension={cls.get_extension()}"
             )
 
-        logging.getLogger("VIEW").info(f"Loading current ROI data from {roi_file}")
+        logging.getLogger("VIEW").info(
+            "Loading current ROI data", extra={"roi_file": roi_file}
+        )
         roi_data_list = cls.read_roi_file(roi_file, flags)
 
         # look for duplicate labels and issue warning
         roi_data_dict = {}
         for roi_data in roi_data_list:
-
             if roi_data.label in roi_data_dict:
                 logging.getLogger("VIEW").warning(
-                    f"Multiple glomeruli found with label {roi_data.label} in {roi_file}. Ignoring the "
-                    f"second one")
+                    "Multiple glomeruli found. Ignoring the second one",
+                    extra={"label": roi_data.label, "roi_file": roi_file},
+                )
 
             roi_data_dict[roi_data.label] = roi_data
 
@@ -97,7 +105,6 @@ class ROIFileIO(BaseROIIO, ABC):
 
 
 class IDLCoorFileIO(ROIFileIO):
-
     def __init__(self):
         super().__init__()
 
@@ -118,8 +125,10 @@ class IDLCoorFileIO(ROIFileIO):
             text_lines = fh.readlines()
 
         n_rois = int(text_lines[0])
-        assert len(text_lines) - 1 >= n_rois, f"The number of ROIs indicated in the first line exceeds the number" \
-                                              f"of ROI lines that follow in {roi_file}"
+        assert len(text_lines) - 1 >= n_rois, (
+            f"The number of ROIs indicated in the first line exceeds the number"
+            f"of ROI lines that follow in {roi_file}"
+        )
         roi_data = []
         for roi_ind in range(n_rois):
             roi = SquareIDLROIData.read_from_text_line(text_lines[1 + roi_ind])
@@ -136,7 +145,6 @@ class IDLCoorFileIO(ROIFileIO):
 
 
 class IDLAREAFileIO(ROIFileIO):
-
     def __init__(self):
         super().__init__()
 
@@ -155,7 +163,7 @@ class IDLAREAFileIO(ROIFileIO):
         """
 
         idl_tiff_frame = AreaMaskIO().read_footprint(roi_file)
-        
+
         roi_data = TIFFIDLROIData(idl_tiff_frame=idl_tiff_frame, label="Area0")
         return [roi_data]
 
@@ -169,7 +177,6 @@ class IDLAREAFileIO(ROIFileIO):
 
 
 class ILTISTextROIFileIO(ROIFileIO):
-
     def __init__(self):
 
         super().__init__()
@@ -211,21 +218,23 @@ class ILTISTextROIFileIO(ROIFileIO):
         :param roi_datas: list of objects, belonging to one of the classes: PolygonILTISROIData, CircleILTISROIData
         :return: None
         """
-        lines_to_write = [roi_data.write_to_text_line() for roi_data in roi_datas]
+        lines_to_write = [
+            roi_data.write_to_text_line() for roi_data in roi_datas
+        ]
 
         with open(filename, "w") as fh:
-
             fh.writelines(lines_to_write)
 
 
 class ILTISTiffROIFileIO(ROIFileIO):
-
     def __init__(self):
 
         super().__init__()
 
     @classmethod
-    def read(cls, flags: FlagsManager, measurement_label: str = "", labels=()) -> typing.Tuple[dict, str]:
+    def read(
+        cls, flags: FlagsManager, measurement_label: str = "", labels=()
+    ) -> typing.Tuple[dict, str]:
         """
         Read ROI data from a ROI file indicated by <flags> and optionally <measurement_label>
         :param flags: view flags object
@@ -235,19 +244,28 @@ class ILTISTiffROIFileIO(ROIFileIO):
         roi_data_dict: dict with roi labels as keys and ROI Data objects as values
         roi_file: str, name of the file from which ROI data was read
         """
-        roi_data_dict_temp, roi_file = super().read(flags=flags, measurement_label=measurement_label)
+        roi_data_dict_temp, roi_file = super().read(
+            flags=flags, measurement_label=measurement_label
+        )
 
         roi_data_dict = {}
         if len(labels) == 0:
             roi_data_dict = roi_data_dict_temp
         elif len(labels) == len(roi_data_dict_temp):
-            for label, (roi_label, roi_data) in zip(labels, roi_data_dict_temp.items()):
+            for label, (_roi_label, roi_data) in zip(
+                labels, roi_data_dict_temp.items(), strict=True
+            ):
                 roi_data.label = label
                 roi_data_dict[label] = roi_data
         else:
             logging.getLogger("VIEW").warning(
-                f"The specified tiff file, {roi_file}, has {len(roi_data_dict_temp)}, "
-                f"while {len(labels)} were specified. Ignoring the labels specified")
+                "The specified tiff roi file has a different number of labels than specified",
+                extra={
+                    "roi_file": roi_file,
+                    "number of labels in roi file": len(roi_data_dict_temp),
+                    "number of labels specified": len(labels),
+                },
+            )
             roi_data_dict = roi_data_dict_temp
 
         return roi_data_dict, roi_file
@@ -275,10 +293,12 @@ class ILTISTiffROIFileIO(ROIFileIO):
 
         roi_data = []
 
-        for roi_ind, label in enumerate(labels[:roi_footprints.shape[2]]):
+        for roi_ind, label in enumerate(labels[: roi_footprints.shape[2]]):
             roi = SpatialFootprintROIData(
                 spatial_footprint=roi_footprints[:, :, roi_ind],
-                thresh=flags["RM_ROIThreshold"], label=label)
+                thresh=flags["RM_ROIThreshold"],
+                label=label,
+            )
             roi_data.append(roi)
 
         return roi_data
@@ -290,7 +310,6 @@ class ILTISTiffROIFileIO(ROIFileIO):
 
 
 class ILTISAreaROIFileIO(ILTISTiffROIFileIO):
-
     def __init__(self):
 
         super().__init__()
@@ -310,7 +329,6 @@ class ILTISAreaROIFileIO(ILTISTiffROIFileIO):
 
 
 class NonFileUniformROIIO(BaseROIIO):
-
     def __init__(self):
 
         super().__init__()
@@ -327,7 +345,7 @@ class NonFileUniformROIIO(BaseROIIO):
         roi_file: str, name of the file from which ROI data was read
         """
 
-        logging.getLogger("VIEW").info(f"Create fictive uniform ROI data")
+        logging.getLogger("VIEW").info("Create fictive uniform ROI data")
         roi_data = UniformROIData()
         roi_data_dict = {roi_data.label: roi_data}
 
@@ -343,19 +361,15 @@ def get_roi_io_class(RM_ROITrace):
         io_class = IDLAREAFileIO
 
     elif RM_ROITrace == 3:
-
         io_class = ILTISTextROIFileIO
 
     elif RM_ROITrace == 4:
-
         io_class = ILTISTiffROIFileIO
 
     elif RM_ROITrace == 5:
-
         io_class = ILTISAreaROIFileIO
 
     elif RM_ROITrace == 6:
-
         io_class = NonFileUniformROIIO
 
     else:
@@ -363,6 +377,9 @@ def get_roi_io_class(RM_ROITrace):
         # raise NotImplementedError(f"RM_ROITrace={RM_ROITrace}")
         # Aug 2025: do not raise an error, just return the non-file based IO class
 
-    logging.getLogger("VIEW").info(f"Using {io_class.__name__} for RM_ROITrace={RM_ROITrace}")
+    logging.getLogger("VIEW").info(
+        "Class selected based on RM_ROITrace",
+        extra={"class name": io_class.__name__, "RM_ROITrace": RM_ROITrace},
+    )
 
     return io_class

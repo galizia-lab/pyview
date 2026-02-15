@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed May 30 10:13:47 2018
 
@@ -15,15 +14,17 @@ on mac gio: run in environment idl_py
 
 ### gio 25.5.2019: "from view.idl_translation_core import View_gr_reports " does not work,
 #                    direct import does: import View_gr_reports as...
-#                  in spyder, anaconca env idl_py, mac. 
+#                  in spyder, anaconca env idl_py, mac.
 #from view.idl_translation_core import View_gr_reports as View_gr_reports, IDL_flags as IDL_flags
-import View_gr_reports as View_gr_reports, IDL_flags as IDL_flags
-from sys import platform
 #show images inline:
 #%matplotlib inline
 #show images in extra window
 #%matplotlib qt
 import shutil
+from sys import platform
+
+import IDL_flags as IDL_flags
+import View_gr_reports as View_gr_reports
 
 
 def Set_my_flags(flag):
@@ -32,9 +33,9 @@ def Set_my_flags(flag):
     flag.LE_loadExp = 4
     flag.CSM_Movement = 0 # 2 for movement correction on the spot - is slow!
     flag.VIEW_batchmode    = 1 # fo
-    
+
     flag.LE_CalcMethod = 4900
-    
+
     flag.VIEW_ReportMethod = 10 #10 for overviews, 11 for Glodatamix, 12 for movies
     flag.SO_Method    = 10
     flag.SO_individualScale= 3
@@ -47,25 +48,25 @@ def Set_my_flags(flag):
     flag.RM_FotoOk    = 0
     flag.RM_NextPosition = (0,0)
     flag.CTV_scalebar = 0
-    
+
     flag.Signal_FilterSpaceFlag = 1
     flag.Signal_FilterSpaceSize = 5
     flag.mv_individualScale = 3
-    
+
     flag.RM_Radius = 5
     flag.SO_MV_colortable = 11
 
-    
+
     return flag
 
 
-def ChooseFileFolder():  
+def ChooseFileFolder():
     import tkinter as tk
     from tkinter.filedialog import askopenfilenames
 
     # Choose raw files
     root = tk.Tk()
-    root.withdraw() # so that windows closes after file chosen 
+    root.withdraw() # so that windows closes after file chosen
     root.attributes('-topmost', True)
     # the mac system does not accept filetypes, therefore ask for system
     if platform == 'darwin':
@@ -97,7 +98,7 @@ def Inga_2019_Fura_test(flag):
     # run gr_takefromlist to use the 'analyze' column
 #list what to do with each animal here
         (p1, flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 1, flag, selectformat ='analyze')
-    
+
     return p1, flag
 # end of Inga_2019_Fura_test
 
@@ -116,7 +117,7 @@ def gr_190227_locust_ip14(flag):
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 9, flag, selectformat ='subloop') #  00_MOL
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 11, flag, selectformat ='subloop') #  13_MOL
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 13, flag, selectformat ='subloop') #  15_NONL-3
-    
+
     return p1, flag
 
 def gr_190227_locust_ip16(flag):
@@ -133,7 +134,7 @@ def gr_190227_locust_ip16(flag):
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 9, flag, selectformat ='subloop') #  00_MOL
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 11, flag, selectformat ='subloop') #  13_MOL
     (p1,flag) = View_gr_reports.gr_takefromlist(flag.STG_ReportTag, 13, flag, selectformat ='subloop') #  15_NONL-3
-    
+
     return p1, flag
 
 #########################################################

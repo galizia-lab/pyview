@@ -12,34 +12,34 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = "BSD-3-Clause"
 dependencies = [
-                    "qtpy>=2.4.3",
-                    "pandas>=0.24.2",
-                    "openpyxl>=3.0.3",
-                    "scipy >=1.2.1",
-                    "numpy>=1.16.3",
-                    "matplotlib>=3.0.3",
-                    "pyyaml>=3.3",
-                    "Pillow>=6.0.0",
-                    "moviepy>=1.0.0,<2",
-                    "scikit-image>=0.15.0",
-                    "appdirs>=1.4.3",
-                    # iltis ported to PyQt5 is needed, old iltis built using PyQt4 will not work.
-                    # Source code available at https://gitlab.inf.uni-konstanz.de/ag-galizia/iltis.
-                    # See wiki on https://gitlab.inf.uni-konstanz.de/ag-galizia/view for more info
-                    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@napari-plugin",
-                    "tillvisionio@git+https://git@github.com/galizia-lab/tillvisionio.git@1.2",
-                    "tifffile>=2019.7.26",
-                    "easygui>=0.98.3",
-                    "jinja2>=2.10.3",
-                    "whoosh>=2.7.4",
-                    "seaborn>=0.10.0",
-                    "bokeh>=2.0.0",
-                    "textfsm>=1.1.0",
-                    "itables>=0.2.1",
-                    "gekko>=0.2.8",
-                    "quantities>=0.12.4",
-                    "neo>=0.9.0",
-                    "readlif>=0.6.5"
+    "qtpy>=2.4.3",
+    "pandas>=0.24.2",
+    "openpyxl>=3.0.3",
+    "scipy >=1.2.1",
+    "numpy>=1.16.3",
+    "matplotlib>=3.0.3",
+    "pyyaml>=3.3",
+    "Pillow>=6.0.0",
+    "moviepy>=1.0.0,<2",
+    "scikit-image>=0.15.0",
+    "appdirs>=1.4.3",
+    # iltis ported to PyQt5 is needed, old iltis built using PyQt4 will not work.
+    # Source code available at https://gitlab.inf.uni-konstanz.de/ag-galizia/iltis.
+    # See wiki on https://gitlab.inf.uni-konstanz.de/ag-galizia/view for more info
+    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@napari-plugin",
+    "tillvisionio@git+https://git@github.com/galizia-lab/tillvisionio.git@1.2",
+    "tifffile>=2019.7.26",
+    "easygui>=0.98.3",
+    "jinja2>=2.10.3",
+    "whoosh>=2.7.4",
+    "seaborn>=0.10.0",
+    "bokeh>=2.0.0",
+    "textfsm>=1.1.0",
+    "itables>=0.2.1",
+    "gekko>=0.2.8",
+    "quantities>=0.12.4",
+    "neo>=0.9.0",
+    "readlif>=0.6.5"
 ]
 
 [project.optional-dependencies]
@@ -49,6 +49,16 @@ pyqt5 = [
 napari = [
     "napari[all]"
 ]
+dev = [
+    "ipdb>=0.13.9",
+    "ipython>=8.0.0",
+    "pandas-stubs>=1.2.0",
+    "pytest>=7.0.0",
+    "ty>=0.0.15",
+    "black",
+    "ruff",
+    "pytest-qt"
+]
 
 [project.scripts]
 view = 'view.gui.start_view_gui:main'
@@ -57,15 +67,52 @@ view = 'view.gui.start_view_gui:main'
 packages = ["view"]
 
 [tool.setuptools.package-data]
-view  = [
-            "flags_and_metadata_definitions/*.csv",
-            "graphics/icons/*.svg",
-            "fonts/PixelOperator/*",
-            "fonts/OpenSans/*",
-            "jinja_templates/*",
-            "idl_folder_translation/*template.txt"
-        ]
+view = [
+    "flags_and_metadata_definitions/*.csv",
+    "graphics/icons/*.svg",
+    "fonts/PixelOperator/*",
+    "fonts/OpenSans/*",
+    "jinja_templates/*",
+    "idl_folder_translation/*template.txt"
+]
 
 # napari-plugin related
 [project.entry-points."napari.manifest"]
 napari_pyview = "view.napari_pyview:napari.yaml"
+
+# formatting, linting
+[tool.black]
+line-length = 79
+target-version = ['py310', 'py311', 'py312', 'py313']
+exclude = '''
+/(?:
+    view/idl_folder_translation
+    | view/idl_translation_core
+    | view/python_core/tests/test_files/pro_tests/grl_A_5803a_expected.yml
+)/
+'''
+
+[tool.ruff]
+line-length = 79
+lint.select = [
+    "E", "F", "W", #flake8                           
+    "UP", # pyupgrade                                
+    "I", # isort                                     
+    "BLE", # flake8-blind-exception                  
+    "B", # flake8-bugbear                            
+    "A", # flake8-builtins                           
+    "C4", # flake8-comprehensions                    
+    "ISC", # flake8-implicit-str-concat              
+    "G", # flake8-logging-format                     
+    "PIE", # flake8-pie                              
+    "SIM", # flake8-simplify                         
+]
+lint.ignore = [
+    "E501", # line too long. let black handle this   
+    "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.                                    ║
+]
+exclude = [
+    "view/idl_folder_translation",
+    "view/idl_translation_core",
+    "view/python_core/tests/test_files/pro_tests/grl_A_5803a_expected.yml"
+]
