@@ -1,4 +1,4 @@
-name: view_py310_250910
+name: view_26
 channels:
   - conda-forge
 dependencies:
@@ -20,3 +20,6 @@ dependencies:
   - moviepy
   # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas
+  - pytest
+  - pytest-qt
+  - napari
