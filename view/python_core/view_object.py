@@ -13,6 +13,7 @@ from view.python_core.gdm_generation import (
     get_gdm_file,
     get_roi_gdm_traces_dict,
 )
+from view.python_core.logging_helper import CustomFormatter
 from view.python_core.measurement_list import MeasurementList
 from view.python_core.measurement_list.importers import get_setup_extension
 from view.python_core.movies import export_movie
@@ -88,9 +89,7 @@ class VIEW:
                 view_log_dir_path
                 / f"VIEW_started_at_{time.strftime('%Y-%m-%d-%H-%M-%S')}.log"
             )
-            formatter = logging.Formatter(
-                "%(asctime)s [VIEW] [%(levelname)-5.5s] %(message)s"
-            )
+            formatter = CustomFormatter(program_name="VIEW")
 
             file_handler = logging.FileHandler(log_file_path)
             file_handler.setLevel(level=logging.INFO)
@@ -163,9 +162,9 @@ class VIEW:
             lst_fle=list_file, LE_loadExp=self.flags["LE_loadExp"]
         )
 
-        assert (
-            self.measurement_list.animal_name is not None
-        ), "Something went wrong!"
+        assert self.measurement_list.animal_name is not None, (
+            "Something went wrong!"
+        )
         self.flags.update_flags(
             {"STG_ReportTag": self.measurement_list.animal_name}
         )
