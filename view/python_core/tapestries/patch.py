@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import pathlib as pl
 import pprint
 import typing
+from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 from PIL import Image
 
-from view.python_core.tapestries.tapestry_config import TapestryConfig
+if typing.TYPE_CHECKING:
+    from view.python_core.overviews import OverviewDataForOutput
+    from view.python_core.tapestries.tapestry_config import TapestryConfig
 
 
 def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
@@ -18,51 +22,42 @@ def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
     return formats
 
 
+@dataclass
 class EmptyPatch:
-    def __init__(self):
-
-        super().__init__()
-        self.image_relative_path = "Excluded"
-        self.text_below = ""
-        self.text_right_bottom = ""
-        self.text_right_top = ""
-        self.animal = "Invalid"
-        self.flag_changes = "Invalid"
-        self.movie_file = None
+    image_relative_path: str = "Excluded"
+    text_below: str = ""
+    text_right_bottom: str = ""
+    text_right_top: str = ""
+    animal: str = "Invalid"
+    flag_changes: str = "Invalid"
+    movie_file_for_html: str = None
 
 
+@dataclass
 class Patch(EmptyPatch):
-    def __init__(
-        self,
-        overview: np.ndarray,
-        data_limits: typing.Iterable[float],
-        measurement_row: pd.Series,
-        animal: str,
-        measu: int,
-        flag_changes: dict,
-    ):
+    overview_data_for_output: OverviewDataForOutput = None
+    measurement_row: pd.Series = None
+    measu: int = None
+    pil_image: Image = None
+    image_relative_path: pl.Path | str = None
 
-        super().__init__()
-        self.overview = overview
+    def __post_init__(self):
 
-        self.pil_image = Image.fromarray(overview)
-        self.data_limits = data_limits
+        self.pil_image = Image.fromarray(
+            self.overview_data_for_output.overview_frame_for_output
+        )
 
         self.text_right_bottom, self.text_right_top = [
-            f"{x:.3g}" for x in data_limits
+            f"{x:.3g}" for x in self.overview_data_for_output.data_limits
         ]
-
-        self.measurement_row = measurement_row
 
         self.text_below = "uninitialized"
 
         self.image_relative_path = "uninitialized"
 
-        self.animal = animal
-
-        self.measu = measu
-
-        self.flag_changes = pprint.pformat(flag_changes).replace("\n", "<br>")
+        self.flag_changes = pprint.pformat(self.flag_changes).replace(
+            "\n", "<br>"
+        )
 
     def initialize_texts(self, tapestry_config: TapestryConfig):
 
@@ -109,22 +104,13 @@ class Patch(EmptyPatch):
         return image_op_stem
 
 
+@dataclass
 class PatchWithMovie(Patch):
-    def __init__(
-        self,
-        overview: np.ndarray,
-        data_limits: typing.Iterable[float],
-        measurement_row: pd.Series,
-        animal: str,
-        measu: int,
-        flag_changes: dict,
-        op_movie_file: str,
-    ):
+    movie_file_to_move: str = None
 
-        super().__init__(
-            overview, data_limits, measurement_row, animal, measu, flag_changes
-        )
-        self.movie_file = op_movie_file
+    def __post_init__(self):
+
+        super().__post_init__()
 
     def write_overview_movie_files(
         self,
@@ -138,35 +124,33 @@ class PatchWithMovie(Patch):
         )
 
         # move movie next to the created overview files
-        temp_movie_path = pl.Path(self.movie_file)
+        temp_movie_path = pl.Path(self.movie_file_to_move)
         movie_op_file_path = f"{image_op_stem}_movie{temp_movie_path.suffix}"
         temp_movie_path.replace(movie_op_file_path)
 
-        self.movie_file = movie_op_file_path
+        self.movie_file_for_html = movie_op_file_path
 
 
 def get_nonempty_patch(
-    overview,
-    data_limits,
-    measurement_row,
-    animal,
-    measu,
-    flag_changes,
-    op_movie_file,
+    overview_data_for_output: OverviewDataForOutput,
+    measurement_row: pd.Series,
+    animal: str,
+    measu: int,
+    flag_changes: str,
+    movie_file_to_move: str,
 ):
 
-    if op_movie_file is None:
-        return Patch(
-            overview, data_limits, measurement_row, animal, measu, flag_changes
-        )
+    patch_input = {
+        "overview_data_for_output": overview_data_for_output,
+        "measurement_row": measurement_row,
+        "animal": animal,
+        "measu": measu,
+        "flag_changes": flag_changes,
+    }
+    if movie_file_to_move is None:
+        return Patch(**patch_input)
 
     else:
         return PatchWithMovie(
-            overview,
-            data_limits,
-            measurement_row,
-            animal,
-            measu,
-            flag_changes,
-            op_movie_file,
+            **patch_input, movie_file_to_move=movie_file_to_move
         )

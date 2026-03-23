@@ -20,6 +20,11 @@ from view.python_core.movies.static_border import (
     get_static_border_adder_2D,
 )
 from view.python_core.overviews.ctv_handlers import get_ctv_handler
+from view.python_core.overviews.data_classes import (
+    OverviewData,
+    OverviewDataForOutput,
+    prep_overview_for_output,
+)
 from view.python_core.overviews.roi_marker import get_roi_marker_2D
 from view.python_core.p1_class import Default_P1_Getter
 from view.python_core.utils.colors import interpret_flag_SO_MV_colortable
@@ -158,7 +163,9 @@ def generate_overview_frame(flags, p1, feature_number=None):
     else:
         assert type(feature_number) is list and all(
             type(x) is int for x in feature_number
-        ), f"feature_number can be either None, 'all' or a list of ints. Got {feature_number}"
+        ), (
+            f"feature_number can be either None, 'all' or a list of ints. Got {feature_number}"
+        )
 
     try:
         return overview_frames[feature_number, :, :]
@@ -186,7 +193,9 @@ def generate_overview_image(flags, p1):
     )
 
 
-def colorize_overview_add_border_etc(overview_frame, flags, p1=None):
+def colorize_overview_add_border_etc(
+    overview_frame, flags, p1=None
+) -> OverviewData:
     """
     Colorizes <overview_frame>, applies borders and border annotations according to <flags>. If <overview_frame> was
     generated from a p1 object, pass it to <p1>, else let it default to None. A p1 object is only required when <flags>
@@ -262,14 +271,16 @@ def colorize_overview_add_border_etc(overview_frame, flags, p1=None):
         },
     )
 
-    return (
-        overview_frame_final,
-        data_to_01_mapper.get_data_limits(),
-        overview_generator,
+    return OverviewData(
+        overview_frame=overview_frame,
+        overview_frame_preprocessed=overview_frame_preprocessed,
+        overview_frame_colorized_with_frame=overview_frame_final,
+        data_limits=data_to_01_mapper.get_data_limits(),
+        overview_generator=overview_generator,
     )
 
 
-def generate_overview_image_for_output(flags, p1):
+def generate_overview_image_for_output(flags, p1) -> OverviewDataForOutput:
     """
     Generates overview frame and transforms it so that it can be readily used either for plt.imshow or for
     saving with tifffile.imsave
@@ -281,32 +292,10 @@ def generate_overview_image_for_output(flags, p1):
     """
 
     # data is in X, Y, color format
-    overview_frame, data_limits, overview_generator_used = (
-        generate_overview_image(flags, p1)
-    )
+    overview_data = generate_overview_image(flags, p1)
 
     # conversion to YX format, uint8 and flip Y
-    return prep_overview_for_output(overview=overview_frame), data_limits
-
-
-def prep_overview_for_output(overview):
-    """
-    Prepare overview image for output as TIFs or as a frame of a movie
-    :param numpy.ndarray overview: float64 X,Y,Color format with origin at bottom left
-    :rtype: numpy.ndarray
-    :returns: uint8; Y,X, Color format with origin at top left
-    """
-
-    # need to swap axes as tiff expects YX
-    frame_data_numpy_swapped = overview.swapaxes(0, 1)
-
-    # need to convert it to 8 bit from float
-    frame_data_numpy_swapped_uint8 = np.array(
-        frame_data_numpy_swapped * 255, dtype=np.uint8
-    )
-
-    # flip Y since origin in tiff is top left
-    return np.flip(frame_data_numpy_swapped_uint8, axis=0)
+    return prep_overview_for_output(overview_data)
 
 
 def get_current_pyplot_window_titles():
@@ -356,18 +345,20 @@ def pop_show_overview(
     else:
         assert type(stimulus_number) is list and all(
             type(x) is int for x in stimulus_number
-        ), f"stimulus_number can be either None, 'all' or a list of ints. Got {stimulus_number}"
+        ), (
+            f"stimulus_number can be either None, 'all' or a list of ints. Got {stimulus_number}"
+        )
 
     n_stim_used = len(stimulus_number)
     overview_frames_columns = []
     for stim_ind in stimulus_number:
-        assert (
-            type(stim_ind) is int
-        ), f"For flag 'CTV_StimulusNumber' Expected int, got {type(stim_ind)}({stim_ind})"
+        assert type(stim_ind) is int, (
+            f"For flag 'CTV_StimulusNumber' Expected int, got {type(stim_ind)}({stim_ind})"
+        )
         if n_stim > 0:
-            assert (
-                0 <= stim_ind < n_stim
-            ), f"IndexError: Current measurement has {n_stim} stimuli, therefore stimulus_number can be in [0, {n_stim - 1}]. Got {stim_ind}"
+            assert 0 <= stim_ind < n_stim, (
+                f"IndexError: Current measurement has {n_stim} stimuli, therefore stimulus_number can be in [0, {n_stim - 1}]. Got {stim_ind}"
+            )
 
         flags_copy = flags.copy()
         flags_copy.update_flags({"CTV_StimulusNumber": stim_ind})
@@ -399,20 +390,18 @@ def pop_show_overview(
         ):
             row_ind = feature_ind
             ax = axs[row_ind, col_ind]
-            (
-                overview_frame_colorized_with_frame,
-                data_limits,
-                overview_generator_used,
-            ) = colorize_overview_add_border_etc(
+            overview_data = colorize_overview_add_border_etc(
                 overview_frame=overview_frame_this_feature, flags=flags, p1=p1
             )
 
-            overview_for_output = prep_overview_for_output(
-                overview_frame_colorized_with_frame
-            )
+            overview_for_output = prep_overview_for_output(overview_data)
 
-            ax.imshow(np.flip(overview_for_output, axis=0), origin="lower")
+            ax.imshow(
+                np.flip(overview_for_output.overview_frame_for_output, axis=0),
+                origin="lower",
+            )
             legendfactor = flags["SO_scaleLegendFactor"]
+            data_limits = overview_data.data_limits
             ax.set_title(
                 f"Feature Number: {feature_ind:d}; Stimulus Number: {stim_ind:d}\nFalse color scale (CTV*{legendfactor:2.1f}) is {data_limits[0] * legendfactor:2.3f} to {data_limits[1] * legendfactor:2.3f}"
             )
@@ -454,9 +443,7 @@ def pop_show_overview(
                     _roi_mask,
                     color,
                     label,
-                ) in (
-                    overview_generator_used.roi_marker.roi_mask_color_label_tuples
-                ):
+                ) in overview_data.overview_generator.roi_marker.roi_mask_color_label_tuples:
                     ax.plot([-1], [-1], "-", color=color, label=label)
                 ax.legend(
                     bbox_to_anchor=(1.05, 1),
@@ -484,11 +471,12 @@ def create_bw_image_from_frame(frame, extra_flags=None):
     flags = FlagsManager()
     flags.update_flags(flags_2_update)
 
-    if type(extra_flags) is dict:
-        flags.update_flags(extra_flags)
+    assert type(extra_flags) is dict, ValueError
 
-    frame_bw, data_limits, overview_generator_used = (
-        colorize_overview_add_border_etc(overview_frame=frame, flags=flags)
+    flags.update_flags(extra_flags)
+
+    overview_data = colorize_overview_add_border_etc(
+        overview_frame=frame, flags=flags
     )
 
-    return frame_bw
+    return overview_data.overview_frame_colorized_with_frame
