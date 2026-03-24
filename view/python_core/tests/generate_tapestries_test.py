@@ -98,6 +98,7 @@ if __name__ == "__main__":
     # run_with_yml_name("different_animals")
     # run_with_yml_name("with_movies_stack_tif")
     # run_with_yml_name("with_movies_libx264")
-    run_with_yml_name("custom_csv_linux")
+    # run_with_yml_name("custom_csv_linux")
     # run_with_yml_name("custom_csv_windows")
     # run_with_yml_name("different_flags")
+    run_with_yml_name("save_scientific_tif")

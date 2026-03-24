@@ -163,9 +163,7 @@ def generate_overview_frame(flags, p1, feature_number=None):
     else:
         assert type(feature_number) is list and all(
             type(x) is int for x in feature_number
-        ), (
-            f"feature_number can be either None, 'all' or a list of ints. Got {feature_number}"
-        )
+        ), f"feature_number can be either None, 'all' or a list of ints. Got {feature_number}"
 
     try:
         return overview_frames[feature_number, :, :]
@@ -345,20 +343,18 @@ def pop_show_overview(
     else:
         assert type(stimulus_number) is list and all(
             type(x) is int for x in stimulus_number
-        ), (
-            f"stimulus_number can be either None, 'all' or a list of ints. Got {stimulus_number}"
-        )
+        ), f"stimulus_number can be either None, 'all' or a list of ints. Got {stimulus_number}"
 
     n_stim_used = len(stimulus_number)
     overview_frames_columns = []
     for stim_ind in stimulus_number:
-        assert type(stim_ind) is int, (
-            f"For flag 'CTV_StimulusNumber' Expected int, got {type(stim_ind)}({stim_ind})"
-        )
+        assert (
+            type(stim_ind) is int
+        ), f"For flag 'CTV_StimulusNumber' Expected int, got {type(stim_ind)}({stim_ind})"
         if n_stim > 0:
-            assert 0 <= stim_ind < n_stim, (
-                f"IndexError: Current measurement has {n_stim} stimuli, therefore stimulus_number can be in [0, {n_stim - 1}]. Got {stim_ind}"
-            )
+            assert (
+                0 <= stim_ind < n_stim
+            ), f"IndexError: Current measurement has {n_stim} stimuli, therefore stimulus_number can be in [0, {n_stim - 1}]. Got {stim_ind}"
 
         flags_copy = flags.copy()
         flags_copy.update_flags({"CTV_StimulusNumber": stim_ind})
@@ -443,7 +439,9 @@ def pop_show_overview(
                     _roi_mask,
                     color,
                     label,
-                ) in overview_data.overview_generator.roi_marker.roi_mask_color_label_tuples:
+                ) in (
+                    overview_data.overview_generator.roi_marker.roi_mask_color_label_tuples
+                ):
                     ax.plot([-1], [-1], "-", color=color, label=label)
                 ax.legend(
                     bbox_to_anchor=(1.05, 1),

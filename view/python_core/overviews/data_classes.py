@@ -67,7 +67,7 @@ def prep_np_array_for_output(np_array):
     """
     Prepare overview image for output as TIFs or as a frame of a movie
 
-    :param np_array: np.array
+    :param np_array: np.array values, float64, X, Y, Color format with origin at bottom left
     :return: uint8; Y,X, Color format with origin at top left
     :rtype: numpy.ndarray
     """

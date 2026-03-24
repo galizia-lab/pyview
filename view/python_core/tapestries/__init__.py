@@ -107,6 +107,16 @@ class TapestryCreater:
 
         return create_movies, flag_changes
 
+    def interpret_row_settings_for_scientific_tif(
+        self, row, current_save_scientific_tif
+    ) -> bool:
+
+        # interpret whether scientific tifs are to be saved
+        if "save_scientific_tif" in row:
+            return row["save_scientific_tif"]
+        else:
+            return current_save_scientific_tif
+
     def generate_overview_movies(
         self,
         measu: int,
@@ -165,6 +175,7 @@ class TapestryCreater:
         current_movie_flags = {}
         current_create_movies = False
         current_extra_formats = []
+        current_save_scientific_tif = False
 
         # initialize dummy values for the case if no patches get initialized
         aspect_ratio = 1
@@ -188,6 +199,12 @@ class TapestryCreater:
             current_create_movies, current_movie_flags = (
                 self.interpret_row_settings_for_movies(
                     row, current_create_movies, current_movie_flags
+                )
+            )
+
+            current_save_scientific_tif = (
+                self.interpret_row_settings_for_scientific_tif(
+                    row, current_save_scientific_tif
                 )
             )
 
@@ -227,6 +244,7 @@ class TapestryCreater:
                         extra_formats=current_extra_formats,
                         op_folder_path=self.current_tapestry_dir_path,
                         row_string=row_name,
+                        save_scientific_tif=current_save_scientific_tif,
                     )
 
                     overview_frame_for_output = (

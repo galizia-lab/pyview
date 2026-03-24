@@ -5,8 +5,11 @@ import pprint
 import typing
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 from PIL import Image
+
+from view.python_core.io import write_tif_2Dor3D
 
 if typing.TYPE_CHECKING:
     from view.python_core.overviews import OverviewDataForOutput
@@ -78,6 +81,7 @@ class Patch(EmptyPatch):
         extra_formats: typing.Iterable[str],
         op_folder_path: pl.Path,
         row_string: str,
+        save_scientific_tif: bool = False,
     ):
 
         assert self.text_below != "uninitialized", (
@@ -101,6 +105,17 @@ class Patch(EmptyPatch):
             measu_op_file = f"{image_op_stem}.{output_extension}"
             self.pil_image.save(measu_op_file)
 
+        if save_scientific_tif:
+            scientific_tif_filename = f"{image_op_stem}.sci.tif"
+            scientific_tif_array_float32 = self.overview_data_for_output.overview_frame_preprocessed.astype(
+                np.float32
+            )
+            # specifically type casting here instead of using the argument "dtype" of "write_tif_2Dor3D", as the function tries to ensure safe type casting, which is not the case from float64 to float32. However, np.astype rounds values and avoids overflow and underflow problems, so we can use.
+            write_tif_2Dor3D(
+                array_xy_or_xyt=scientific_tif_array_float32,
+                tif_file=scientific_tif_filename,
+            )
+
         return image_op_stem
 
 
@@ -117,10 +132,11 @@ class PatchWithMovie(Patch):
         extra_formats: typing.Iterable[str],
         op_folder_path: pl.Path,
         row_string: str,
+        save_scientific_tif: bool = False,
     ):
 
         image_op_stem = super().write_overview_movie_files(
-            extra_formats, op_folder_path, row_string
+            extra_formats, op_folder_path, row_string, save_scientific_tif
         )
 
         # move movie next to the created overview files

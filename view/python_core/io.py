@@ -196,9 +196,9 @@ class MultiTiffReaderInga:
         tif_files.sort()  #
         tif_num = len(tif_files)
         # check the numbers. There mus be
-        assert (
-            measu_num * int(self.meta_dict["Duration"]) == tif_num
-        ), "io.py: Number of .tif file does not match info in .txt file"
+        assert measu_num * int(self.meta_dict["Duration"]) == tif_num, (
+            "io.py: Number of .tif file does not match info in .txt file"
+        )
 
         # now create the table with info about each measurement
         all_metadata_df = pd.DataFrame()
@@ -259,9 +259,9 @@ class MultiTiffReaderInga:
                 # I want the path above the main data folder '01_DATA'
                 path_parts = tif_file.parts
                 # check that '01_DATA' is part of the path
-                assert (
-                    "01_DATA" in path_parts
-                ), "path to data does not contain folder '01_DATA'"
+                assert "01_DATA" in path_parts, (
+                    "path to data does not contain folder '01_DATA'"
+                )
                 path_parts = path_parts[path_parts.index("01_DATA") + 1 : -1]
                 single_metadata["DBB_Folder"] = str(pl.Path(*path_parts))
                 # now for DBB1, list all single TIF files.
@@ -549,7 +549,7 @@ def write_tif_2Dor3D(
     else:
         if issubclass(dtype, np.integer):
             info = np.iinfo(dtype)
-        elif issubclass(dtype, np.flexible):
+        elif issubclass(dtype, np.floating):
             info = np.finfo(dtype)
         else:
             raise ValueError(
@@ -585,9 +585,9 @@ def write_tif_2Dor3D(
     if len(array_cast.shape) == 2:
         array_to_write = array_cast.swapaxes(0, 1)  # from XY to YX
         if labels is not None:
-            assert (
-                len(labels) == 1
-            ), f"Expected one label to write along with a one page TIF. Got ({len(labels)})"
+            assert len(labels) == 1, (
+                f"Expected one label to write along with a one page TIF. Got ({len(labels)})"
+            )
     elif len(array_cast.shape) == 3:
         array_to_write = array_cast.swapaxes(0, 2)  # from XYT to TYX
         if labels is not None:
@@ -660,9 +660,9 @@ def load_pst(filename):
         if not filepath.is_file():
             filepath = filepath.with_suffix(".ps")
 
-    assert (
-        filepath.is_file()
-    ), f"Could not find either of the following raw data files:\n{filename}.pst\n{filename}.ps"
+    assert filepath.is_file(), (
+        f"Could not find either of the following raw data files:\n{filename}.pst\n{filename}.ps"
+    )
 
     meta = {}
     with open(filepath.with_suffix(".inf")) as fh:
@@ -678,9 +678,9 @@ def load_pst(filename):
 
     expected_units = np.prod(shape)
 
-    assert (
-        filepath.stat().st_size >= 2 * expected_units
-    ), f"Expected at least {2 * expected_units} bytes in {filepath}. Found {filepath.stat().st_size}"
+    assert filepath.stat().st_size >= 2 * expected_units, (
+        f"Expected at least {2 * expected_units} bytes in {filepath}. Found {filepath.stat().st_size}"
+    )
 
     raw = np.fromfile(filepath, dtype="int16", count=expected_units)
     data = np.reshape(raw, shape, order="F")
