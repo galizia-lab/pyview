@@ -3,7 +3,11 @@ import pathlib as pl
 import jinja2 as j2
 
 from view.python_core.get_internal_files import get_internal_jinja_template
-from view.python_core.tapestries.patch import EmptyPatch, get_nonempty_patch
+from view.python_core.tapestries.patch import (
+    EmptyPatch,
+    Patch,
+    get_nonempty_patch,
+)
 from view.python_core.tapestries.tapestry_config import TapestryConfig
 from view.python_core.utils.colors import mpl_color_to_css
 from view.python_core.view_object import VIEW
@@ -103,6 +107,16 @@ class TapestryCreater:
 
         return create_movies, flag_changes
 
+    def interpret_row_settings_for_scientific_tif(
+        self, row, current_save_scientific_tif
+    ) -> bool:
+
+        # interpret whether scientific tifs are to be saved
+        if "save_scientific_tif" in row:
+            return row["save_scientific_tif"]
+        else:
+            return current_save_scientific_tif
+
     def generate_overview_movies(
         self,
         measu: int,
@@ -126,8 +140,8 @@ class TapestryCreater:
             flags2update["SO_xgap"] = self.view.p1.metadata.format_x / 6
         self.view.update_flags(flags2update)
 
-        # generate overview, data limits and return them
-        overview, data_limits = (
+        # generate overview prepped for output
+        overview_data_for_output = (
             self.view.generate_overview_for_output_for_current_measurement()
         )
 
@@ -141,7 +155,10 @@ class TapestryCreater:
         else:
             op_file = None
 
-        return overview, data_limits, op_file
+        return (
+            overview_data_for_output,
+            op_file,
+        )
 
     def save_all_overviews_preparing_for_tapestry(self):
         """
@@ -158,6 +175,11 @@ class TapestryCreater:
         current_movie_flags = {}
         current_create_movies = False
         current_extra_formats = []
+        current_save_scientific_tif = False
+
+        # initialize dummy values for the case if no patches get initialized
+        aspect_ratio = 1
+        colorbar2width = 0.3
 
         # iterate over measurements
         # row is guaranteed to contain one key called 'measus', which is ensured to be a non empty.
@@ -180,6 +202,12 @@ class TapestryCreater:
                 )
             )
 
+            current_save_scientific_tif = (
+                self.interpret_row_settings_for_scientific_tif(
+                    row, current_save_scientific_tif
+                )
+            )
+
             patches_row = []
 
             for measu in current_measus:
@@ -188,7 +216,7 @@ class TapestryCreater:
 
                 else:
                     # generate an overview and optionally a movie, updating flags before generation
-                    overview, data_limits, op_movie_file = (
+                    overview_data_for_output, op_movie_file = (
                         self.generate_overview_movies(
                             measu,
                             current_overview_flags,
@@ -203,13 +231,12 @@ class TapestryCreater:
                     )
 
                     patch = get_nonempty_patch(
-                        overview=overview,
-                        data_limits=data_limits,
+                        overview_data_for_output=overview_data_for_output,
                         measurement_row=measurement_row,
                         animal=current_animal,
                         measu=measu,
                         flag_changes=current_overview_flags,
-                        op_movie_file=op_movie_file,
+                        movie_file_to_move=op_movie_file,
                     )
 
                     patch.initialize_texts(self.tapestry_config)
@@ -217,26 +244,29 @@ class TapestryCreater:
                         extra_formats=current_extra_formats,
                         op_folder_path=self.current_tapestry_dir_path,
                         row_string=row_name,
+                        save_scientific_tif=current_save_scientific_tif,
                     )
 
+                    overview_frame_for_output = (
+                        overview_data_for_output.overview_frame_for_output
+                    )
                     # save aspect ratio as it is needed later for arranging overviews
                     # overview_for_output has format YX
-                    aspect_ratio = overview.shape[1] / overview.shape[0]
+                    aspect_ratio = (
+                        overview_frame_for_output.shape[1]
+                        / overview_frame_for_output.shape[0]
+                    )
 
                     # ratio: (padding for colorbar / overview width)
                     # overview_for_output has format YX
                     colorbar2width = 1 - (
-                        self.view.p1.metadata.format_x / overview.shape[1]
+                        self.view.p1.metadata.format_x
+                        / overview_frame_for_output.shape[1]
                     )
 
                 patches_row.append(patch)
 
             patches_collection.append(patches_row)
-
-        # initialize dummy values if no patches were initialized
-        if len(patches_collection) == 0:
-            aspect_ratio = 1
-            colorbar2width = 0.3
 
         # convert bg and fg colors to css
         bg_color_css = mpl_color_to_css(self.view.flags["SO_bgColor"])
@@ -270,10 +300,15 @@ class TapestryCreater:
         all_lower_limits = []
 
         for row in patches_collection:
-            for patch in row:
-                if hasattr(patch, "data_limits"):
-                    all_upper_limits.append(patch.data_limits[1])
-                    all_lower_limits.append(patch.data_limits[0])
+            for patch_ in row:
+                # patch is an internally used name in python
+                if isinstance(patch_, Patch):
+                    all_upper_limits.append(
+                        patch_.overview_data_for_output.data_limits[1]
+                    )
+                    all_lower_limits.append(
+                        patch_.overview_data_for_output.data_limits[0]
+                    )
 
         all_data_limits = [
             round(min(all_lower_limits), 3),

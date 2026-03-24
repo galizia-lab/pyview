@@ -20,7 +20,6 @@ from view.python_core.overviews import (
 
 
 class MplCanvas(FigureCanvasQTAgg):
-
     def __init__(self, parent=None, width=5.0, height=4.0, dpi=100):
         fig = plt.Figure(
             figsize=(width, height), dpi=dpi, constrained_layout=True
@@ -30,7 +29,6 @@ class MplCanvas(FigureCanvasQTAgg):
 
 
 class GDMViz(QMainWindow):
-
     def __init__(self, p1, flags):
 
         super().__init__()
@@ -57,11 +55,15 @@ class GDMViz(QMainWindow):
             )
         )
 
+        overview_data = colorize_overview_add_border_etc(
+            overview_frame=p1.foto1, flags=flags_copy, p1=None
+        )
+
+        overview_generator_used = overview_data.overview_generator
+
         # data is in X, Y, color format
-        self.overview_frame_clean, data_limits, overview_generator_used = (
-            colorize_overview_add_border_etc(
-                overview_frame=p1.foto1, flags=flags_copy, p1=None
-            )
+        self.overview_frame_clean = (
+            overview_data.overview_frame_colorized_with_frame
         )
 
         roi_mask_color_label_tuples = (
@@ -77,7 +79,6 @@ class GDMViz(QMainWindow):
                 x.shape[0] < self.overview_frame_clean.shape[0]
                 or x.shape[1] < self.overview_frame_clean.shape[1]
             ):
-
                 enlarged_mask = np.zeros(
                     self.overview_frame_clean.shape[:2], dtype=bool
                 )
@@ -174,7 +175,6 @@ class GDMViz(QMainWindow):
             if x.currentText() != "---Choose a ROI to visualize---"
         ]
         for chosen_label in chosen_labels:
-
             chosen_mask, chosen_roi_color = self.roi_mask_dict[chosen_label]
 
             trace = self.roi_label_trace_dict[chosen_label]

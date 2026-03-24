@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage.filters import median_filter, uniform_filter
+from scipy.ndimage import median_filter, uniform_filter
 from scipy.signal import firwin, kaiserord, lfilter
 
 

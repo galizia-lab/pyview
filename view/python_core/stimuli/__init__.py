@@ -14,7 +14,7 @@ class BaseStimuliiHandler:
                 "Pulse Start Time",
                 "Pulse End Time",
                 "Sampling Period",
-            )
+            ),
         )
         self.stimulus_offset_td = pd.Timedelta(0)
 
@@ -82,9 +82,9 @@ class BaseStimuliiHandler:
             and pd.isnull(on_ms)
         ):
             # stimulus start, based on on_frame
-            assert (
-                on_frame >= 0
-            ), f"on_frame must be >= 0. {on_frame} specified"
+            assert on_frame >= 0, (
+                f"on_frame must be >= 0. {on_frame} specified"
+            )
             on_time_from_frame = on_frame * data_sampling_period_td
         elif pd.isnull(on_frame) and not pd.isnull(on_ms):
             # stimulus start, based on on_ms
@@ -132,9 +132,12 @@ class BaseStimuliiHandler:
             columns=self.stimulus_frame.columns,
         )
 
-        self.stimulus_frame = pd.concat(
-            [self.stimulus_frame, temp_df], ignore_index=True
-        )
+        if self.stimulus_frame.shape[0] == 0:
+            self.stimulus_frame = temp_df
+        else:
+            self.stimulus_frame = pd.concat(
+                [self.stimulus_frame, temp_df], ignore_index=True
+            )
 
         return 0
 
@@ -162,9 +165,9 @@ class BaseStimuliiHandler:
         concs: list of str, containing concentration information
         """
 
-        assert all(
-            isinstance(x, pd.Timedelta) for x in times
-        ), "times must be of type pandas.TimeDelta"
+        assert all(isinstance(x, pd.Timedelta) for x in times), (
+            "times must be of type pandas.TimeDelta"
+        )
 
         odors = []
         concs = []

@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.io.idl import readsav
-from scipy.ndimage.morphology import binary_erosion
+from scipy.io import readsav
+from scipy.ndimage import binary_erosion
 
 from view.python_core.io import read_tif_2Dor3D
 

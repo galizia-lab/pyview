@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import pathlib as pl
 import pprint
 import typing
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from PIL import Image
 
-from view.python_core.tapestries.tapestry_config import TapestryConfig
+from view.python_core.io import write_tif_2Dor3D
+
+if typing.TYPE_CHECKING:
+    from view.python_core.overviews import OverviewDataForOutput
+    from view.python_core.tapestries.tapestry_config import TapestryConfig
 
 
 def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
@@ -18,51 +25,42 @@ def sanitize_formats(formats: typing.Iterable[str]) -> typing.Iterable[str]:
     return formats
 
 
+@dataclass
 class EmptyPatch:
-    def __init__(self):
-
-        super().__init__()
-        self.image_relative_path = "Excluded"
-        self.text_below = ""
-        self.text_right_bottom = ""
-        self.text_right_top = ""
-        self.animal = "Invalid"
-        self.flag_changes = "Invalid"
-        self.movie_file = None
+    image_relative_path: str = "Excluded"
+    text_below: str = ""
+    text_right_bottom: str = ""
+    text_right_top: str = ""
+    animal: str = "Invalid"
+    flag_changes: str = "Invalid"
+    movie_file_for_html: str = None
 
 
+@dataclass
 class Patch(EmptyPatch):
-    def __init__(
-        self,
-        overview: np.ndarray,
-        data_limits: typing.Iterable[float],
-        measurement_row: pd.Series,
-        animal: str,
-        measu: int,
-        flag_changes: dict,
-    ):
+    overview_data_for_output: OverviewDataForOutput = None
+    measurement_row: pd.Series = None
+    measu: int = None
+    pil_image: Image = None
+    image_relative_path: pl.Path | str = None
 
-        super().__init__()
-        self.overview = overview
+    def __post_init__(self):
 
-        self.pil_image = Image.fromarray(overview)
-        self.data_limits = data_limits
+        self.pil_image = Image.fromarray(
+            self.overview_data_for_output.overview_frame_for_output
+        )
 
         self.text_right_bottom, self.text_right_top = [
-            f"{x:.3g}" for x in data_limits
+            f"{x:.3g}" for x in self.overview_data_for_output.data_limits
         ]
-
-        self.measurement_row = measurement_row
 
         self.text_below = "uninitialized"
 
         self.image_relative_path = "uninitialized"
 
-        self.animal = animal
-
-        self.measu = measu
-
-        self.flag_changes = pprint.pformat(flag_changes).replace("\n", "<br>")
+        self.flag_changes = pprint.pformat(self.flag_changes).replace(
+            "\n", "<br>"
+        )
 
     def initialize_texts(self, tapestry_config: TapestryConfig):
 
@@ -83,6 +81,7 @@ class Patch(EmptyPatch):
         extra_formats: typing.Iterable[str],
         op_folder_path: pl.Path,
         row_string: str,
+        save_scientific_tif: bool = False,
     ):
 
         assert self.text_below != "uninitialized", (
@@ -106,67 +105,68 @@ class Patch(EmptyPatch):
             measu_op_file = f"{image_op_stem}.{output_extension}"
             self.pil_image.save(measu_op_file)
 
+        if save_scientific_tif:
+            scientific_tif_filename = f"{image_op_stem}.sci.tif"
+            scientific_tif_array_float32 = self.overview_data_for_output.overview_frame_preprocessed.astype(
+                np.float32
+            )
+            # specifically type casting here instead of using the argument "dtype" of "write_tif_2Dor3D", as the function tries to ensure safe type casting, which is not the case from float64 to float32. However, np.astype rounds values and avoids overflow and underflow problems, so we can use.
+            write_tif_2Dor3D(
+                array_xy_or_xyt=scientific_tif_array_float32,
+                tif_file=scientific_tif_filename,
+            )
+
         return image_op_stem
 
 
+@dataclass
 class PatchWithMovie(Patch):
-    def __init__(
-        self,
-        overview: np.ndarray,
-        data_limits: typing.Iterable[float],
-        measurement_row: pd.Series,
-        animal: str,
-        measu: int,
-        flag_changes: dict,
-        op_movie_file: str,
-    ):
+    movie_file_to_move: str = None
 
-        super().__init__(
-            overview, data_limits, measurement_row, animal, measu, flag_changes
-        )
-        self.movie_file = op_movie_file
+    def __post_init__(self):
+
+        super().__post_init__()
 
     def write_overview_movie_files(
         self,
         extra_formats: typing.Iterable[str],
         op_folder_path: pl.Path,
         row_string: str,
+        save_scientific_tif: bool = False,
     ):
 
         image_op_stem = super().write_overview_movie_files(
-            extra_formats, op_folder_path, row_string
+            extra_formats, op_folder_path, row_string, save_scientific_tif
         )
 
         # move movie next to the created overview files
-        temp_movie_path = pl.Path(self.movie_file)
+        temp_movie_path = pl.Path(self.movie_file_to_move)
         movie_op_file_path = f"{image_op_stem}_movie{temp_movie_path.suffix}"
         temp_movie_path.replace(movie_op_file_path)
 
-        self.movie_file = movie_op_file_path
+        self.movie_file_for_html = movie_op_file_path
 
 
 def get_nonempty_patch(
-    overview,
-    data_limits,
-    measurement_row,
-    animal,
-    measu,
-    flag_changes,
-    op_movie_file,
+    overview_data_for_output: OverviewDataForOutput,
+    measurement_row: pd.Series,
+    animal: str,
+    measu: int,
+    flag_changes: str,
+    movie_file_to_move: str,
 ):
 
-    if op_movie_file is None:
-        return Patch(
-            overview, data_limits, measurement_row, animal, measu, flag_changes
-        )
+    patch_input = {
+        "overview_data_for_output": overview_data_for_output,
+        "measurement_row": measurement_row,
+        "animal": animal,
+        "measu": measu,
+        "flag_changes": flag_changes,
+    }
+    if movie_file_to_move is None:
+        return Patch(**patch_input)
 
     else:
         return PatchWithMovie(
-            overview,
-            data_limits,
-            measurement_row,
-            animal,
-            measu,
-            flag_changes,
-            op_movie_file,
+            **patch_input, movie_file_to_move=movie_file_to_move
         )

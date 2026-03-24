@@ -18,6 +18,8 @@ from view.python_core.measurement_list import MeasurementList
 from view.python_core.measurement_list.importers import get_setup_extension
 from view.python_core.movies import export_movie
 from view.python_core.overviews import (
+    OverviewData,
+    OverviewDataForOutput,
     generate_overview_image,
     generate_overview_image_for_output,
 )
@@ -162,9 +164,9 @@ class VIEW:
             lst_fle=list_file, LE_loadExp=self.flags["LE_loadExp"]
         )
 
-        assert self.measurement_list.animal_name is not None, (
-            "Something went wrong!"
-        )
+        assert (
+            self.measurement_list.animal_name is not None
+        ), "Something went wrong!"
         self.flags.update_flags(
             {"STG_ReportTag": self.measurement_list.animal_name}
         )
@@ -390,7 +392,7 @@ class VIEW:
 
         return ctv_handler.apply(self.p1.sig1)
 
-    def generate_overview_for_current_measurement(self):
+    def generate_overview_for_current_measurement(self) -> OverviewData:
         """
         Generate an overview of the measurement data currently loaded based on current flags and returns it
         :return: overview_frame, data_limits, overview_generator_used
@@ -403,7 +405,9 @@ class VIEW:
             self.calculate_signals()
         return generate_overview_image(flags=self.flags, p1=self.p1)
 
-    def generate_overview_for_output_for_current_measurement(self):
+    def generate_overview_for_output_for_current_measurement(
+        self,
+    ) -> OverviewDataForOutput:
         """
         Generates overview frame and transforms it so that it can be readily used either for plt.imshow or for
         saving with tifffile.imsave

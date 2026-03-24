@@ -23,7 +23,8 @@ class OverviewsGenerator:
         self.view.update_flags(flags_to_update)
         self.view.load_measurement_data(self.test_animal, self.test_measu)
         self.view.calculate_signals()
-        frame_data2write, data_limits = (
+
+        overview_data_for_output = (
             self.view.generate_overview_for_output_for_current_measurement()
         )
 
@@ -41,7 +42,9 @@ class OverviewsGenerator:
         )
 
         tifffile.imwrite(
-            op_file_name, data=frame_data2write, photometric="rgb"
+            op_file_name,
+            data=overview_data_for_output.overview_frame_for_output,
+            photometric="rgb",
         )
 
 
