@@ -20,6 +20,3 @@ dependencies:
   - moviepy
   # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas
-  - pytest
-  - pytest-qt
-  - napari
