@@ -18,7 +18,7 @@ etc.
 ```
 NOTE:
 ---
-You could also pull from other branches of pyview by replaced "dev" with other branches in the URL above.
+You could also pull from other branches of pyview by replacing "dev" with other branches in the URL above.
 ``` 
 
 ## Installation for development
@@ -27,7 +27,7 @@ You could also pull from other branches of pyview by replaced "dev" with other b
 2. Download source code of PyView
 3. Open terminal and activate the conda environment created for napari (`conda activate ...`)
 4. Change directory into the source code of PyView downloaded (`cd ..../pyview`)
-5. Install plugin in editable mode (`pip install -e ./`)
+5. Install plugin in editable mode (`pip install -e "./[dev]"`)
 
 ## Debugging
 
