@@ -31,7 +31,7 @@ def test_circle_validation_outside_bounds():
     )
     with pytest.raises(
         ValueError,
-        match="All vertex coordinates must be within the image bounds",
+        match=f"This {circle_outside.__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data.",
     ):
         circle_outside.to_napari_shape_vertices_and_type((100, 100))
 
@@ -63,6 +63,6 @@ def test_polygon_validation_outside_bounds():
     )
     with pytest.raises(
         ValueError,
-        match="This ILTISROIData object has ROIs with coordinates outside the frame",
+        match=f"This {polygon_outside.__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data.",
     ):
         polygon_outside.to_napari_shape_vertices_and_type((100, 100))

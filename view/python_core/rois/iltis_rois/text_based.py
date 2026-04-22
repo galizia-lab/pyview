@@ -135,12 +135,19 @@ class CircleILTISROIData(BaseTextROIData):
             [center[0] + radius, center[1] + radius],
             [center[0] - radius, center[1] + radius],
         ]
-        
+
         # Check if any vertex is outside the image bounds
         for vertex in ellipse_bounding_vertices:
-            if vertex[0] < 0 or vertex[1] < 0 or vertex[0] >= frame_size[0] or vertex[1] >= frame_size[1]:
-                raise ValueError("All vertex coordinates must be within the image bounds")
-        
+            if (
+                vertex[0] < 0
+                or vertex[1] < 0
+                or vertex[0] >= frame_size[0]
+                or vertex[1] >= frame_size[1]
+            ):
+                raise ValueError(
+                    f"This {__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data."
+                )
+
         return ellipse_bounding_vertices, "ellipse"
 
 
@@ -227,9 +234,14 @@ class PolygonILTISROIData(BaseTextROIData):
 
         # Check if any vertex is outside the image bounds
         for vertex in vertices:
-            if vertex[0] < 0 or vertex[1] < 0 or vertex[0] >= frame_size[0] or vertex[1] >= frame_size[1]:
+            if (
+                vertex[0] < 0
+                or vertex[1] < 0
+                or vertex[0] >= frame_size[0]
+                or vertex[1] >= frame_size[1]
+            ):
                 raise ValueError(
-                    "This ILTISROIData object has ROIs with coordinates outside the frame. Please check the data."
+                    f"This {__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data."
                 )
 
         return vertices, "polygon"

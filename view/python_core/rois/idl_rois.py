@@ -88,6 +88,7 @@ class SquareIDLROIData(BaseTextROIData):
         :param frame_size: Size of the frame (height, width)
         :return: Tuple of (shape_vertices, shape_type) where shape_vertices is a list of vertices
                  and shape_type is a string representing the napari shape type
+        :raises ValueError: If any vertex coordinate is outside the image bounds
         """
         # vertices format: [y, x]
         square_bounding_vertices = [
@@ -109,6 +110,19 @@ class SquareIDLROIData(BaseTextROIData):
                 self.center_x + self.half_width,
             ],
         ]
+
+        # Check if any vertex is outside the image bounds
+        for vertex in square_bounding_vertices:
+            if (
+                vertex[0] < 0
+                or vertex[1] < 0
+                or vertex[0] >= frame_size[0]
+                or vertex[1] >= frame_size[1]
+            ):
+                raise ValueError(
+                    f"This {__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data."
+                )
+
         return square_bounding_vertices, "rectangle"
 
 
