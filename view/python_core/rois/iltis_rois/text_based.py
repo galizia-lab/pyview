@@ -36,6 +36,18 @@ class BaseTextROIData(BaseROIData, ABC):
     def get_text_description(self, frame_size):
         return f"File: {self.roi_file}; Pixels: {self.get_boolean_mask(frame_size).sum()}; Label;{self.label};{self.basic_text_description}"
 
+    @abstractmethod
+    def to_napari_shape_vertices_and_type(
+        self, frame_size: tuple[int, int]
+    ) -> typing.Tuple[list, str]:
+        """
+        Convert ROI data to napari shape vertices and type.
+
+        :param frame_size: Size of the frame (height, width)
+        :return: Tuple of (shape_vertices, shape_type) where shape_vertices is a list of vertices
+                 and shape_type is a string representing the napari shape type
+        """
+
 
 class CircleILTISROIData(BaseTextROIData):
     def __init__(
@@ -102,6 +114,35 @@ class CircleILTISROIData(BaseTextROIData):
         mask[rr, cc] = True
         return mask
 
+    def to_napari_shape_vertices_and_type(
+        self, frame_size: tuple[int, int]
+    ) -> typing.Tuple[list, str]:
+        """
+        Convert CircleILTISROIData to napari shape vertices and type.
+
+        :param frame_size: Size of the frame (height, width)
+        :return: Tuple of (shape_vertices, shape_type) where shape_vertices is a list of vertices
+                 and shape_type is a string representing the napari shape type
+        :raises ValueError: If any vertex coordinate is outside the image bounds
+        """
+        # vertices format: [y, x]
+        center = [frame_size[0] - self.y, self.x]
+        # Y values measured from bottom, as implemented in ILTIS
+        radius = self.d / 2
+        ellipse_bounding_vertices = [
+            [center[0] - radius, center[1] - radius],
+            [center[0] + radius, center[1] - radius],
+            [center[0] + radius, center[1] + radius],
+            [center[0] - radius, center[1] + radius],
+        ]
+        
+        # Check if any vertex is outside the image bounds
+        for vertex in ellipse_bounding_vertices:
+            if vertex[0] < 0 or vertex[1] < 0 or vertex[0] >= frame_size[0] or vertex[1] >= frame_size[1]:
+                raise ValueError("All vertex coordinates must be within the image bounds")
+        
+        return ellipse_bounding_vertices, "ellipse"
+
 
 class PolygonILTISROIData(BaseTextROIData):
     def __init__(
@@ -165,3 +206,30 @@ class PolygonILTISROIData(BaseTextROIData):
         rr, cc = polygon(r=x_coors, c=y_coors)
         mask[rr, cc] = True
         return mask
+
+    def to_napari_shape_vertices_and_type(
+        self, frame_size: tuple[int, int]
+    ) -> typing.Tuple[list, str]:
+        """
+        Convert PolygonILTISROIData to napari shape vertices and type.
+
+        :param frame_size: Size of the frame (height, width)
+        :return: Tuple of (shape_vertices, shape_type) where shape_vertices is a list of vertices
+                 and shape_type is a string representing the napari shape type
+        :raises ValueError: If any vertex coordinate is negative
+        """
+        # vertices format: [y, x]
+        vertices = [
+            [frame_size[0] - point[1], point[0]]
+            for point in self.list_of_vertices
+        ]
+        # Y values measured from bottom, as implemented in ILTIS
+
+        # Check if any vertex is outside the image bounds
+        for vertex in vertices:
+            if vertex[0] < 0 or vertex[1] < 0 or vertex[0] >= frame_size[0] or vertex[1] >= frame_size[1]:
+                raise ValueError(
+                    "This ILTISROIData object has ROIs with coordinates outside the frame. Please check the data."
+                )
+
+        return vertices, "polygon"

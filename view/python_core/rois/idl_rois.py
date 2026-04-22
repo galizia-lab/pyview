@@ -79,6 +79,38 @@ class SquareIDLROIData(BaseTextROIData):
         mask[rr, cc] = True
         return np.flip(mask, axis=1)
 
+    def to_napari_shape_vertices_and_type(
+        self, frame_size: tuple[int, int]
+    ) -> typing.Tuple[list, str]:
+        """
+        Convert SquareIDLROIData to napari shape vertices and type.
+
+        :param frame_size: Size of the frame (height, width)
+        :return: Tuple of (shape_vertices, shape_type) where shape_vertices is a list of vertices
+                 and shape_type is a string representing the napari shape type
+        """
+        # vertices format: [y, x]
+        square_bounding_vertices = [
+            # SquareIDLROIData have their Y values measured from top
+            [
+                self.center_y - self.half_width,
+                self.center_x - self.half_width,
+            ],
+            [
+                self.center_y + self.half_width,
+                self.center_x - self.half_width,
+            ],
+            [
+                self.center_y + self.half_width,
+                self.center_x + self.half_width,
+            ],
+            [
+                self.center_y - self.half_width,
+                self.center_x + self.half_width,
+            ],
+        ]
+        return square_bounding_vertices, "rectangle"
+
 
 class TIFFIDLROIData(BaseROIData):
     def __init__(
