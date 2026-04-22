@@ -8,6 +8,8 @@ from view.python_core.flags import FlagsManager
 if TYPE_CHECKING:
     import napari
 
+import pathlib as pl
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -503,6 +505,7 @@ class NapariPyViewWidget(CentralWidget):
             ),
             edge_color=edge_color_napari,
             edge_width=1,
+            layer_name=pl.Path(roi_file).name,
         )
 
         self.log_info(

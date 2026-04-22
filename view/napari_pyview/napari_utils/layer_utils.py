@@ -15,6 +15,7 @@ def add_roi_datas_to_napari(
     frame_size: tuple[int, int],
     edge_color: str | tuple = "red",
     edge_width: float = 1.0,
+    layer_name: str = "ROI Shapes",
 ):
     """
     Add ROI data objects to napari viewer as shapes with customizable appearance.
@@ -24,6 +25,7 @@ def add_roi_datas_to_napari(
     :param frame_size: Size of the frame (height, width), with wich ROI is associated
     :param edge_color: Color for shape edges (napari color format)
     :param edge_width: Width of shape edges
+    :param layer_name: Name of the layer to which shapes are added
     """
     shape_vertices = []
     shape_types = []
@@ -40,7 +42,7 @@ def add_roi_datas_to_napari(
         napari_viewer.add_shapes(
             shape_vertices,
             shape_type=shape_types,
-            name="ROI Shapes",
+            name=layer_name,
             face_color="transparent",
             edge_color=edge_color,
             edge_width=edge_width,
