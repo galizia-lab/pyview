@@ -8,7 +8,7 @@ class Config:
     Global configuration for the project.
     Add new parameters here as needed.
     """
-    CS_proj_method: str = "local_corr"
+    CS_proj_method: str = "max"
     # values: 'mean', 'max', 'std', 'global_corr', 'local_corr', 'ica'
     CS_corr_threshold: float = 0.6
     CS_corr_circle_radius: int = 20 # approx glo radius in pixels
