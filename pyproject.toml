@@ -57,7 +57,8 @@ dev = [
     "ty>=0.0.15",
     "black",
     "ruff",
-    "pytest-qt"
+    "pytest-qt",
+    "pytest-mock"
 ]
 
 [project.scripts]

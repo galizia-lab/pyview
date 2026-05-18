@@ -2,18 +2,21 @@ from typing import TYPE_CHECKING
 
 from view.gui.flags_box import FlagsMainWidget
 from view.gui.setup_calcmethod_choice import SetupChoice
-from view.napari_pyview.napari_utils.layer_utils import add_roi_datas_to_napari
+from view.napari_pyview.napari_utils.image_format_utils import (
+    convert_view_image_to_tif_3D,
+)
+from view.napari_pyview.napari_utils.shapes_labels_utils import (
+    ViewAreaIOManager,
+    ViewRoiCoorIOManager,
+)
 from view.python_core.flags import FlagsManager
 
 if TYPE_CHECKING:
     import napari
 
-import pathlib as pl
 
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from matplotlib.colors import rgb2hex
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QGroupBox,
@@ -36,8 +39,6 @@ from view.gui.main_function_widgets import (
     OverviewGenWidget,
 )
 from view.napari_pyview.iltis_window_napari import ILTISWindowNapari
-from view.python_core.rois.roi_io import get_roi_io_class
-from view.python_core.utils.colors import interpret_flag_SO_MV_colortable
 
 
 class NapariPyViewWidget(CentralWidget):
@@ -274,7 +275,9 @@ class NapariPyViewWidget(CentralWidget):
         napari_functions_widget = QGroupBox("Napari-Related Functions", self)
         napari_functions_vbox = QVBoxLayout(napari_functions_widget)
 
-        transfer_data_button = QPushButton("Transfer data to Napari")
+        transfer_data_button = QPushButton(
+            "Transfer raw data (post artifact correction) to Napari"
+        )
         transfer_data_button.clicked.connect(
             self.spawn_dialog_napari_data_transfer
         )
@@ -283,6 +286,10 @@ class NapariPyViewWidget(CentralWidget):
         load_rois_button = QPushButton("Load ROIs and add to Napari")
         load_rois_button.clicked.connect(self.load_rois_and_add_to_napari)
         napari_functions_vbox.addWidget(load_rois_button)
+
+        load_area_button = QPushButton("Load Area and add to Napari")
+        load_area_button.clicked.connect(self.load_area_and_add_to_napari)
+        napari_functions_vbox.addWidget(load_area_button)
 
         contents_vbox.addWidget(napari_functions_widget)
         self.main_function_widgets["Napari functions"] = (
@@ -411,11 +418,13 @@ class NapariPyViewWidget(CentralWidget):
         transfer_dialog = self.spawn_export_dialog()
         if transfer_dialog is not None:
             transfer_dialog.send_data_signal.connect(
-                self.export_data_to_napari
+                self.export_raw_image_data_to_napari
             )
             transfer_dialog.setWindowTitle("Import Data to Napari")
 
-    def export_data_to_napari(self, indices, metadata_list_for_label):
+    def export_raw_image_data_to_napari(
+        self, indices, metadata_list_for_label
+    ):
 
         if self.napari_viewer is None:
             QMessageBox.critical(
@@ -439,11 +448,7 @@ class NapariPyViewWidget(CentralWidget):
                 metadata_to_send[path_flag] = self.flags[path_flag]
 
         for ind, raw_data in enumerate(raw_data_list):
-            # convert from format XYT to TXY
-            raw_data_TYX = raw_data.swapaxes(0, 2)
-
-            # flip Y axis to match napari convention
-            raw_data_TYX_Y_flipped = np.flip(raw_data_TYX, axis=1)
+            raw_data_TYX_Y_flipped = convert_view_image_to_tif_3D(raw_data)
 
             metadata_row = metadata_to_send.iloc[ind]
             name = metadata_row["Label to use"]
@@ -455,7 +460,7 @@ class NapariPyViewWidget(CentralWidget):
 
     def load_rois_and_add_to_napari(self):
         """
-        Load ROIs from file based on RM_ROITrace flag and add them to Napari as shapes.
+        Load ROIs from file based on RM_ROITrace flag and add them to Napari as shapes/labels.
         """
         if self.napari_viewer is None:
             QMessageBox.critical(
@@ -476,40 +481,54 @@ class NapariPyViewWidget(CentralWidget):
             )
             return
 
-        # Get ROI IO class based on RM_ROITrace flag
-        roi_io_class = get_roi_io_class(RM_ROITrace=self.flags["RM_ROITrace"])
-
-        # Load ROI data
-        roi_data_dict, roi_file = roi_io_class.read(
-            self.flags, current_measurement_label
-        )
-
-        # Get edge color from SO_fgColor flag
-        _, _, edge_color = interpret_flag_SO_MV_colortable(
-            self.flags["SO_MV_colortable"],
-            bg_color=self.flags["SO_bgColor"],
-            fg_color=self.flags["SO_fgColor"],
-        )
-
-        # Convert matplotlib color to hex format
-        edge_color_napari = rgb2hex(edge_color[:3])
-
-        # Use the converter to add ROIs to napari with custom parameters
-        selected_p1_metadata = self.get_selected_data_p1().metadata
-        add_roi_datas_to_napari(
-            self.napari_viewer,
-            roi_data_dict,
-            frame_size=(
-                selected_p1_metadata.format_y,
-                selected_p1_metadata.format_x,
-            ),
-            edge_color=edge_color_napari,
-            edge_width=1,
-            layer_name=pl.Path(roi_file).name,
+        (
+            roi_data_list,
+            roi_file_path,
+        ) = ViewRoiCoorIOManager.get_ask_file_add_to_napari(
+            view_flags=self.flags,
+            napari_viewer=self.napari_viewer,
+            frame_size=self.get_selected_data_p1().get_frame_size(),
+            # frame_size is shape of image in view format
         )
 
         self.log_info(
-            f"Successfully loaded {len(roi_data_dict)} ROIs from {roi_file}"
+            f"Successfully loaded {len(roi_data_list)} ROIs from {roi_file_path}"
+        )
+
+    def load_area_and_add_to_napari(self):
+        """
+        Load AREA from file based on RM_ROITrace flag and add them to Napari as labels.
+        """
+        if self.napari_viewer is None:
+            QMessageBox.critical(
+                self,
+                "Napari not found!",
+                "The plugin was started without a napari viewer."
+                " Please start the plugin from within napari.",
+            )
+            return
+
+        # Get the current measurement label from the data manager
+        current_measurement_label = self.current_measurement_label.text()
+        if not current_measurement_label:
+            QMessageBox.warning(
+                self,
+                "No measurement selected",
+                "Please select a measurement first.",
+            )
+            return
+
+        area_data_list, area_file_path = (
+            ViewAreaIOManager.get_ask_file_add_to_napari(
+                view_flags=self.flags,
+                napari_viewer=self.napari_viewer,
+                frame_size=self.get_selected_data_p1().get_frame_size(),
+                # frame_size is shape of image in view format
+            )
+        )
+
+        self.log_info(
+            f"Successfully loaded {len(area_data_list)} Areas from {area_file_path}"
         )
 
     def direct_load_finalize(

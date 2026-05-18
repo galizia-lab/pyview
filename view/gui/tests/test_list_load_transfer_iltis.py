@@ -9,6 +9,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from view.gui.start_view_gui import ContainerWidget
+from view.gui.tests.conftest import ListLoadTestData
 from view.gui.tests.test_list_loading import load_data_yml_list
 from view.python_core.tests.common import get_synthetic_data_yml_path
 
@@ -17,6 +18,7 @@ def test_list_load_transfer_iltis(
     main_container_widget: ContainerWidget,
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,
+    default_list_load_test_data: ListLoadTestData,
 ):
     """
     Test function to verify list loading functionality and transfer to ILTIS.
@@ -25,24 +27,12 @@ def test_list_load_transfer_iltis(
         main_container_widget: Main container widget fixture
         qtbot: pytest-qt bot for simulating user interactions
         monkeypatch: pytest-qt fixture for monkey patching
+        default_list_load_test_data: ListLoadTestData fixture
     """
     central_widget = main_container_widget.view_main_window.centralWidget()
 
-    test_yml_file = str(get_synthetic_data_yml_path())
-    lst_file = str(
-        pl.Path(get_synthetic_data_yml_path()).parent
-        / "02_LISTS"
-        / "Synthetic_data_strip.lst.xls"
-    )
-    measurement_rows_to_select = (2, 3, 5, 6)
-
     load_data_yml_list(
-        central_widget,
-        qtbot,
-        monkeypatch,
-        test_yml_file,
-        lst_file,
-        measurement_rows_to_select,
+        central_widget, qtbot, monkeypatch, default_list_load_test_data
     )
 
     # Transfer to ILTIS
@@ -54,7 +44,9 @@ def test_list_load_transfer_iltis(
     )
 
     iltis_data_labels = data_selector.get_current_labels()
-
+    measurement_rows_to_select = (
+        default_list_load_test_data.measurement_rows_to_select
+    )
     assert len(iltis_data_labels) == len(
         measurement_rows_to_select
     ), f"Expected {len(measurement_rows_to_select)} entries in ILTIS data manager, but got {len(iltis_data_labels)}"

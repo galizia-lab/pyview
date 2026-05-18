@@ -1,3 +1,6 @@
+import pathlib as pl
+from dataclasses import dataclass
+
 import matplotlib.pyplot as plt
 import pytest
 from pytestqt.qtbot import QtBot
@@ -7,6 +10,7 @@ from view.gui.loader_widgets import ListLoadWidget
 from view.gui.setup_calcmethod_choice import SetupChoice
 from view.gui.start_view_gui import ContainerWidget
 from view.python_core.flags import FlagsManager
+from view.python_core.tests.common import get_synthetic_data_yml_path
 
 
 @pytest.fixture
@@ -65,3 +69,30 @@ def list_load_widget(qtbot):
     yield widget
 
     widget.close()
+
+
+@dataclass
+class ListLoadTestData:
+    test_yml_path: pl.Path
+    lst_path: pl.Path
+    measurement_rows_to_select: tuple[int, ...]
+    roi_path: pl.Path | None = None
+    area_path: pl.Path | None = None
+
+
+@pytest.fixture
+def default_list_load_test_data() -> ListLoadTestData:
+
+    test_yml_path = get_synthetic_data_yml_path()
+    lst_path = (
+        pl.Path(get_synthetic_data_yml_path()).parent
+        / "02_LISTS"
+        / "Synthetic_data_strip.lst.xls"
+    )
+    measurement_rows_to_select = (2, 3, 5, 6)
+
+    return ListLoadTestData(
+        test_yml_path=test_yml_path,
+        lst_path=lst_path,
+        measurement_rows_to_select=measurement_rows_to_select,
+    )
