@@ -24,7 +24,7 @@ from view.python_core.overviews import (
     generate_overview_image_for_output,
 )
 from view.python_core.overviews.ctv_handlers import get_ctv_handler
-from view.python_core.p1_class import get_empty_p1
+from view.python_core.p1_class import P1SingleWavelengthAbstract, get_empty_p1
 from view.python_core.rois.roi_io import get_roi_io_class
 
 
@@ -47,8 +47,8 @@ class VIEW:
             )
 
         self.flags.update_flags({"VIEW_batchmode": True})
-        self.measurement_list = None
-        self.p1 = None
+        self.measurement_list: MeasurementList | None = None
+        self.p1: P1SingleWavelengthAbstract | None = None
         self.log_file = self.setup_logging(terminal_output_verbose)
         logging.getLogger("VIEW").info(
             "VIEW object initialized for offline use",
@@ -231,6 +231,11 @@ class VIEW:
         self.check_if_animal_is_initialized()
 
         self.flags.update_flags({"STG_Measu": measu})
+
+        logging.getLogger("VIEW").info(
+            "Loading data",
+            extra={"Animal": self.get_current_animal(), "Measu": measu},
+        )
 
         measu_label, self.p1 = self.measurement_list.load_data(
             flags=self.flags, measu=measu
