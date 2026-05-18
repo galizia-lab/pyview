@@ -116,8 +116,8 @@ class SquareIDLROIData(BaseTextROIData):
             if (
                 vertex[0] < 0
                 or vertex[1] < 0
-                or vertex[0] >= frame_size[0]
-                or vertex[1] >= frame_size[1]
+                or vertex[0] >= frame_size[1]
+                or vertex[1] >= frame_size[0]
             ):
                 raise ValueError(
                     f"This {__class__.__name__} object has ROIs with coordinates outside the specified frame. Please check the data."

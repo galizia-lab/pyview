@@ -8,6 +8,7 @@ from view.python_core.io import read_tif_2Dor3D
 from view.python_core.paths import check_get_file_existence_in_folder
 from view.python_core.rois.idl_rois import SquareIDLROIData, TIFFIDLROIData
 from view.python_core.rois.iltis_rois.text_based import (
+    BaseTextROIData,
     CircleILTISROIData,
     PolygonILTISROIData,
 )
@@ -88,7 +89,9 @@ class ROIFileIO(BaseROIIO, ABC):
 
     @classmethod
     @abstractmethod
-    def read_roi_file(cls, roi_file, flags):
+    def read_roi_file(
+        cls, roi_file, flags
+    ) -> list[BaseTextROIData | SpatialFootprintROIData]:
 
         raise NotImplementedError
 
@@ -114,7 +117,7 @@ class IDLCoorFileIO(ROIFileIO):
         return ".coor"
 
     @classmethod
-    def read_roi_file(cls, roi_file, flags):
+    def read_roi_file(cls, roi_file, flags) -> list[SquareIDLROIData]:
         """
         Read coor file and return a list of objects containing information of square ROIs in it.
         :param roi_file: str, path to a coor file on the file system
@@ -154,7 +157,7 @@ class IDLAREAFileIO(ROIFileIO):
         return ".Area"
 
     @classmethod
-    def read_roi_file(cls, roi_file, flags):
+    def read_roi_file(cls, roi_file, flags) -> list[TIFFIDLROIData]:
         """
         Read IDL AREA file and return a list with one SpatialFootprintROIData object
         :param roi_file: str, path to a AREA file on the file system
@@ -187,7 +190,7 @@ class ILTISTextROIFileIO(ROIFileIO):
         return ".roi"
 
     @classmethod
-    def read_roi_file(cls, roi_file, flags):
+    def read_roi_file(cls, roi_file, flags) -> list[BaseTextROIData]:
         """
         Read .roi file and return information as list of roi objects
         :param roi_file: str, path to a AREA file on the file system
@@ -276,7 +279,7 @@ class ILTISTiffROIFileIO(ROIFileIO):
         return ".roi.tif"
 
     @classmethod
-    def read_roi_file(cls, roi_file, flags):
+    def read_roi_file(cls, roi_file, flags) -> list[SpatialFootprintROIData]:
         """
         Read spatial footprints of ROIs in the tiff file <file>. Spatial footprints are individually normalized by
         dividing by their maximum pixel values and all pixels with value lower than <thresh> will be considered to
@@ -383,3 +386,18 @@ def get_roi_io_class(RM_ROITrace):
     )
 
     return io_class
+
+
+def get_roi_io_class_from_file_path(file_path: str):
+
+    for io_class in [
+        IDLCoorFileIO,
+        IDLAREAFileIO,
+        ILTISTextROIFileIO,
+        ILTISTiffROIFileIO,
+        ILTISAreaROIFileIO,
+    ]:
+        if file_path.endswith(io_class.get_extension()):
+            return io_class
+
+    raise NotImplementedError(f"File extension not recognized: {file_path}")
