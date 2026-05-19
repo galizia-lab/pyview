@@ -1,5 +1,6 @@
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QDesktopWidget, QMainWindow, QMessageBox
+from qtpy.QtGui import QGuiApplication
+from qtpy.QtWidgets import QMainWindow, QMessageBox
 
 from view.iltis_shell.main_shell import ILTISMainShell
 
@@ -22,7 +23,7 @@ class ILTISWindowNapari(QMainWindow):
 
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 

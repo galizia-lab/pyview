@@ -1,8 +1,8 @@
 import pandas as pd
 from qtpy.QtCore import Signal, Slot
+from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import (
     QAbstractItemView,
-    QDesktopWidget,
     QGroupBox,
     QHBoxLayout,
     QMainWindow,
@@ -80,7 +80,7 @@ class ILTISTransferDialog(QMainWindow):
 
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 

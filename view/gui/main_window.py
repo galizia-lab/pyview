@@ -40,7 +40,7 @@ class VIEWMainWindow(QMainWindow):
         self.setCentralWidget(centralWidget)
 
         self.setWindowTitle("VIEW")
-        # self.setGeometry(QDesktopWidget().availableGeometry())
+        # self.setGeometry(QGuiApplication.primaryScreen().availableGeometry())
         # self.setWindowIcon(QIcon('web.png'))
 
     def show_version(self):
