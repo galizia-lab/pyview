@@ -10,9 +10,9 @@ from iltis.Main import Main as ILTISMain
 from iltis.Objects.Data_Object import Data_Object, Metadata_Object
 from iltis.Objects.ROIs_Object import myCircleROI, myPolyLineROI
 from iltis.Widgets.Options_Control_Widget import SingleValueWidget
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QLabel, QMessageBox
+from qtpy.QtCore import Slot
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import QLabel, QMessageBox
 
 from view.iltis_shell.orphan_functions import convert_iltisROI2VIEWROI
 from view.iltis_shell.save_area_file_dialog import (
@@ -82,7 +82,7 @@ class ILTISMainShell(ILTISMain):
         self.metadata = None
 
     # this is used to reset ILTIs from VIEW if required
-    @pyqtSlot(name="reset")
+    @Slot(name="reset")
     def reset(self, restore_options=True):
 
         # save some options for restoration
@@ -133,7 +133,7 @@ class ILTISMainShell(ILTISMain):
 
         return roi_options
 
-    @pyqtSlot(
+    @Slot(
         list, list, pd.DataFrame, int, tuple, tuple, int, name="import data"
     )
     def import_data(
@@ -358,7 +358,7 @@ class ILTISMainShell(ILTISMain):
         ]
         return selected_data_labels
 
-    @pyqtSlot(name="save circle roi_labels for VIEW")
+    @Slot(name="save circle roi_labels for VIEW")
     def spawn_save_circle_rois_dialog(self):
 
         circle_roi_labels, circle_roi_labels_selected = (
@@ -377,7 +377,7 @@ class ILTISMainShell(ILTISMain):
         self.dialogs.append(save_circle_rois_dialog)
         save_circle_rois_dialog.show()
 
-    @pyqtSlot(name="save roi_labels for VIEW")
+    @Slot(name="save roi_labels for VIEW")
     def spawn_save_all_rois_dialog(self):
 
         roi_labels, roi_labels_selected = self.get_roi_and_selected_by_type(
@@ -396,7 +396,7 @@ class ILTISMainShell(ILTISMain):
         self.dialogs.append(save_all_rois_dialog)
         save_all_rois_dialog.show()
 
-    @pyqtSlot(name="save area for VIEW")
+    @Slot(name="save area for VIEW")
     def spawn_save_area_dialog(self):
 
         poly_roi_labels, poly_roi_labels_selected = (
@@ -414,7 +414,7 @@ class ILTISMainShell(ILTISMain):
         self.dialogs.append(save_area_dialog)
         save_area_dialog.show()
 
-    @pyqtSlot(list, str, name="save area for VIEW")
+    @Slot(list, str, name="save area for VIEW")
     def save_area_for_VIEW(self, roi_labels, filename):
 
         self.write_status("[working] Writing AREA file for VIEW")
@@ -448,7 +448,7 @@ class ILTISMainShell(ILTISMain):
 
         self.write_status("[success] Writing AREA file for VIEW")
 
-    @pyqtSlot(list, str, name="save COORs for VIEW")
+    @Slot(list, str, name="save COORs for VIEW")
     def save_coors_for_VIEW(self, roi_labels, filename):
 
         self.write_status("[working] Writing COORs file for VIEW")
@@ -470,7 +470,7 @@ class ILTISMainShell(ILTISMain):
 
         self.write_status("[success] Writing COORs file for VIEW")
 
-    @pyqtSlot(name="quick save area")
+    @Slot(name="quick save area")
     def quick_save_area(self):
 
         self.write_status("[working] Writing COORs file for VIEW")

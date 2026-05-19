@@ -1,4 +1,3 @@
-from PyQt5.QtCore import QSettings
 from easygui import diropenbox, ynbox, msgbox
 import pathlib as pl
 

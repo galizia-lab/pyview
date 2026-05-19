@@ -1,10 +1,10 @@
 import pathlib as pl
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (
+from qtpy.QtCore import Signal, Slot
+from qtpy.QtGui import QGuiApplication
+from qtpy.QtWidgets import (
     QAbstractItemView,
     QComboBox,
-    QDesktopWidget,
     QGroupBox,
     QListWidget,
     QListWidgetItem,
@@ -19,7 +19,7 @@ from view.gui.filesystem_selectors import FileSaver
 
 
 class AbstractSaveROIsDialog(QMainWindow):
-    return_choices_signal = pyqtSignal(list, str, name="choices")
+    return_choices_signal = Signal(list, str, name="choices")
 
     def __init__(self, metadata, roi_labels, extension, file_filter):
 
@@ -109,7 +109,7 @@ class AbstractSaveROIsDialog(QMainWindow):
 
     def center(self):
         qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
+        cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -117,7 +117,7 @@ class AbstractSaveROIsDialog(QMainWindow):
     def get_destination_directory_flag_name(cls):
         return None
 
-    @pyqtSlot(int, name="refresh filename when data or mode changes")
+    @Slot(int, name="refresh filename when data or mode changes")
     def refresh_filename(self, index):
 
         current_label = self.data_chooser.currentText()
