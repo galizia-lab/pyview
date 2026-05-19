@@ -204,9 +204,9 @@ class TestViewRoiCoorIOManager:
     @classmethod
     def test_ask_get_file(cls, mocker):
         """Test the ask_get_file method."""
-        # Mock QFileDialog.getOpenFileName to return a test file path
+        # Mock qtpy.compat.getopenfilename to return a test file path
         mocker.patch(
-            "view.napari_pyview.napari_utils.shapes_labels_utils.QFileDialog.getOpenFileName",
+            "qtpy.compat.getopenfilename",
             return_value=(
                 "/test/path/to/file.roi",
                 "ROI/COOR File (*.roi *.coor *.roi.tif)",
@@ -226,9 +226,9 @@ class TestViewRoiCoorIOManager:
     @classmethod
     def test_ask_get_file_no_selection(cls, mocker):
         """Test the ask_get_file method when no file is selected."""
-        # Mock QFileDialog.getOpenFileName to return empty string (no selection)
+        # Mock qtpy.compat.getopenfilename to return empty string (no selection)
         mocker.patch(
-            "view.napari_pyview.napari_utils.shapes_labels_utils.QFileDialog.getOpenFileName",
+            "qtpy.compat.getopenfilename",
             return_value=("", "ROI/COOR File (*.roi *.coor *.roi.tif)"),
         )
 
@@ -245,9 +245,9 @@ class TestViewRoiCoorIOManager:
     @classmethod
     def test_get_ask_file_add_to_napari(cls, mocker, make_napari_viewer_proxy):
         """Test the get_ask_file_add_to_napari method."""
-        # Mock QFileDialog.getOpenFileName to return a test file path
+        # Mock qtpy.compat.getopenfilename to return a test file path
         mocker.patch(
-            "view.napari_pyview.napari_utils.shapes_labels_utils.QFileDialog.getOpenFileName",
+            "qtpy.compat.getopenfilename",
             return_value=(
                 "/test/path/to/file.roi",
                 "ROI/COOR File (*.roi *.coor *.roi.tif)",
@@ -302,9 +302,9 @@ class TestViewRoiCoorIOManager:
     @classmethod
     def test_get_ask_file_add_to_napari_no_selection(cls, mocker):
         """Test the get_ask_file_add_to_napari method when no file is selected."""
-        # Mock QFileDialog.getOpenFileName to return empty string (no selection)
+        # Mock qtpy.compat.getopenfilename to return empty string (no selection)
         mocker.patch(
-            "view.napari_pyview.napari_utils.shapes_labels_utils.QFileDialog.getOpenFileName",
+            "qtpy.compat.getopenfilename",
             return_value=("", "ROI/COOR File (*.roi *.coor *.roi.tif)"),
         )
 
@@ -354,9 +354,10 @@ class TestViewAreaIOManager:
 
         assert ".Area" in mapping
         assert ".area.tif" in mapping
-        assert len(mapping) == 2
+        assert ".roi" in mapping
+        assert len(mapping) == 3
         # Both should map to NapariLabelsLayerViewIO
         assert all(
-            io_class == NapariLabelsLayerViewIO
+            io_class in (NapariLabelsLayerViewIO, NapariShapesLayerViewIO)
             for io_class in mapping.values()
         )

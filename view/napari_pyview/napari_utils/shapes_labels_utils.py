@@ -3,6 +3,7 @@ import typing
 
 if typing.TYPE_CHECKING:
     import napari
+
 import qtpy.compat
 from matplotlib.colors import rgb2hex
 
@@ -180,7 +181,7 @@ class ViewRoiCoorIOManager:
     @classmethod
     def ask_get_file(cls, view_flags: FlagsManager) -> str:
         """
-        Open a dialog to select a ROI/COOR file using QFileDialog.getOpenFileName.
+        Open a dialog to select a ROI/COOR file using getopenfilename.
         :param view_flags: FlagsManager instance
         :return: The chosen file path, or None if no file was selected
         """
@@ -294,7 +295,7 @@ class ViewAreaIOManager(ViewRoiCoorIOManager):
     @classmethod
     def get_file_extension_napari_io_object_mapping(
         cls,
-    ) -> dict[str, type[NapariLabelsLayerViewIO, NapariShapesLayerViewIO]]:
+    ) -> dict[str, type[NapariLabelsLayerViewIO] | type[NapariShapesLayerViewIO]]:
 
         return {
             ".Area": NapariLabelsLayerViewIO,
