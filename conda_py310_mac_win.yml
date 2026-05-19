@@ -1,13 +1,15 @@
 name: view_26
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.10
-  - pyqt=5
+  - pyqt6 != 6.6.1
   - qtpy
   - pip
   - scipy
   - scikit-image
+  - numpy>=2
   - jinja2
   - seaborn
   - bokeh
@@ -17,6 +19,7 @@ dependencies:
   - openpyxl
   - jupyter
   - appdirs
-  - moviepy
+  # only available on conda-forge
+  - moviepy<2
   # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas

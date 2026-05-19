@@ -4,11 +4,12 @@ channels:
   - nodefaults
 dependencies:
   - python=3.10
-  - pyqt=5
+  - pyqt6
   - qtpy
   - pip
   - scipy
   - scikit-image
+  - numpy>=2
   - jinja2
   - seaborn
   - bokeh
@@ -19,7 +20,7 @@ dependencies:
   - jupyter
   - appdirs
   # only available on conda-forge
-  - moviepy
+  - moviepy<2
   - libstdcxx-ng
   # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas
