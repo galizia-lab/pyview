@@ -8,12 +8,12 @@ name = 'view'
 # version = "0.0.1"  # Remove any existing version parameter.
 dynamic = ["version"]
 description = 'a general purpose tool to analyze calcium imaging data of responses to sensory stimuli.'
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 license = "BSD-3-Clause"
 dependencies = [
     "qtpy>=2.4.3",
-    "pandas>=0.24.2",
+    "pandas>=3",
     "openpyxl>=3.0.3",
     "scipy >=1.2.1",
     "numpy>=2",
@@ -25,7 +25,7 @@ dependencies = [
     "appdirs>=1.4.3",
     # iltis ported to PyQt6 is needed, old iltis built using PyQt4 will not work.
     # Source code available at https://github.com/galizia-lab/ILTIS
-    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@rc-1.9",
+    "iltis@git+https://git@github.com/galizia-lab/ILTIS.git@1.9",
     "tillvisionio@git+https://git@github.com/galizia-lab/tillvisionio.git@1.2",
     "tifffile>=2019.7.26",
     "easygui>=0.98.3",
