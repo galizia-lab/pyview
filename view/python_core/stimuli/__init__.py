@@ -1,17 +1,26 @@
 import logging
+
 import pandas as pd
-from .stimuli_parser import StimuliParamsParser
+
+from view.python_core.stimuli.stimuli_parser import StimuliParamsParser
 
 
-class BaseStimuliiHandler(object):
-
+class BaseStimuliiHandler:
     def __init__(self):
-        self.stimulus_frame = pd.DataFrame(columns=("Odor", "Concentration",
-                                                    "Pulse Start Time", "Pulse End Time",
-                                                    "Sampling Period"))
+        self.stimulus_frame = pd.DataFrame(
+            columns=(
+                "Odor",
+                "Concentration",
+                "Pulse Start Time",
+                "Pulse End Time",
+                "Sampling Period",
+            ),
+        )
         self.stimulus_offset_td = pd.Timedelta(0)
 
-    def initialize_stimulus_offset(self, mv_correctStimulusOnset, data_sampling_period):
+    def initialize_stimulus_offset(
+        self, mv_correctStimulusOnset, data_sampling_period
+    ):
         """
         Corrects all stimuli periods stored internally by adding a time interval specified by the flag
         "mv_correctStimulusOnset" to them.
@@ -26,20 +35,30 @@ class BaseStimuliiHandler(object):
         if mv_correctStimulusOnset == 0:
             self.stimulus_offset_td = pd.Timedelta(0)
         else:
-            self.stimulus_offset_td = pd.Timedelta(f"{mv_correctStimulusOnset}ms")
+            self.stimulus_offset_td = pd.Timedelta(
+                f"{mv_correctStimulusOnset}ms"
+            )
 
         if self.stimulus_frame.shape[0]:
             self.stimulus_frame["Pulse Start Time"] += self.stimulus_offset_td
             self.stimulus_frame["Pulse End Time"] += self.stimulus_offset_td
         else:
-            logging.getLogger("VIEW").warning("No stimulus found in object. Stimulus offset not initialized!")
+            logging.getLogger("VIEW").warning(
+                "No stimulus found in object. Stimulus offset not initialized!"
+            )
 
-    def add_odor_pulse(self, odor, concentration,
-                       on_frame: int = None, data_sampling_period: float = None,
-                       on_ms: float = None,
-                       off_frame: int = None, duration_ms: float = None):
+    def add_odor_pulse(
+        self,
+        odor,
+        concentration,
+        on_frame: int = None,
+        data_sampling_period: float = None,
+        on_ms: float = None,
+        off_frame: int = None,
+        duration_ms: float = None,
+    ):
         """
-        Add an odor pulse stimlus, applying correction based on mv_correctOnsetStimulus.
+        Add an odor pulse stimulus, applying correction based on mv_correctOnsetStimulus.
         One of the following needs to specified to define stimulus pulse onset
         1. on_frame and data_sampling_period
         2. on_ms
@@ -50,27 +69,39 @@ class BaseStimuliiHandler(object):
         :param concentration: float, logarithm to base 10 of the concentration of the odor applied
         :param on_frame: int, frame number of stimulus pulse onset
         :param float data_sampling_period: data sampling period in ms, i.e., 600 for 100 frames per minute
-        :param on_ms: float, time of stimlus onset in milliseconds
+        :param on_ms: float, time of stimulus onset in milliseconds
         :param off_frame: int, frame number of stimulus pulse offset
         :param duration_ms: float, stimulus duration in milliseconds
         :return:
         """
         data_sampling_period_td = pd.Timedelta(f"{data_sampling_period}ms")
 
-        if not pd.isnull(on_frame) and not pd.isnull(data_sampling_period) and pd.isnull(on_ms):
+        if (
+            not pd.isnull(on_frame)
+            and not pd.isnull(data_sampling_period)
+            and pd.isnull(on_ms)
+        ):
             # stimulus start, based on on_frame
-            assert on_frame >= 0, f"on_frame must be >= 0. {on_frame} specified"
+            assert on_frame >= 0, (
+                f"on_frame must be >= 0. {on_frame} specified"
+            )
             on_time_from_frame = on_frame * data_sampling_period_td
         elif pd.isnull(on_frame) and not pd.isnull(on_ms):
             # stimulus start, based on on_ms
             assert on_ms >= 0, f"on_ms must be >= 0. {on_ms} specified"
             on_time_from_frame = pd.Timedelta(f"{on_ms}ms")
-        elif not pd.isnull(on_frame) and not pd.isnull(on_ms) and not pd.isnull(data_sampling_period):
+        elif (
+            not pd.isnull(on_frame)
+            and not pd.isnull(on_ms)
+            and not pd.isnull(data_sampling_period)
+        ):
             # stimulus start, both on_ms and on_frame are given
             on_time_from_frame = on_frame * data_sampling_period_td
             on_time_from_time = pd.Timedelta(f"{on_ms}ms")
-            assert on_time_from_time == on_time_from_frame, f"stimulus on_frame and on_time are contradictory: " \
-                                                            f"check stimulus time in .lst file"
+            assert on_time_from_time == on_time_from_frame, (
+                "stimulus on_frame and on_time are contradictory: "
+                "check stimulus time in .lst file"
+            )
         else:
             return 1
 
@@ -78,21 +109,35 @@ class BaseStimuliiHandler(object):
             off_time_from_frame = (off_frame + 1) * data_sampling_period_td
             if not pd.isnull(duration_ms):
                 logging.getLogger("VIEW").warning(
-                    'During stimulus parsing: stimulus length taken from Stim_off in frames, '
-                    'stim_duration has been ignored! Check info in .lst file')
+                    "During stimulus parsing: stimulus length taken from Stim_off in frames, "
+                    "stim_duration has been ignored! Check info in .lst file"
+                )
         elif not pd.isnull(duration_ms):
-            off_time_from_frame = on_time_from_frame + pd.Timedelta(f"{duration_ms}ms")
+            off_time_from_frame = on_time_from_frame + pd.Timedelta(
+                f"{duration_ms}ms"
+            )
         else:
             return 1
 
-        temp_df = pd.DataFrame([[odor,
-                                 concentration,
-                                 on_time_from_frame,
-                                 off_time_from_frame,
-                                 data_sampling_period_td]],
-                               columns=self.stimulus_frame.columns)
+        temp_df = pd.DataFrame(
+            [
+                [
+                    odor,
+                    concentration,
+                    on_time_from_frame,
+                    off_time_from_frame,
+                    data_sampling_period_td,
+                ]
+            ],
+            columns=self.stimulus_frame.columns,
+        )
 
-        self.stimulus_frame = pd.concat([self.stimulus_frame, temp_df], ignore_index=True)
+        if self.stimulus_frame.shape[0] == 0:
+            self.stimulus_frame = temp_df
+        else:
+            self.stimulus_frame = pd.concat(
+                [self.stimulus_frame, temp_df], ignore_index=True
+            )
 
         return 0
 
@@ -113,7 +158,6 @@ class BaseStimuliiHandler(object):
         return self.stimulus_frame["Odour"].unique()
 
     def get_odor_info_at_times(self, times):
-
         """
         :param times: iterable of pandas.TimeDelta
         :returns odors, concs
@@ -121,7 +165,9 @@ class BaseStimuliiHandler(object):
         concs: list of str, containing concentration information
         """
 
-        assert all(type(x) == pd.Timedelta for x in times), "times must be of type pandas.TimeDelta"
+        assert all(isinstance(x, pd.Timedelta) for x in times), (
+            "times must be of type pandas.TimeDelta"
+        )
 
         odors = []
         concs = []
@@ -129,9 +175,10 @@ class BaseStimuliiHandler(object):
         for time in times:
             current_odors = []
             current_concs = []
-            for row_index, row in self.stimulus_frame.iterrows():
-
-                if (row["Pulse Start Time"] <= time) & (row["Pulse End Time"] >= time):
+            for _row_index, row in self.stimulus_frame.iterrows():
+                if (row["Pulse Start Time"] <= time) & (
+                    row["Pulse End Time"] >= time
+                ):
                     current_odors.append(row["Odor"])
                     current_concs.append(row["Concentration"])
 
@@ -167,11 +214,19 @@ class BaseStimuliiHandler(object):
         :param allow_fractional_frames: bool. If False, fractional frame numbers are replaced by None
         :return: an iterable, of floats or None
         """
-        frame_numbers = [(x / y) for x, y in zip(self.stimulus_frame["Pulse Start Time"],
-                                                 self.stimulus_frame["Sampling Period"])]
+        frame_numbers = [
+            (x / y)
+            for x, y in zip(
+                self.stimulus_frame["Pulse Start Time"],
+                self.stimulus_frame["Sampling Period"],
+                strict=True,
+            )
+        ]
 
         if not allow_fractional_frames:
-            frame_numbers = [int(x) if int(x) == x else None for x in frame_numbers]
+            frame_numbers = [
+                int(x) if int(x) == x else None for x in frame_numbers
+            ]
 
         return frame_numbers
 
@@ -181,11 +236,19 @@ class BaseStimuliiHandler(object):
         :param allow_fractional_frames: bool. If False, fractional frame numbers are replaced by None
         :return: an iterable, of floats or None
         """
-        frame_numbers = [(x / y) for x, y in zip(self.stimulus_frame["Pulse End Time"],
-                                                 self.stimulus_frame["Sampling Period"])]
+        frame_numbers = [
+            (x / y)
+            for x, y in zip(
+                self.stimulus_frame["Pulse End Time"],
+                self.stimulus_frame["Sampling Period"],
+                strict=True,
+            )
+        ]
 
         if not allow_fractional_frames:
-            frame_numbers = [int(x) if int(x) == x else None for x in frame_numbers]
+            frame_numbers = [
+                int(x) if int(x) == x else None for x in frame_numbers
+            ]
 
         return frame_numbers
 
@@ -199,17 +262,21 @@ class BaseStimuliiHandler(object):
         starts = self.get_pulse_start_frames(allow_fractional_frames)
         ends = self.get_pulse_end_frames(allow_fractional_frames)
 
-        return list(zip(starts, ends))
+        return list(zip(starts, ends, strict=True))
 
     def get_first_stimulus_onset_frame(self):
 
-        onset_frames = self.get_pulse_start_frames(allow_fractional_frames=True)
+        onset_frames = self.get_pulse_start_frames(
+            allow_fractional_frames=True
+        )
         if len(onset_frames):
             return int(onset_frames[0])  # round it if fractional
         else:
             return None
 
-    def get_stimon_background_range(self, LE_StartBackground, LE_PrestimEndBackground, default_background):
+    def get_stimon_background_range(
+        self, LE_StartBackground, LE_PrestimEndBackground, default_background
+    ):
         """
         Decides the start and end frames of background to use based on the onset of first stimulus,
         <LE_PrestimEndBackground>, <LE_StartBackground>
@@ -222,26 +289,29 @@ class BaseStimuliiHandler(object):
         onset_frame_first_stimulus: int, frame number of the onset of first stimulus.
         If the interpreted range is invalid, -1 will be returned
         """
-        
+
         onset_frame_first_stimulus = self.get_first_stimulus_onset_frame()
         if onset_frame_first_stimulus is not None:
-            end_background = onset_frame_first_stimulus - LE_PrestimEndBackground
+            end_background = (
+                onset_frame_first_stimulus - LE_PrestimEndBackground
+            )
             if end_background <= LE_StartBackground:
                 logging.getLogger("VIEW").warning(
-                    f"Encountered end_background <= start_background, which is invalid. "
-                    f"Defaulting to the background range {default_background}")
+                    "Encountered end_background <= start_background, which is invalid. Using default background range instead",
+                    {"default_background": default_background},
+                )
                 return default_background, -1
         else:
             logging.getLogger("VIEW").warning(
-                f"No stimuli information specified in measurement list file. "
-                f"Defaulting to the background range {default_background}")
+                "No stimuli information specified in measurement list file. Using default background range",
+                {"default_background": default_background},
+            )
             return default_background, -1
 
         return (LE_StartBackground, end_background), onset_frame_first_stimulus
 
 
 class PulsedStimuliiHandler(BaseStimuliiHandler):
-
     def __init__(self):
 
         super().__init__()
@@ -253,19 +323,15 @@ class PulsedStimuliiHandler(BaseStimuliiHandler):
 
         handler = cls()
 
-        for stim_ind, stimulus in stimulus_params.iter_stimuli():
-
-            handler.add_odor_pulse(data_sampling_period=row["Cycle"],
-                                   on_frame=stimulus["StimON"],
-                                   off_frame=stimulus["StimOFF"],
-                                   on_ms=stimulus["StimONms"],
-                                   duration_ms=stimulus["StimLen"],
-                                   odor=stimulus["Odour"],
-                                   concentration=stimulus["OConc"])
+        for _stim_ind, stimulus in stimulus_params.iter_stimuli():
+            handler.add_odor_pulse(
+                data_sampling_period=row["Cycle"],
+                on_frame=stimulus["StimON"],
+                off_frame=stimulus["StimOFF"],
+                on_ms=stimulus["StimONms"],
+                duration_ms=stimulus["StimLen"],
+                odor=stimulus["Odour"],
+                concentration=stimulus["OConc"],
+            )
 
         return handler
-
-
-
-
-

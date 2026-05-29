@@ -122,32 +122,32 @@
 <div class="tapestry-container">
     <table>
         {% for patches_row in patches_collection:%}
-            <tr>
-                {% for patch in patches_row: %}
-                    <td>
-                        <div class="grid-container">
-                            <div class="thumbnail"><img src="{{ patch.image_relative_path }}"
-                                                        alt="{{ patch.image_relative_path }}"></div>
-                            <div class="textrightbottom"><p>{{ patch.text_right_bottom }}</p></div>
-                            <div class="textrighttop"><p>{{ patch.text_right_top }}</p></div>
-                            <div class="textbelow">
-                                <div class="tooltip">
-                                    <p>{{ patch.text_below }}</p>
-                                    <span class="tooltiptext">
+        <tr>
+            {% for patch in patches_row: %}
+            <td>
+                <div class="grid-container">
+                    <div class="thumbnail"><img src="{{ patch.image_relative_path }}"
+                                                alt="{{ patch.image_relative_path }}"></div>
+                    <div class="textrightbottom"><p>{{ patch.text_right_bottom }}</p></div>
+                    <div class="textrighttop"><p>{{ patch.text_right_top }}</p></div>
+                    <div class="textbelow">
+                        <div class="tooltip">
+                            <p>{{ patch.text_below }}</p>
+                            <span class="tooltiptext">
                                         <b>Pipe Name:</b> {{ patch.pipe_name }}<br><br>
                                         <b>Smoothness:</b> {{ patch.smoothness}}<br><br>
                                         <b>Tif file:</b> {{ patch.tif_file}}<br><br>
                                         <b>Plugin Params:</b><br>{{ patch.plugin_params }}
                                     </span>
-                                </div>
-                                {% if patch.movie_file is not none: %}
-                                <a href="{{patch.movie_file}}">(movie)</a>
-                                {% endif %}
-                            </div>
                         </div>
-                    </td>
-                {% endfor %}
-            </tr>
+                        {% if patch.movie_file is not none: %}
+                        <a href="{{patch.movie_file}}">(movie)</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </td>
+            {% endfor %}
+        </tr>
         {% endfor %}
     </table>
 </div>

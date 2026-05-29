@@ -1,16 +1,20 @@
-from .base_classes import BaseROIData
 import typing
+
 import numpy as np
+
+from view.python_core.rois.base_classes import BaseROIData
 
 
 class UniformROIData(BaseROIData):
-
     def __init__(
-            self,
-            label="Non-file-uniform0",
-            basic_text_description="A uniform ROI covering entire frame, not read from a file"):
+        self,
+        label="Non-file-uniform0",
+        basic_text_description="A uniform ROI covering entire frame, not read from a file",
+    ):
 
-        super().__init__(label=label, basic_text_description=basic_text_description)
+        super().__init__(
+            label=label, basic_text_description=basic_text_description
+        )
 
     def get_boolean_mask(self, frame_size: typing.Iterable[int]) -> np.ndarray:
         """

@@ -1,8 +1,7 @@
-import pandas as pd
-from bokeh.plotting import figure
-from bokeh.palettes import d3
-from bokeh.models import Plot, Line, Legend, ColumnDataSource
 import numpy as np
+import pandas as pd
+from bokeh.models import Plot
+from bokeh.palettes import d3
 
 
 def get_bounds(arr):
@@ -15,16 +14,23 @@ def get_bounds(arr):
 
 
 def add_lineplot(
-        data: pd.DataFrame, x: str, y: str, hue: str, bokeh_plot: Plot,
-        legend_location: str = "center right", legend_nrow: int = 1,
-        legend_click_policy: str = "hide", legend_orientation: str = "vertical",
-        white_filled_circle_marker=False, circle_marker_size=8
-        ):
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    hue: str,
+    bokeh_plot: Plot,
+    legend_location: str = "center right",
+    legend_nrow: int = 1,
+    legend_click_policy: str = "hide",
+    legend_orientation: str = "vertical",
+    white_filled_circle_marker=False,
+    circle_marker_size=8,
+):
 
     group = data.groupby(hue)
 
     if len(group) < 3:
-        palette = d3["Category10"][3][:len(group)]
+        palette = d3["Category10"][3][: len(group)]
     elif 3 <= len(group) <= 10:
         palette = d3["Category10"][len(group)]
     else:
@@ -32,12 +38,18 @@ def add_lineplot(
 
     lines = {}
 
-    for color, (hue, hue_df) in zip(palette, group):
-
-        line = bokeh_plot.line(x=hue_df[x], y=hue_df[y], line_color=color, legend_label=hue)
+    for color, (hue, hue_df) in zip(palette, group, strict=False):
+        line = bokeh_plot.line(
+            x=hue_df[x], y=hue_df[y], line_color=color, legend_label=hue
+        )
         lines[hue] = line
         if white_filled_circle_marker:
-            bokeh_plot.circle(x=hue_df[x], y=hue_df[y], fill_color="white", size=circle_marker_size)
+            bokeh_plot.circle(
+                x=hue_df[x],
+                y=hue_df[y],
+                fill_color="white",
+                size=circle_marker_size,
+            )
 
     bokeh_plot.xaxis.axis_label = x
     bokeh_plot.yaxis.axis_label = y
@@ -50,4 +62,3 @@ def add_lineplot(
     bokeh_plot.legend.orientation = legend_orientation
 
     return bokeh_plot
-

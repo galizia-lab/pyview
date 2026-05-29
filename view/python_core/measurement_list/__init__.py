@@ -1,4 +1,4 @@
-'''
+"""
 (explanation as of Sept. 4th, 2019. Code by Ajay)
 
 p1 structure contains all parameters of an experiment that are
@@ -24,27 +24,31 @@ The current format of p1 is implemented as a class in python_core/measurement_li
     In particular, this is used to extract p1 values for a particular measurement.
 stimuli.py contains the tools to adjust p1 values related to stimulus timing.
 
-'''
-import re
+"""
+
+import copy
+import logging
+import pathlib as pl
+import pprint
+import typing
+
+import numpy as np
+import pandas as pd
 
 from view.python_core.get_internal_files import get_metadata_definition
-from view.python_core.paths import get_existing_raw_data_filename, convert_to_path_for_current_os
-from view.python_core.p1_class.metadata_related import parse_p1_metadata_from_measurement_list_row
-from ..p1_class import get_p1
-import pandas as pd
-import numpy as np
-import pathlib as pl
-from .io import get_ext_based_values
-from .importers import get_importer_class
+from view.python_core.measurement_list.io import get_ext_based_values
 from view.python_core.old_file_handler import get_old_file_handler
-import typing
-import logging
-import copy
-import pprint
+from view.python_core.p1_class import get_p1
+from view.python_core.p1_class.metadata_related import (
+    parse_p1_metadata_from_measurement_list_row,
+)
+from view.python_core.paths import (
+    convert_to_path_for_current_os,
+    get_existing_raw_data_filename,
+)
 
 
-class MeasurementList(object):
-
+class MeasurementList:
     def __init__(self, LE_loadExp):
 
         self._metadata_def_df = get_metadata_definition()
@@ -62,14 +66,14 @@ class MeasurementList(object):
         :return: dict
         """
 
-        assert not (from_col is None and to_col is None), "One of 'from_col' and 'to_col' needs to be specified!"
+        assert not (
+            from_col is None and to_col is None
+        ), "One of 'from_col' and 'to_col' needs to be specified!"
 
         if from_col is None:
-
             from_col = "LST Name"
 
         if to_col is None:
-
             to_col = "LST Name"
 
         metadata_reset = self._metadata_def_df.reset_index()
@@ -95,18 +99,22 @@ class MeasurementList(object):
         io_class, relevant_column, ext = get_ext_based_values(lst_fle)
 
         measurement_list.last_measurement_list_fle = lst_fle
-        measurement_list.animal_name = pl.Path(lst_fle).name[:-len(ext)]
+        measurement_list.animal_name = pl.Path(lst_fle).name[: -len(ext)]
 
         in_df = io_class.read(lst_fle)
 
-        column_name_mapping = measurement_list.get_column_mapping(from_col=relevant_column, to_col=None)
+        column_name_mapping = measurement_list.get_column_mapping(
+            from_col=relevant_column, to_col=None
+        )
 
         in_df_lst_names = in_df.rename(columns=column_name_mapping)
 
         # define a new column order where columns known to VIEW are moved to the beginning
-        new_column_order = \
-            [column_name_mapping[x] for x in in_df.columns if x in column_name_mapping] + \
-            [x for x in in_df.columns if x not in column_name_mapping]
+        new_column_order = [
+            column_name_mapping[x]
+            for x in in_df.columns
+            if x in column_name_mapping
+        ] + [x for x in in_df.columns if x not in column_name_mapping]
 
         # reorder columns to resemble the row order in the internal metadata definition file
         # columns not internal definition will be at the end
@@ -116,7 +124,7 @@ class MeasurementList(object):
 
         measurement_list.revise_dbbs_for_current_OS()
         measurement_list.add_missing_defaults()
-        measurement_list.convert_to_numeric()
+        measurement_list.convert_to_required_data_types()
         measurement_list.check_minimum_requirements()
 
         return measurement_list
@@ -127,13 +135,17 @@ class MeasurementList(object):
         measurement_list = cls(LE_loadExp)
 
         measurement_list.measurement_list_df = df
-        measurement_list.convert_to_numeric()
+        measurement_list.convert_to_required_data_types()
         measurement_list.check_minimum_requirements()
 
         return measurement_list
 
-    def write_to_list_file(self, lst_fle: str, columns2write: typing.Union[None, list] = None,
-                           overwrite_old_values=()):
+    def write_to_list_file(
+        self,
+        lst_fle: str,
+        columns2write: typing.Union[None, list] = None,
+        overwrite_old_values=(),
+    ):
         """
         Write to file with column names based on file extension
         :param lst_fle: str, path of the file to be written
@@ -151,12 +163,17 @@ class MeasurementList(object):
         old_file_handler.backup()
 
         column_name_mapping = self.get_column_mapping(to_col=relevant_column)
-        df_to_write = self.measurement_list_df.rename(columns=column_name_mapping)
+        df_to_write = self.measurement_list_df.rename(
+            columns=column_name_mapping
+        )
 
         # rewrite values from old df
-        df_with_old_values = old_file_handler.write_old_values(df_to_write, overwrite_old_values,
-                                                               measu_col_name=column_name_mapping["Measu"],
-                                                               label_col_name=column_name_mapping["Label"])
+        df_with_old_values = old_file_handler.write_old_values(
+            df_to_write,
+            overwrite_old_values,
+            measu_col_name=column_name_mapping["Measu"],
+            label_col_name=column_name_mapping["Label"],
+        )
 
         # use all columns if <columns2write> is None
         if columns2write is None:
@@ -173,7 +190,9 @@ class MeasurementList(object):
 
         io_class.write(df=df_with_old_values, fle=lst_fle)
 
-    def write_to_lst_file_cross_format(self, output_lst_file: str, backup_current_file: bool=True):
+    def write_to_lst_file_cross_format(
+        self, output_lst_file: str, backup_current_file: bool = True
+    ):
         """
         Writes the current measurement list to another format, based on the extension of <output_lst_file>.
         :param str output_lst_file: path where output will be written
@@ -181,90 +200,151 @@ class MeasurementList(object):
         will be backed up
         """
 
-        io_class_output, = get_ext_based_values(output_lst_file)
+        (io_class_output,) = get_ext_based_values(output_lst_file)
 
         if backup_current_file:
-
-            old_file_handler = get_old_file_handler(self.last_measurement_list_fle)
+            old_file_handler = get_old_file_handler(
+                self.last_measurement_list_fle
+            )
             old_file_handler.backup()
 
         io_class_output.write(df=self.measurement_list_df, fle=output_lst_file)
 
     def get_minimum_columns_required(self):
 
-        return [k for k, v in self._metadata_def_df["Requirement for List load"].items()
-                if v in ["all", str(self.LE_loadExp)]]
+        return [
+            k
+            for k, v in self._metadata_def_df[
+                "Requirement for List load"
+            ].items()
+            if v in ["all", str(self.LE_loadExp)]
+        ]
 
     def check_minimum_requirements(self):
 
         minimum_columns_required = self.get_minimum_columns_required()
-        missing_columns = set(minimum_columns_required) - set(self.measurement_list_df.columns)
-        assert missing_columns == set(), f"These columns are required but were not found in the list file: " \
+        missing_columns = set(minimum_columns_required) - set(
+            self.measurement_list_df.columns
+        )
+        assert missing_columns == set(), (
+            f"These columns are required but were not found in the list file: "
             f"{missing_columns}"
+        )
 
     def add_missing_defaults(self):
 
-        for col_name, default_value in self._metadata_def_df["Default values"].items():
-
+        for col_name, row in self._metadata_def_df.iterrows():
             if col_name not in self.measurement_list_df.columns:
+                column_to_insert = pd.Series(
+                    index=self.measurement_list_df.index,
+                    dtype=row["Data Type"],
+                    data=row["Default values"],
+                )
+                self.measurement_list_df.insert(
+                    loc=self.measurement_list_df.shape[1],
+                    column=col_name,
+                    value=column_to_insert,
+                )
 
-                self.measurement_list_df.loc[:, col_name] = default_value
+    def convert_to_required_data_types(self):
 
-    def convert_to_numeric(self):
-        self.measurement_list_df = \
-            self.measurement_list_df.applymap(lambda x: pd.to_numeric(x, errors="ignore"))
+        type_spec = self._metadata_def_df["Data Type"]
+        # pandas now enforces that all columns mentioned in type_spec must be present in the DataFrame
+        type_spec = type_spec[
+            type_spec.index.isin(self.measurement_list_df.columns)
+        ]
+        self.measurement_list_df = self.measurement_list_df.astype(type_spec)
 
     def revise_dbbs_for_current_OS(self):
 
         for row_ind, row in self.measurement_list_df.iterrows():
-
-            for k, v in self.get_metadata_by_type(measurement_row=row, tpye="paths").items():
-
-                self.measurement_list_df.loc[row_ind, k] = convert_to_path_for_current_os(v)
+            for k, v in self.get_metadata_by_type(
+                measurement_row=row, tpye="paths"
+            ).items():
+                self.measurement_list_df.loc[row_ind, k] = str(
+                    convert_to_path_for_current_os(v)
+                )
+                # better to store as string, as this column has been initialized to store strings
 
     def get_df_from_file(self, fle):
         pass
 
-
     def get_row_by_measu(self, measu):
 
-        return self.get_row_by_column_value(column_name="Measu", column_value=measu)
+        return self.get_row_by_column_value(
+            column_name="Measu", column_value=measu
+        )
 
     def get_row_by_label(self, label):
 
-        return self.get_row_by_column_value(column_name="Label", column_value=label)
+        return self.get_row_by_column_value(
+            column_name="Label", column_value=label
+        )
 
     def get_row_index_by_column_value(self, column_name, column_value):
 
-        rows_mask = self.measurement_list_df[column_name].apply(lambda x: x == column_value)
+        rows_mask = self.measurement_list_df[column_name].apply(
+            lambda x: x == column_value
+        )
 
-        assert not sum(rows_mask) > 1, f"More than one rows found in {self.last_measurement_list_fle} with " \
-                                       f"{column_name}={column_value}"
-        assert not sum(rows_mask) == 0, f"No rows with {column_name}={column_value} " \
-                                        f"found in {self.last_measurement_list_fle}"
+        assert not sum(rows_mask) > 1, (
+            f"More than one rows found in {self.last_measurement_list_fle} with "
+            f"{column_name}={column_value}"
+        )
+        assert sum(rows_mask) != 0, (
+            f"No rows with {column_name}={column_value} "
+            f"found in {self.last_measurement_list_fle}"
+        )
 
         row_index = np.where(rows_mask.values)[0][0]
         return row_index
 
+    def get_row_measu_by_column_value(self, column_name, column_value):
+        # You want to find a row where a column (column_name)
+        # matches a given value (column_value) —
+        # and return the value in that row's 'measu' column.
+        df = self.measurement_list_df
+
+        # Create a boolean mask for the matching row(s)
+        rows_mask = df[column_name] == column_value
+
+        # Check for exactly one match
+        assert rows_mask.sum() == 1, (
+            f"Expected exactly one row in {self.last_measurement_list_fle} with {column_name}={column_value}, "
+            f"found {rows_mask.sum()}."
+        )
+
+        # Return the 'measu' value from the matching row
+        return df.loc[rows_mask, "Measu"].values[0]
+
     def get_row_by_column_value(self, column_name, column_value):
 
-        row_index = self.get_row_index_by_column_value(column_name, column_value)
+        row_index = self.get_row_index_by_column_value(
+            column_name, column_value
+        )
 
         return self.get_row_by_index(row_index)
 
     def get_row_by_index(self, index):
 
-        assert index in range(self.measurement_list_df.shape[0]), \
-            f"Index={index} out of range for {self.last_measurement_list_fle} " \
+        assert index in range(self.measurement_list_df.shape[0]), (
+            f"Index={index} out of range for {self.last_measurement_list_fle} "
             f"containing {self.measurement_list_df.shape[0]} rows"
+        )
 
         return self.measurement_list_df.iloc[index, :]
 
     def get_metadata_by_type(self, measurement_row, tpye):
 
-        metadata_subset = self._metadata_def_df["Type"].apply(lambda x: x == tpye)
+        metadata_subset = self._metadata_def_df["Type"].apply(
+            lambda x: x == tpye
+        )
 
-        return {ind: measurement_row[ind] for ind, val in metadata_subset.items() if val and ind in measurement_row}
+        return {
+            ind: measurement_row[ind]
+            for ind, val in metadata_subset.items()
+            if val and ind in measurement_row
+        }
 
     def get_p1_metadata_by_index(self, index):
 
@@ -299,7 +379,9 @@ class MeasurementList(object):
 
             row_filter = [x in analyze_values_accepted for x in analyse_col]
 
-            return self.measurement_list_df.loc[row_filter, "Measu"].values.tolist()
+            return self.measurement_list_df.loc[
+                row_filter, "Measu"
+            ].values.tolist()
 
     def sub_select_based_on_analyze(self, analyze_values_accepted=None):
         """
@@ -317,8 +399,12 @@ class MeasurementList(object):
             row_filter = [x in analyze_values_accepted for x in analyse_col]
 
             list2return = MeasurementList(self.LE_loadExp)
-            list2return.measurement_list_df = self.measurement_list_df.loc[row_filter, :].copy()
-            list2return.last_measurement_list_fle = self.last_measurement_list_fle
+            list2return.measurement_list_df = self.measurement_list_df.loc[
+                row_filter, :
+            ].copy()
+            list2return.last_measurement_list_fle = (
+                self.last_measurement_list_fle
+            )
 
             return list2return
 
@@ -341,7 +427,9 @@ class MeasurementList(object):
 
         return current_fle_path.parent
 
-    def update_metadata_of_measurement(self, measu: int, metadata2update: dict):
+    def update_metadata_of_measurement(
+        self, measu: int, metadata2update: dict
+    ):
         """
         In the row for the measurement <measu>, replaces values of those cells whose names are keys
         in <meatadata2update> with corresponding dictionary values
@@ -349,12 +437,18 @@ class MeasurementList(object):
         :param metadata2update: dict, whose keys are strings
         """
 
-        measu_row_ind = self.get_row_index_by_column_value(column_name="Measu", column_value=measu)
-        measu_index_value = self.measurement_list_df.index.values[measu_row_ind]
+        measu_row_ind = self.get_row_index_by_column_value(
+            column_name="Measu", column_value=measu
+        )
+        measu_index_value = self.measurement_list_df.index.values[
+            measu_row_ind
+        ]
 
         for column_name, column_value in metadata2update.items():
             if column_name in self.measurement_list_df.columns:
-                self.measurement_list_df.loc[measu_index_value, column_name] = column_value
+                self.measurement_list_df.loc[
+                    measu_index_value, column_name
+                ] = column_value
 
     def get_value(self, measu, column):
         """
@@ -363,8 +457,12 @@ class MeasurementList(object):
         :param column: str
         """
 
-        measu_row_ind = self.get_row_index_by_column_value(column_name="Measu", column_value=measu)
-        measu_index_value = self.measurement_list_df.index.values[measu_row_ind]
+        measu_row_ind = self.get_row_index_by_column_value(
+            column_name="Measu", column_value=measu
+        )
+        measu_index_value = self.measurement_list_df.index.values[
+            measu_row_ind
+        ]
 
         return self.measurement_list_df.loc[measu_index_value, column]
 
@@ -379,8 +477,9 @@ class MeasurementList(object):
         :return: None
         """
 
-        self.measurement_list_df = self.measurement_list_df.apply(custom_func, axis=1,
-                                                                  **kwargs)
+        self.measurement_list_df = self.measurement_list_df.apply(
+            custom_func, axis=1, **kwargs
+        )
 
     def check_set_analyze(self, loading_criterion_pass, index):
         """
@@ -391,7 +490,9 @@ class MeasurementList(object):
         :param int index: row index
         """
 
-        analyze_column_exists = "Analyze" in self.measurement_list_df.columns.values
+        analyze_column_exists = (
+            "Analyze" in self.measurement_list_df.columns.values
+        )
 
         if loading_criterion_pass and not analyze_column_exists:
             self.measurement_list_df.loc[index, "Analyze"] = 1
@@ -406,7 +507,13 @@ class MeasurementList(object):
         else:
             pass  # should not come here as all possible cases are covered above
 
-    def sanitize(self, data_file_extensions, STG_Datapath=None, flags=None, make_paths_absolute=False):
+    def sanitize(
+        self,
+        data_file_extensions,
+        STG_Datapath=None,
+        flags=None,
+        make_paths_absolute=False,
+    ):
         """
         For each, set analyze to zero if indicated data files or their possible alternatives don't exist
         :param flags: instance of view.python_core.flags.FlagsManager
@@ -421,12 +528,13 @@ class MeasurementList(object):
         extra_cols = [x for x in ("dbb2", "dbb3") if x in minimum_requirements]
 
         for index, row in self.measurement_list_df.iterrows():
-
             this_which_data_cols = which_data_cols.copy()
             for col in extra_cols:
-                if col in self.measurement_list_df.columns:
-                    if self.measurement_list_df.loc[index, col] != self._metadata_def_df.loc[col, "Default values"]:
-                        this_which_data_cols.append(col)
+                if (col in self.measurement_list_df.columns) and (
+                    self.measurement_list_df.loc[index, col]
+                    != self._metadata_def_df.loc[col, "Default values"]
+                ):
+                    this_which_data_cols.append(col)
 
             existences = []
             warnings = {}
@@ -434,38 +542,55 @@ class MeasurementList(object):
                 if STG_Datapath is None and flags is not None:
                     try:
                         dbb = row[data_col]
-                        absolute_data_path = get_existing_raw_data_filename(flags=flags, dbb=dbb,
-                                                                            extensions=data_file_extensions,
-                                                                            )
+                        absolute_data_path = get_existing_raw_data_filename(
+                            flags=flags,
+                            dbb=dbb,
+                            extensions=data_file_extensions,
+                        )
                         if make_paths_absolute:
-                            self.measurement_list_df.loc[index, data_col] = absolute_data_path
+                            self.measurement_list_df.loc[index, data_col] = (
+                                absolute_data_path
+                            )
 
                         existences.append(True)
                     except FileNotFoundError as fnfe:
                         logging.getLogger("VIEW").warning(str(fnfe))
                         existences.append(False)
                 elif flags is None and STG_Datapath is not None:
-                    expected_data_file = pl.Path(STG_Datapath) / f"{row[data_col]}{data_file_extensions}"
+                    expected_data_file = (
+                        pl.Path(STG_Datapath)
+                        / f"{row[data_col]}{data_file_extensions}"
+                    )
                     existence = expected_data_file.is_file()
                     if existence:
                         if make_paths_absolute:
-                            self.measurement_list_df.loc[index, data_col] = expected_data_file
+                            self.measurement_list_df.loc[index, data_col] = (
+                                expected_data_file
+                            )
                     else:
-                        warnings[data_col] = f"Expected file not found: {expected_data_file}"
+                        warnings[data_col] = (
+                            f"Expected file not found: {expected_data_file}"
+                        )
 
                     existences.append(existence)
                 else:
-                    raise ValueError("This function has invalid arguments. Exactly one among STG_Datapath and"
-                                     "flags need to be set and the other not set or set to None")
+                    raise ValueError(
+                        "This function has invalid arguments. Exactly one among STG_Datapath and"
+                        "flags need to be set and the other not set or set to None"
+                    )
 
-            self.check_set_analyze(loading_criterion_pass=all(existences), index=index)
+            self.check_set_analyze(
+                loading_criterion_pass=all(existences), index=index
+            )
             if not all(existences):
                 logging.getLogger("VIEW").warning(
-                    f"Some expected data files were not found for the measurement with "
-                    f"measu={self.measurement_list_df.loc[index, 'Measu']} and "
-                    f"label={self.measurement_list_df.loc[index, 'Label']}. 'Analyze' for this row "
-                    f"has been set to 0. I looked for:\n"
-                    f"{pprint.pformat(warnings)}")
+                    "Some expected data files were not found for the measurement. 'Analyze' for this row has been set to 0",
+                    extra={
+                        "measu": self.measurement_list_df.loc[index, "Measu"],
+                        "label": self.measurement_list_df.loc[index, "Label"],
+                        "files expected": pprint.pformat(warnings),
+                    },
+                )
 
     def sanitize_based_on_loading(self, flags):
         """
@@ -474,12 +599,13 @@ class MeasurementList(object):
         """
 
         for index, row in self.measurement_list_df.iterrows():
-
             measu = row["Measu"]
             try:
                 self.load_data(flags=flags, measu=measu)
-                self.check_set_analyze(loading_criterion_pass=True, index=index)
-            except (IOError, FileNotFoundError, AssertionError, ValueError):
+                self.check_set_analyze(
+                    loading_criterion_pass=True, index=index
+                )
+            except (OSError, FileNotFoundError, AssertionError, ValueError):
                 self.measurement_list_df.loc[index, "Analyze"] = 0
 
     def append(self, measurement_list, label_suffix: str = None):
@@ -493,30 +619,42 @@ class MeasurementList(object):
         """
 
         if self.LE_loadExp == measurement_list.LE_loadExp:
-
             new_ml = MeasurementList(self.LE_loadExp)
 
         else:
-
             new_ml = MeasurementList(None)
 
         max_measu_current_ml = self.measurement_list_df["Measu"].max()
         incoming_ml = measurement_list.measurement_list_df
 
-        incoming_ml.loc[:, "Measu"] = np.arange(incoming_ml.shape[0]) + max_measu_current_ml + 1
+        incoming_ml.loc[:, "Measu"] = (
+            np.arange(incoming_ml.shape[0]) + max_measu_current_ml + 1
+        )
 
-        incoming_ml.loc[:, "Label"] = [f"{x}{label_suffix}" for x in incoming_ml["Label"].values]
+        incoming_ml.loc[:, "Label"] = [
+            f"{x}{label_suffix}" for x in incoming_ml["Label"].values
+        ]
 
-        new_ml.measurement_list_df = self.measurement_list_df.append(incoming_ml, ignore_index=True)
+        # new_ml.measurement_list_df = self.measurement_list_df.append(incoming_ml, ignore_index=True)
+        new_ml.measurement_list_df = pd.concat(
+            [self.measurement_list_df, incoming_ml], ignore_index=True
+        )
 
         return new_ml
 
     def load_data(self, flags, measu):
 
         p1_metadata, extra_metadata = self.get_p1_metadata_by_measu(measu)
-        p1 = get_p1(p1_metadata=p1_metadata, flags=flags, extra_metadata=extra_metadata)
+        p1 = get_p1(
+            p1_metadata=p1_metadata, flags=flags, extra_metadata=extra_metadata
+        )
 
-        return flags.get_measurement_label(measurement_row=self.get_row_by_measu(measu)), p1
+        return (
+            flags.get_measurement_label(
+                measurement_row=self.get_row_by_measu(measu)
+            ),
+            p1,
+        )
 
 
 def get_animal_name_from_list_file(list_file):

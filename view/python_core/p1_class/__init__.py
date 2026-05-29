@@ -1,34 +1,51 @@
+import copy
+import gc
+import logging
+import pathlib as pl
+from abc import ABC, abstractmethod
+
+import numpy as np
+import pandas as pd
+from scipy.ndimage import gaussian_filter
+
 from view.idl_translation_core.ViewLoadData import create_raw_data666
-from .metadata_related import MetadataDefinition, parse_p1_metadata_from_measurement_list_row
-from .filters import apply_filter
-from view.python_core.bleach_corr import get_bleach_compensator
+from view.python_core.areas import (
+    get_area_for_bleach_correction,
+    get_area_for_p1,
+)
 from view.python_core.background import get_background_frames
-from view.python_core.areas import get_area_for_p1, get_area_for_bleach_correction
-from view.python_core.measurement_list.importers import LSMImporter, IngaTif_Importer
+from view.python_core.bleach_corr import get_bleach_compensator
+from view.python_core.calc_methods import get_calc_method
 from view.python_core.foto import calc_foto1
-from view.python_core.io import load_pst, read_lsm, read_tif_2Dor3D, read_single_file_fura_tif, read_lif, read_SingleWavelengthTif_MultiFileInga
+from view.python_core.io import (
+    load_pst,
+    read_lif,
+    read_lsm,
+    read_single_file_fura_tif,
+    read_SingleWavelengthTif_MultiFileInga,
+    read_tif_2Dor3D,
+)
+from view.python_core.measurement_list.importers import (
+    IngaTif_Importer,
+    LSMImporter,
+)
+from view.python_core.p1_class.add_trace import add_MS_trace
+from view.python_core.p1_class.filters import apply_filter
+from view.python_core.p1_class.metadata_related import (
+    MetadataDefinition,
+    parse_p1_metadata_from_measurement_list_row,
+)
 from view.python_core.paths import get_existing_raw_data_filename
 from view.python_core.stimuli import PulsedStimuliiHandler
-from view.python_core.calc_methods import get_calc_method
-import pathlib as pl
-import pandas as pd
-import copy
-import numpy as np
-from scipy.ndimage import gaussian_filter
-import logging
-import gc
-from abc import ABC, abstractmethod
 
 
 class P1SingleWavelengthAbstract(ABC):
-
     @abstractmethod
     def get_extensions(self):
         """
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
-        pass
 
     @abstractmethod
     def read_data(self, filename: str):
@@ -37,7 +54,6 @@ class P1SingleWavelengthAbstract(ABC):
         :param str filename: absolute path of raw data file on file system
         :rtype: numpy.ndarray
         """
-        pass
 
     def __init__(self):
 
@@ -57,12 +73,18 @@ class P1SingleWavelengthAbstract(ABC):
     def __del__(self):
 
         to_del = [
-            "metadata", "extra_metadata", "raw1", "raw2", "foto1", "foto2", "sig1",
-            "pulsed_stimuli_handler", "area_mask"
+            "metadata",
+            "extra_metadata",
+            "raw1",
+            "raw2",
+            "foto1",
+            "foto2",
+            "sig1",
+            "pulsed_stimuli_handler",
+            "area_mask",
         ]
 
         for obj in to_del:
-
             if hasattr(self, obj):
                 eval(f"self.{obj}")
 
@@ -74,7 +96,11 @@ class P1SingleWavelengthAbstract(ABC):
         :param sequence raw_data_size: size of raw data
         """
 
-        self.metadata.format_x, self.metadata.format_y, self.metadata.frames = raw_data_size
+        (
+            self.metadata.format_x,
+            self.metadata.format_y,
+            self.metadata.frames,
+        ) = raw_data_size
 
     def initialize_raw_data(self, raw_data):
         """
@@ -104,18 +130,27 @@ class P1SingleWavelengthAbstract(ABC):
         # if the flag replace_init_frames is 2, replace the first two frames with the third
         frames2replace = flags["Data_ReplaceInitFrames"]
         if frames2replace < raw_data.shape[2]:
-
-            temp = raw_data.swapaxes(0, 2)  # convert TYX, otherwise the frame replacement takes more commands
+            temp = raw_data.swapaxes(
+                0, 2
+            )  # convert TYX, otherwise the frame replacement takes more commands
             temp[:frames2replace, :, :] = temp[frames2replace, :, :]
             raw_data = temp.swapaxes(0, 2)  # convert back to XYT
         else:
             logging.getLogger("VIEW").warning(
-                f"value of the flag Data_ReplaceInitFrames ({flags['Data_ReplaceInitFrames']}) "
-                f"is too large for the number of frames loaded ({raw_data.shape[2]}). Not Replacing any frames!")
+                "value of the flag Data_ReplaceInitFrames  is too large for the number of frames loaded. Not Replacing any frames!",
+                extra={
+                    "Data_ReplaceInitFrames": flags["Data_ReplaceInitFrames"],
+                    "number of frames loaded": raw_data.shape[2],
+                },
+            )
 
         # apply median filter first, then mean filter, depending on flags
-        raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="median")
-        raw_data = apply_filter(matrix_in=raw_data, view_flags=flags, filter_type="mean")
+        raw_data = apply_filter(
+            matrix_in=raw_data, view_flags=flags, filter_type="median"
+        )
+        raw_data = apply_filter(
+            matrix_in=raw_data, view_flags=flags, filter_type="mean"
+        )
 
         # apply light scattering compensation using unsharp masking
         # see Pg 376 of Galizia & Vetter(2004).
@@ -124,7 +159,6 @@ class P1SingleWavelengthAbstract(ABC):
         smoothfactor = flags["LE_ScatteredLightFactor"]
 
         if smoothfactor > 0:
-
             corrected_raw_data = np.empty_like(raw_data)
 
             smoothradius_um = flags["LE_ScatteredLightRadius"]
@@ -133,34 +167,64 @@ class P1SingleWavelengthAbstract(ABC):
             smY = smoothradius_um / p1_metadata.pixelsizey
             smoothradius = (smX + smY) / 2.0
             if smX != smY:
-                logging.getLogger("VIEW").warning('unequal pixel size not implemented yet - averaging x and y value')
+                logging.getLogger("VIEW").warning(
+                    "unequal pixel size not implemented yet - averaging x and y value"
+                )
 
             for frame_ind in range(raw_data.shape[2]):
                 current_frame = raw_data[:, :, frame_ind]
 
                 # calculate correction
-                correction = current_frame - gaussian_filter(current_frame, smoothradius, mode='nearest')
+                correction = current_frame - gaussian_filter(
+                    current_frame, smoothradius, mode="nearest"
+                )
 
                 # smooth correction so as to not enhance noise
-                smoothed_correction = gaussian_filter(correction, smoothradius, mode='nearest')
+                smoothed_correction = gaussian_filter(
+                    correction, smoothradius, mode="nearest"
+                )
 
                 # apply correction
-                corrected_raw_data[:, :, frame_ind] = current_frame + smoothfactor * smoothed_correction
+                corrected_raw_data[:, :, frame_ind] = (
+                    current_frame + smoothfactor * smoothed_correction
+                )
 
         else:
             corrected_raw_data = raw_data
 
         # apply bleach correction depending on flags
-        bleach_compensator = get_bleach_compensator(flags=flags, p1_metadata=p1_metadata, movie_size=raw_data.shape)
+        bleach_compensator = get_bleach_compensator(
+            flags=flags, p1_metadata=p1_metadata, movie_size=raw_data.shape
+        )
 
-        area_mask_for_p1 = get_area_for_p1(frame_size=raw_data.shape[:2], flags=flags)
+        area_mask_for_p1 = get_area_for_p1(
+            frame_size=raw_data.shape[:2], flags=flags
+        )
 
         area_mask_for_bleach_correction = get_area_for_bleach_correction(
-            area_mask_for_p1, LE_BleachCutBorder=flags['LE_BleachCutBorder'],
-            LE_BleachExcludeArea=flags["LE_BleachExcludeArea"])
+            area_mask_for_p1,
+            LE_BleachCutBorder=flags["LE_BleachCutBorder"],
+            LE_BleachExcludeArea=flags["LE_BleachExcludeArea"],
+        )
 
-        bleach_corrected_raw_data, bleach_fit_params = bleach_compensator.apply(
-            stack_xyt=corrected_raw_data, area_mask=area_mask_for_bleach_correction)
+        bleach_corrected_raw_data, bleach_fit_params = (
+            bleach_compensator.apply(
+                stack_xyt=corrected_raw_data,
+                area_mask=area_mask_for_bleach_correction,
+            )
+        )
+
+        # if this is a dataset taken together with another trace, e.g. MS or FID measurement
+        # or single cell electrophysiology
+        # add that trace to the top left corner
+        if flags["LE_AddMSTrace"]:
+            # add MS trace to the top
+            bleach_corrected_raw_data = add_MS_trace(
+                bleach_corrected_raw_data,
+                p1_metadata,
+                flags,
+                self.extra_metadata,
+            )
 
         return area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params
 
@@ -179,20 +243,31 @@ class P1SingleWavelengthAbstract(ABC):
         """
         # read raw1
         try:
-            logging.getLogger("VIEW").info(f"Reading raw data")
-            filename, raw_data = self.read_data_with_defaulting(metadata=p1_metadata, flags=flags)
+            logging.getLogger("VIEW").info("Reading raw data")
+            filename, raw_data = self.read_data_with_defaulting(
+                metadata=p1_metadata, flags=flags
+            )
         except FileNotFoundError as fnfe:
-            raise IOError(
-                f"Problem loading raw data from dbb1. Please check the measurement row selected in the "
-                f"measurement list file. Original Error:\n {str(fnfe)}")
+            raise OSError(
+                f"load_correct_raw_data: Problem loading raw data from dbb1. Please check the measurement row selected in the measurement list file. Original Error:\n {str(fnfe)}"
+            ) from fnfe
 
-        area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params = self.correct_raw_data(
-            raw_data=raw_data, p1_metadata=p1_metadata, flags=flags
+        area_mask_for_p1, bleach_corrected_raw_data, bleach_fit_params = (
+            self.correct_raw_data(
+                raw_data=raw_data, p1_metadata=p1_metadata, flags=flags
+            )
         )
 
-        return filename, area_mask_for_p1, [bleach_corrected_raw_data], bleach_fit_params
+        return (
+            filename,
+            area_mask_for_p1,
+            [bleach_corrected_raw_data],
+            bleach_fit_params,
+        )
 
-    def load_from_metadata(self, p1_metadata: pd.Series, flags, extra_metadata=None):
+    def load_from_metadata(
+        self, p1_metadata: pd.Series, flags, extra_metadata=None
+    ):
 
         # initialize give values of metadata and extra_metadata
         self.metadata = p1_metadata
@@ -201,15 +276,21 @@ class P1SingleWavelengthAbstract(ABC):
 
         # initialize background frames.
         # Needed for movement and bleach correction, in addition to signal calculation
-        self.metadata.background_frames = get_background_frames(p1_metadata=p1_metadata, flags=flags)
+        self.metadata.background_frames = get_background_frames(
+            p1_metadata=p1_metadata, flags=flags
+        )
 
         # LE_ShrinkFacktor not implemented
 
         # load and correct raw data
         # self.area_mask is calculated inside self.load_correct_raw_data because it needs frame_size,
         # which can only be known after loading data
-        filename, self.area_mask, bleach_corrected_raw_data, bleach_fit_params \
-            = self.load_correct_raw_data(p1_metadata=p1_metadata, flags=flags)
+        (
+            filename,
+            self.area_mask,
+            bleach_corrected_raw_data,
+            bleach_fit_params,
+        ) = self.load_correct_raw_data(p1_metadata=p1_metadata, flags=flags)
 
         self.metadata.bleachpar = bleach_fit_params
 
@@ -220,8 +301,12 @@ class P1SingleWavelengthAbstract(ABC):
         self.metadata["full_raw_data_path_str"] = filename
 
         self.pulsed_stimuli_handler = self.metadata["pulsed_stimuli_handler"]
-        data_sampling_period = pd.to_timedelta(self.metadata['trial_ticks'], unit='ms')
-        self.pulsed_stimuli_handler.initialize_stimulus_offset(flags["mv_correctStimulusOnset"], data_sampling_period)
+        data_sampling_period = pd.to_timedelta(
+            self.metadata["trial_ticks"], unit="ms"
+        )
+        self.pulsed_stimuli_handler.initialize_stimulus_offset(
+            flags["mv_correctStimulusOnset"], data_sampling_period
+        )
 
     def load_without_metadata(self, filenames, flags, sampling_rate=5):
         """
@@ -231,9 +316,13 @@ class P1SingleWavelengthAbstract(ABC):
         :param sampling_rate: in Hz, number of frames measured per second
         """
 
-        p1_metadata, extra_metadata = self.get_p1_metadata_from_filenames(filenames=filenames)
-        assert sampling_rate > 0, f"Invalid sampling rate specified ({sampling_rate})"
-        p1_metadata['trial_ticks'] = 1000.0 / sampling_rate
+        p1_metadata, extra_metadata = self.get_p1_metadata_from_filenames(
+            filenames=filenames
+        )
+        assert (
+            sampling_rate > 0
+        ), f"Invalid sampling rate specified ({sampling_rate})"
+        p1_metadata["trial_ticks"] = 1000.0 / sampling_rate
         p1_metadata["frequency"] = sampling_rate
 
         self.load_from_metadata(p1_metadata=p1_metadata, flags=flags)
@@ -257,34 +346,55 @@ class P1SingleWavelengthAbstract(ABC):
         default_extension = self.get_default_extension()
 
         try:
-            filename = get_existing_raw_data_filename(flags=flags, dbb=metadata.dbb1, extensions=current_extensions)
+            filename = get_existing_raw_data_filename(
+                flags=flags, dbb=metadata.dbb1, extensions=current_extensions
+            )
             if pl.Path(filename).suffix in current_extensions:
-                logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Reading raw data from {filename}")
-                if ('.txt' in current_extensions) or ('.lif' in current_extensions):
-                    #a .lif file containse several measurement, read_data for measu only
-                    #similarly a .txt file in INGA multi tiff format
-                    return filename, self.read_data(filename, flags.flags['STG_Measu'])
+                logging.getLogger("VIEW").info(
+                    "(read_data_with_defaulting 1) Reading raw data.",
+                    extra={"file": filename},
+                )
+                if (".txt" in current_extensions) or (
+                    ".lif" in current_extensions
+                ):
+                    # a .lif file containse several measurement, read_data for measu only
+                    # similarly a .txt file in INGA multi tiff format
+                    return filename, self.read_data(
+                        filename, flags.flags["STG_Measu"]
+                    )
                 else:
-                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 1) Cannot read raw data from {filename}")
+                    logging.getLogger("VIEW").info(
+                        "(read_data_with_defaulting 1) Cannot read raw data",
+                        extra={"file": filename},
+                    )
                     return filename, self.read_data(filename)
             else:
                 raise FileNotFoundError()
 
-        except FileNotFoundError as fnfe:
+        except FileNotFoundError:
             try:
                 filename = get_existing_raw_data_filename(
-                    flags=flags, dbb=metadata.dbb1, extensions=[default_extension])
+                    flags=flags,
+                    dbb=metadata.dbb1,
+                    extensions=[default_extension],
+                )
                 if pl.Path(filename).suffix == default_extension:
-                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 2) Reading raw data from {filename}")
+                    logging.getLogger("VIEW").info(
+                        "(read_data_with_defaulting 2) Reading raw data",
+                        extra={"file": filename},
+                    )
                     data, _ = read_tif_2Dor3D(filename)
                     return filename, data
                 else:
-                    logging.getLogger("VIEW").info(f"(read_data_with_defaulting 2) Cannot read raw data from {filename}")
+                    logging.getLogger("VIEW").info(
+                        "(read_data_with_defaulting 2) Cannot read raw data",
+                        extra={"file": filename},
+                    )
                     raise FileNotFoundError()
             except FileNotFoundError as fnfe:
-                raise FileNotFoundError(f"{repr(fnfe)}.\n "
-                                        f"Looked for data with extension '{current_extensions}' and "
-                                        f"'{default_extension}'")
+                raise FileNotFoundError(
+                    f"Looked for data with extension '{current_extensions}' and '{default_extension}'"
+                ) from fnfe
 
     def copy(self):
 
@@ -307,13 +417,16 @@ class P1SingleWavelengthAbstract(ABC):
 
         calc_method = get_calc_method(flags)
         self.sig1 = calc_method(
-            raw_data=raw_data, background_frames=self.metadata.background_frames, area_mask=self.area_mask)
+            raw_data=raw_data,
+            background_frames=self.metadata.background_frames,
+            area_mask=self.area_mask,
+        )
 
     def get_raw_data(self):
 
-        assert self.raw1 is not None, "Cannot access raw data as they have not yet been loaded. Please" \
-                                      "load some raw data using the methods 'load_from_metadata' or " \
-                                      "'load_without_metadata'"
+        assert (
+            self.raw1 is not None
+        ), "Cannot access raw data as they have not yet been loaded. Please load some raw data using the methods 'load_from_metadata' or 'load_without_metadata'"
 
         return [self.raw1]
 
@@ -327,26 +440,27 @@ class P1SingleWavelengthAbstract(ABC):
         extra_metadata: dict
         (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
         """
-        p1_metadata, extra_metadata = Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        p1_metadata, extra_metadata = (
+            Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        )
         p1_metadata.dbb1 = filenames[0]
         label = pl.Path(filenames[0]).name.split(".")[0]
         p1_metadata.ex_name = label
         return p1_metadata, extra_metadata
-    
+
 
 class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
-    
     def __init__(self):
-        
+
         super().__init__()
-    
+
     def get_extensions(self):
         """
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
         return [".tif"]
-    
+
     def read_data(self, filename: str):
         """
         read and return data in <filename>. Data is expected to be a numpy.ndarray of format XYT
@@ -358,21 +472,24 @@ class P1SingleWavelengthTIF(P1SingleWavelengthAbstract):
 
 
 class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
-    '''
+    """
     Measurement XYT is stored in separate Tiff file for each frame/timepoint
-    '''
-    
+    """
+
     def __init__(self):
-        
+
         super().__init__()
-    
+
     def get_extensions(self):
         """
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
-        return [".txt", "/protocol.txt"] #this is the filename of Inga's information about the data
-    
+        return [
+            ".txt",
+            "/protocol.txt",
+        ]  # this is the filename of Inga's information about the data
+
     def read_data(self, filename: str, measu: int):
         """
         read and return data in <filename_list>. Data is expected to be a numpy.ndarray of format XYT
@@ -380,9 +497,11 @@ class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
         :rtype: numpy.ndarray
         """
         if measu is None:
-            measu = 0 # default to the first measurement
-            print('p1_class/__init__.py: P1SintleWavelength_multiTIFInga.read_data defaulted to measurement 0')
-        
+            measu = 0  # default to the first measurement
+            print(
+                "p1_class/__init__.py: P1SintleWavelength_multiTIFInga.read_data defaulted to measurement 0"
+            )
+
         data = read_SingleWavelengthTif_MultiFileInga(filename, measu)
         return data
 
@@ -390,7 +509,7 @@ class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
         """
         Create a p1_metadata object from Inga's .txt file that is written with the data for each experiment
         filename is this .txt file
-        
+
         Create a p1_metadata object only using raw data filenames in <filenames>. Use defaults or guesses
         for metadata not directly deducible from raw data filenames
         :param list filenames: list of raw data file names
@@ -400,14 +519,20 @@ class P1SingleWavelength_multiTIFInga(P1SingleWavelengthAbstract):
         (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
         """
 
-        Inga_Importer = IngaTif_Importer(default_values=MetadataDefinition().get_default_row())
+        Inga_Importer = IngaTif_Importer(
+            default_values=MetadataDefinition().get_default_row()
+        )
         # selection of the first row is required as this function returns a one-row DataFrame
         rows = Inga_Importer.parse_metadata(fle=filename, fle_ind=measu)
-        row = rows['Measu'] == measu # select teh row for this measurement
+        row = rows["Measu"] == measu  # select teh row for this measurement
         # revise index names to be lower case
-        row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
-        
-        p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(row)
+        row.rename(
+            index={x: x.lower() for x in row.index.values}, inplace=True
+        )
+
+        p1_metadata, extra_metadata = (
+            parse_p1_metadata_from_measurement_list_row(row)
+        )
         p1_metadata.ex_name = p1_metadata.label
 
         return p1_metadata, extra_metadata
@@ -417,21 +542,21 @@ class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
     """
     Load Leica .lif file data
     """
-    
+
     def __init__(self):
-        
+
         super().__init__()
-    
+
     def get_extensions(self):
         """
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
         return [".lif"]
-    
+
     def read_data(self, filename: str, measu: int):
         """
-        read and return data in <filename>, image <measu>. 
+        read and return data in <filename>, image <measu>.
         Data is expected to be a .lif file
         :param str filename: absolute path of lif data file on file system
         : param int measu: leica image number in the lif file
@@ -442,7 +567,6 @@ class P1SingleWavelengthLIF(P1SingleWavelengthAbstract):
 
 
 class P1SingleWavelengthTill(P1SingleWavelengthAbstract):
-
     def __init__(self):
 
         super().__init__()
@@ -464,7 +588,6 @@ class P1SingleWavelengthTill(P1SingleWavelengthAbstract):
 
 
 class P1SingleWavelengthLSM(P1SingleWavelengthAbstract):
-
     def __init__(self):
 
         super().__init__()
@@ -495,12 +618,16 @@ class P1SingleWavelengthLSM(P1SingleWavelengthAbstract):
         (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
         """
 
-        lsm_importer = LSMImporter(default_values=MetadataDefinition().get_default_row())
+        lsm_importer = LSMImporter(
+            default_values=MetadataDefinition().get_default_row()
+        )
         # selection of the first row is required as this function returns a one-row DataFrame
         row = lsm_importer.parse_metadata(fle=filenames[0], fle_ind=-2).iloc[0]
         # revise index names to be lower case
         # row.rename(index={x: x.lower() for x in row.index.values}, inplace=True)
-        p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(row)
+        p1_metadata, extra_metadata = (
+            parse_p1_metadata_from_measurement_list_row(row)
+        )
         p1_metadata.dbb1 = filenames[0]
         label = pl.Path(filenames[0]).name.split(".")[0]
         p1_metadata.ex_name = label
@@ -509,14 +636,12 @@ class P1SingleWavelengthLSM(P1SingleWavelengthAbstract):
 
 
 class P1DualWavelengthAbstract(P1SingleWavelengthAbstract, ABC):
-
     @abstractmethod
     def get_extensions(self):
         """
         list of allowed file extensions. E.g.: [".tif"]
         :rtype: list
         """
-        pass
 
     @abstractmethod
     def read_data(self, filename: str):
@@ -525,7 +650,6 @@ class P1DualWavelengthAbstract(P1SingleWavelengthAbstract, ABC):
         :param str filename: absolute path of raw data file on file system
         :rtype: numpy.ndarray
         """
-        pass
 
     @abstractmethod
     def get_p1_metadata_from_filenames(self, filenames):
@@ -538,7 +662,6 @@ class P1DualWavelengthAbstract(P1SingleWavelengthAbstract, ABC):
         extra_metadata: dict
         (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
         """
-        pass
 
     def __init__(self):
 
@@ -563,16 +686,16 @@ class P1DualWavelengthAbstract(P1SingleWavelengthAbstract, ABC):
         # Loading Air not implemented
 
     def get_raw_data(self):
-        assert self.raw1 is not None and self.raw2 is not None, \
-            "Cannot calculate signals as raw data has bot yet been loaded. Please" \
-            "load some raw data using the methods 'load_from_metadata' or " \
+        assert self.raw1 is not None and self.raw2 is not None, (
+            "Cannot calculate signals as raw data has bot yet been loaded. Please"
+            "load some raw data using the methods 'load_from_metadata' or "
             "'load_without_metadata'"
+        )
 
         return [self.raw1, self.raw2]
 
 
 class P1DualWavelengthTIFTwoFiles(P1DualWavelengthAbstract):
-
     def __init__(self):
 
         super().__init__()
@@ -608,24 +731,41 @@ class P1DualWavelengthTIFTwoFiles(P1DualWavelengthAbstract):
         """
 
         # read and correct raw1
-        filename1, area_mask, [bleach_corrected_raw_data1], bleach_fit_params1 \
-            = super().load_correct_raw_data(p1_metadata=p1_metadata, flags=flags)
+        (
+            filename1,
+            area_mask,
+            [bleach_corrected_raw_data1],
+            bleach_fit_params1,
+        ) = super().load_correct_raw_data(p1_metadata=p1_metadata, flags=flags)
 
         # read raw2
         metadata_copy = copy.copy(self.metadata)
         metadata_copy.dbb1 = metadata_copy.dbb2
 
-        filename2, area_mask, [bleach_corrected_raw_data2], bleach_fit_params2 \
-            = super().load_correct_raw_data(p1_metadata=metadata_copy, flags=flags)
+        (
+            filename2,
+            area_mask,
+            [bleach_corrected_raw_data2],
+            bleach_fit_params2,
+        ) = super().load_correct_raw_data(
+            p1_metadata=metadata_copy, flags=flags
+        )
 
         # make sure the shapes of data belonging to the two wavelength match
-        assert bleach_corrected_raw_data1.shape == bleach_corrected_raw_data2.shape, \
-            f"Shapes of the movie data of the two wavelengths do not match: " \
+        assert (
+            bleach_corrected_raw_data1.shape
+            == bleach_corrected_raw_data2.shape
+        ), (
+            f"Shapes of the movie data of the two wavelengths do not match: "
             f"{bleach_corrected_raw_data1.shape}, {bleach_corrected_raw_data2.shape}"
+        )
 
-        return \
-            filename1, area_mask, [bleach_corrected_raw_data1, bleach_corrected_raw_data2], \
-            [bleach_fit_params1, bleach_fit_params2]
+        return (
+            filename1,
+            area_mask,
+            [bleach_corrected_raw_data1, bleach_corrected_raw_data2],
+            [bleach_fit_params1, bleach_fit_params2],
+        )
 
     def get_p1_metadata_from_filenames(self, filenames):
         """
@@ -640,7 +780,9 @@ class P1DualWavelengthTIFTwoFiles(P1DualWavelengthAbstract):
 
         dbb1_filename, dbb2_filename = filenames
 
-        p1_metadata, extra_metadata = Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        p1_metadata, extra_metadata = (
+            Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        )
 
         p1_metadata.dbb1 = dbb1_filename
         p1_metadata.dbb2 = dbb2_filename
@@ -654,7 +796,6 @@ class P1DualWavelengthTIFTwoFiles(P1DualWavelengthAbstract):
 
 
 class P1DualWavelengthTill(P1DualWavelengthTIFTwoFiles):
-
     def __init__(self):
         super().__init__()
 
@@ -675,7 +816,6 @@ class P1DualWavelengthTill(P1DualWavelengthTIFTwoFiles):
 
 
 class P1SingleWavelength666(P1SingleWavelengthAbstract):
-
     def __init__(self, peaksignal=10):
 
         super().__init__()
@@ -692,9 +832,14 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
             raw_data: np.ndarray
         """
 
-        raw_data666 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
+        raw_data666 = create_raw_data666(
+            p1_metadata=metadata, peaksignal=self.peaksignal
+        )
 
-        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data666
+        return (
+            str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"),
+            raw_data666,
+        )
 
     def load_without_metadata(self, filenames, flags, sampling_rate=5):
         """
@@ -713,20 +858,26 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
         fake_measurement_list_row = MetadataDefinition().get_default_row()
         fake_measurement_list_row.update(
             {
-                    "DBB1": label,
-                    "Label": label,
-                    # need to add stimulus information here as it is later needed when loading data, i.e., in this
-                    # case, creating synthetic data
-                    "StimON": 25,
-                    "StimOFF": 35,
-                    "Stim2ON": 65,
-                    "Stim2OFF": 75
-                }
+                "DBB1": label,
+                "Label": label,
+                # need to add stimulus information here as it is later needed when loading data, i.e., in this
+                # case, creating synthetic data
+                "StimON": "25",
+                "StimOFF": "35",
+                "Stim2ON": "65",
+                "Stim2OFF": "75",
+            }
+        )
+
+        p1_metadata, extra_metadata = (
+            parse_p1_metadata_from_measurement_list_row(
+                fake_measurement_list_row
             )
+        )
 
-        p1_metadata, extra_metadata = parse_p1_metadata_from_measurement_list_row(fake_measurement_list_row)
-
-        self.load_from_metadata(p1_metadata=p1_metadata, flags=flags, extra_metadata=extra_metadata)
+        self.load_from_metadata(
+            p1_metadata=p1_metadata, flags=flags, extra_metadata=extra_metadata
+        )
 
     def read_data(self, filename: str):
 
@@ -738,7 +889,6 @@ class P1SingleWavelength666(P1SingleWavelengthAbstract):
 
 
 class P1SingleWavelength676(P1SingleWavelength666):
-
     def __init__(self, peaksignal):
 
         super().__init__(peaksignal)
@@ -754,9 +904,14 @@ class P1SingleWavelength676(P1SingleWavelength666):
             raw_data: np.ndarray
         """
 
-        raw_data666 = create_raw_data666(p1_metadata=metadata, peaksignal=self.peaksignal)
+        raw_data666 = create_raw_data666(
+            p1_metadata=metadata, peaksignal=self.peaksignal
+        )
 
-        return str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"), raw_data666[:50, :50, :50]
+        return (
+            str(pl.Path(flags["STG_Datapath"]) / f"{metadata.dbb1}.fake"),
+            raw_data666[:50, :50, :50],
+        )
 
     def read_data(self, filename: str):
         raise NotImplementedError
@@ -766,7 +921,7 @@ class P1SingleWavelength676(P1SingleWavelength666):
 
 
 class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
-    #created Dec 2021 for Till Trondheim Data: 340 & 380 in one file
+    # created Dec 2021 for Till Trondheim Data: 340 & 380 in one file
 
     def __init__(self):
 
@@ -806,25 +961,37 @@ class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
 
         # read raw data
         try:
-            logging.getLogger("VIEW").info(f"Reading raw data from ")
-            filename, raw_data = self.read_data_with_defaulting(metadata=p1_metadata, flags=flags)
+            logging.getLogger("VIEW").info("Reading raw data from ")
+            filename, raw_data = self.read_data_with_defaulting(
+                metadata=p1_metadata, flags=flags
+            )
         except FileNotFoundError as fnfe:
-            raise IOError(
-                f"Problem loading raw data from dbb1. Please check the measurement row selected in the "
-                f"measurement list file. Original Error:\n {str(fnfe)}")
+            raise OSError(
+                f"Problem loading raw data from dbb1. Please check the measurement row selected in the measurement list file. Original Error:\n {str(fnfe)}"
+            ) from fnfe
 
-        area_mask_for_p1, bleach_corrected_raw_data_340, bleach_fit_params_340 = self.correct_raw_data(
+        (
+            area_mask_for_p1,
+            bleach_corrected_raw_data_340,
+            bleach_fit_params_340,
+        ) = self.correct_raw_data(
             raw_data=raw_data[0], p1_metadata=p1_metadata, flags=flags
         )
 
-        area_mask_for_p1, bleach_corrected_raw_data_380, bleach_fit_params_380 = self.correct_raw_data(
+        (
+            area_mask_for_p1,
+            bleach_corrected_raw_data_380,
+            bleach_fit_params_380,
+        ) = self.correct_raw_data(
             raw_data=raw_data[1], p1_metadata=p1_metadata, flags=flags
         )
 
-        return \
-            filename, area_mask_for_p1, \
-            [bleach_corrected_raw_data_340, bleach_corrected_raw_data_380], \
-            [bleach_fit_params_340, bleach_fit_params_380]
+        return (
+            filename,
+            area_mask_for_p1,
+            [bleach_corrected_raw_data_340, bleach_corrected_raw_data_380],
+            [bleach_fit_params_340, bleach_fit_params_380],
+        )
 
     def get_p1_metadata_from_filenames(self, filenames):
         """
@@ -837,7 +1004,9 @@ class P1DualWavelengthTIFSingleFile(P1DualWavelengthAbstract):
         (see view.python_core.p1_class.metadata_related.parse_p1_metadata_from_measurement_list_row)
         """
 
-        p1_metadata, extra_metadata = Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        p1_metadata, extra_metadata = (
+            Default_P1_Getter().get_p1_metadata_without_measurement_list()
+        )
         p1_metadata.dbb1 = filenames[0]
         label = pl.Path(filenames[0]).name.split(".")[0]
         p1_metadata.ex_name = label
@@ -863,13 +1032,19 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
         empty_obj = P1DualWavelengthTIFTwoFiles()
     elif LE_loadExp == 35:
         empty_obj = P1DualWavelengthTIFSingleFile()
-    elif LE_loadExp == 665: # synthetic data set, response negative, fixed response magnitude
+    elif (
+        LE_loadExp == 665
+    ):  # synthetic data set, response negative, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=-10)
-    elif LE_loadExp == 666: # synthetic data set, response magnitude taken from list
+    elif (
+        LE_loadExp == 666
+    ):  # synthetic data set, response magnitude taken from list
         empty_obj = P1SingleWavelength666(peaksignal=odor_conc)
-    elif LE_loadExp == 667: # synthetic data set, response positive, fixed response magnitude
+    elif (
+        LE_loadExp == 667
+    ):  # synthetic data set, response positive, fixed response magnitude
         empty_obj = P1SingleWavelength666(peaksignal=10)
-    elif LE_loadExp == 676: # synthetic data set 666, clipped
+    elif LE_loadExp == 676:  # synthetic data set 666, clipped
         empty_obj = P1SingleWavelength676(peaksignal=10)
     else:
         raise NotImplementedError
@@ -879,13 +1054,14 @@ def get_empty_p1(LE_loadExp, odor_conc=None):
 
 def get_p1(p1_metadata, flags, extra_metadata):
 
-    empty_obj = get_empty_p1(flags["LE_loadExp"], p1_metadata.get("odor_nr", None))
+    empty_obj = get_empty_p1(
+        flags["LE_loadExp"], p1_metadata.get("odor_nr", None)
+    )
     empty_obj.load_from_metadata(p1_metadata, flags, extra_metadata)
     return empty_obj
 
 
-class Default_P1_Getter():
-
+class Default_P1_Getter:
     def __init__(self):
 
         super().__init__()
@@ -899,7 +1075,9 @@ class Default_P1_Getter():
         """
 
         default_row = self._metadata_def.get_default_row()
-        default_p1_metadata, default_extra_metadata = parse_p1_metadata_from_measurement_list_row(default_row)
+        default_p1_metadata, default_extra_metadata = (
+            parse_p1_metadata_from_measurement_list_row(default_row)
+        )
         default_p1_metadata.pulsed_stimuli_handler = PulsedStimuliiHandler()
         return default_p1_metadata, default_extra_metadata
 
@@ -909,10 +1087,18 @@ class Default_P1_Getter():
         """
 
         fake_p1 = P1SingleWavelengthTIF()
-        fake_p1.metadata, fake_p1.extra_metadata = self.get_p1_metadata_without_measurement_list()
-        fake_p1.metadata.format_x, fake_p1.metadata.format_y, fake_p1.metadata.frames = raw1.shape
+        fake_p1.metadata, fake_p1.extra_metadata = (
+            self.get_p1_metadata_without_measurement_list()
+        )
+        (
+            fake_p1.metadata.format_x,
+            fake_p1.metadata.format_y,
+            fake_p1.metadata.frames,
+        ) = raw1.shape
         fake_p1.raw1 = raw1
-        fake_p1.pulsed_stimuli_handler = fake_p1.metadata["pulsed_stimuli_handler"]
+        fake_p1.pulsed_stimuli_handler = fake_p1.metadata[
+            "pulsed_stimuli_handler"
+        ]
 
         fake_p1.foto1 = calc_foto1(raw1)
 

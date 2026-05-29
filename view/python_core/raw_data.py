@@ -1,7 +1,7 @@
 from tillvisionio.vws import load_pst
 
 
-class AbstractRawData(object):
+class AbstractRawData:
 
     def __init__(self, metadata_objects):
 
@@ -25,9 +25,13 @@ class AbstractTillRawData(AbstractRawData):
 
         raw_data = []
 
-        for raw_data_filename_stem in self.paths_metadata.get_raw_filenames_stems(n_wavelengths):
+        for (
+            raw_data_filename_stem
+        ) in self.paths_metadata.get_raw_filenames_stems(n_wavelengths):
 
-            this_raw_data = load_pst(f"{raw_data_filename_stem}{self.raw_filename_ext}")
+            this_raw_data = load_pst(
+                f"{raw_data_filename_stem}{self.raw_filename_ext}"
+            )
             raw_data.append(this_raw_data)
 
         return raw_data
@@ -65,7 +69,3 @@ def get_raw_data(metadata_objects):
 
     else:
         raise NotImplementedError
-
-
-
-

@@ -295,7 +295,7 @@ def IngaCrawlDirectories(basepath, filename):
     dir_chosen = easygui.diropenbox(
         title="Choose parent directory for all files to be crawled",
         default=basepath)
-    #no look in all subdirectories for files with given name
+    #now look in all subdirectories for files with given name
     filenames = []
     for root, dirs, files in os.walk(dir_chosen):
         for f in files:
@@ -327,7 +327,7 @@ if __name__ == "__main__":
     # values are lists of associated raw data files
     
     
-    #special case for Inga: do not select files, but select a directory, and then craws inside
+    #special case for Inga: do not select files, but select a directory, and then crawls inside
     #if IngaFileName then ask for a directory and crawl in subdirectories
     if IngaFileName != None:
         files_chosen = IngaCrawlDirectories(flags["STG_Datapath"], IngaFileName)

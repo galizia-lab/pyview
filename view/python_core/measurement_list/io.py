@@ -1,11 +1,9 @@
-import logging
-
-import pandas as pd
 import pathlib as pl
 
+import pandas as pd
 
-class XLSIO(object):
 
+class XLSIO:
     def __init__(self):
 
         super().__init__()
@@ -24,14 +22,15 @@ class XLSIO(object):
         fle_path = pl.Path(fle)
 
         if not fle_path.is_file():
-
             possible_suffixes.remove(fle_path.suffix)
             possible_file = fle_path.with_suffix(possible_suffixes[0])
 
             if possible_file.is_file():
                 fle = possible_file
             else:
-                raise FileNotFoundError(f"Could not find {fle} or {possible_file}!")
+                raise FileNotFoundError(
+                    f"Could not find {fle} or {possible_file}!"
+                )
 
         return pl.Path(fle)
 
@@ -52,13 +51,13 @@ class XLSIO(object):
     def write(cls, df: pd.DataFrame, fle, **kwargs):
 
         fle_path = pl.Path(fle)
-        assert fle_path.suffix == ".xlsx", \
-            "VIEW does not support writing measurement lists in XLS format. Please try again writing to XLSX format"
+        assert (
+            fle_path.suffix == ".xlsx"
+        ), "VIEW does not support writing measurement lists in XLS format. Please try again writing to XLSX format"
         df.to_excel(fle, **kwargs)
 
 
-class LSTIO(object):
-
+class LSTIO:
     def __init__(self):
 
         super().__init__()
@@ -66,7 +65,9 @@ class LSTIO(object):
     @classmethod
     def read(cls, fle):
         # 'utf-8' codec, the default, cannot read the umlaute ä etc
-        df = pd.read_csv(fle, sep="\t", encoding='latin-1', skipinitialspace=True)
+        df = pd.read_csv(
+            fle, sep="\t", encoding="latin-1", skipinitialspace=True
+        )
 
         # and set all column names to lower case
         df.columns = [x.rstrip() for x in df.columns]
@@ -90,8 +91,16 @@ def get_format_specific_defs():
     df.loc["XLS LST format", :] = [XLSIO, "LST Name", ".lst.xls"]
     df.loc["XLSX LST format", :] = [XLSIO, "LST Name", ".lst.xlsx"]
     df.loc["Legacy Text LST format"] = [LSTIO, "LST Name", ".lst"]
-    df.loc["XLS FID Settings format"] = [XLSIO, "Settings Name", ".settings.xls"]
-    df.loc["XLSX FID Settings format"] = [XLSIO, "Settings Name", ".settings.xlsx"]
+    df.loc["XLS FID Settings format"] = [
+        XLSIO,
+        "Settings Name",
+        ".settings.xls",
+    ]
+    df.loc["XLSX FID Settings format"] = [
+        XLSIO,
+        "Settings Name",
+        ".settings.xlsx",
+    ]
 
     return df
 
@@ -102,8 +111,7 @@ def get_ext_based_values(lst_fle: str):
 
     matches = []
     to_return = []
-    for format_name, (io_class, relevant_column, ext) in io_defs.iterrows():
-
+    for _format_name, (io_class, relevant_column, ext) in io_defs.iterrows():
         if lst_fle.endswith(ext):
             matches.append(True)
             to_return.append((io_class, relevant_column, ext))
@@ -116,4 +124,5 @@ def get_ext_based_values(lst_fle: str):
     else:
         raise NotImplementedError(
             f"The specified measurement list ({lst_fle}) does not have a supported suffix."
-            f"The supported suffixes are .lst, .lst.xls, .lst.xlsx, .settings.xls and .settings.xlsx. Sorry!")
+            f"The supported suffixes are .lst, .lst.xls, .lst.xlsx, .settings.xls and .settings.xlsx. Sorry!"
+        )

@@ -1,14 +1,14 @@
-from .aux_funcs import stack_duplicate_frames
-from view.python_core.movies.data_to_01 import LinearNormalizer
-from ..excluder import Excluder3D, Excluder2D
-from view.python_core.foto import get_foto1_data
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.pylab import cm
 
+from view.python_core.foto import get_foto1_data
+from view.python_core.movies.colorizer.aux_funcs import stack_duplicate_frames
+from view.python_core.movies.data_to_01 import LinearNormalizer
+from view.python_core.movies.excluder import Excluder2D, Excluder3D
 
-class AbstractBackground(object):
 
+class AbstractBackground:
     def __init__(self, data_limit_decider):
 
         super().__init__()
@@ -34,8 +34,7 @@ class AbstractBackground(object):
         return cm.gray
 
 
-class BlankBackground(object):
-
+class BlankBackground:
     def __init__(self, background_size, bg_color):
         super().__init__()
         self.background_size = background_size
@@ -46,13 +45,12 @@ class BlankBackground(object):
         return np.ones(self.background_size)
 
     def get_colormap(self):
-        return LinearSegmentedColormap.from_list(name="singleton_bg",
-                                                 colors=[self.bg_color, self.bg_color],
-                                                 N=2)
+        return LinearSegmentedColormap.from_list(
+            name="singleton_bg", colors=[self.bg_color, self.bg_color], N=2
+        )
 
 
 class StaticBackground3D(AbstractBackground):
-
     def __init__(self, background_frame, depth, data_limit_decider):
 
         super().__init__(data_limit_decider)
@@ -61,11 +59,12 @@ class StaticBackground3D(AbstractBackground):
 
     def get_data(self):
 
-        return stack_duplicate_frames(frame=self.background_frame, depth=self.depth)
+        return stack_duplicate_frames(
+            frame=self.background_frame, depth=self.depth
+        )
 
 
 class StaticBackground2D(AbstractBackground):
-
     def __init__(self, background_frame, data_limit_decider):
 
         super().__init__(data_limit_decider)
@@ -77,7 +76,6 @@ class StaticBackground2D(AbstractBackground):
 
 
 class DynamicBackground3D(AbstractBackground):
-
     def __init__(self, data_3D, data_limit_decider):
 
         super().__init__(data_limit_decider)
@@ -90,48 +88,57 @@ class DynamicBackground3D(AbstractBackground):
 
 def get_background_3D(flags, p1, excluder: Excluder3D, data_limit_decider):
 
-    revised_movie_size = excluder.revise_movie_size((p1.metadata.format_x, p1.metadata.format_y, p1.metadata.frames))
+    revised_movie_size = excluder.revise_movie_size(
+        (p1.metadata.format_x, p1.metadata.format_y, p1.metadata.frames)
+    )
 
     if flags["mv_thresholdShowImage"] == "foto1":
-
         foto1_data = get_foto1_data(flags, p1)
         foto1_cropped = excluder.exclude_from_frame(foto1_data)
 
-        return StaticBackground3D(background_frame=foto1_cropped, data_limit_decider=data_limit_decider,
-                                  depth=revised_movie_size[2])
+        return StaticBackground3D(
+            background_frame=foto1_cropped,
+            data_limit_decider=data_limit_decider,
+            depth=revised_movie_size[2],
+        )
 
     elif flags["mv_thresholdShowImage"] == "bgColor":
-
-        return BlankBackground(background_size=revised_movie_size, bg_color=flags["mv_bgColor"])
+        return BlankBackground(
+            background_size=revised_movie_size, bg_color=flags["mv_bgColor"]
+        )
 
     elif flags["mv_thresholdShowImage"] == "raw1":
-
         raw1_data_cropped = excluder.exclude_from_movie(p1.raw1)
 
-        return DynamicBackground3D(data_3D=raw1_data_cropped, data_limit_decider=data_limit_decider)
+        return DynamicBackground3D(
+            data_3D=raw1_data_cropped, data_limit_decider=data_limit_decider
+        )
 
     else:
         raise NotImplementedError
 
 
-def get_background_2D(flags, p1, excluder: Excluder2D, data_limit_decider, bg_color):
+def get_background_2D(
+    flags, p1, excluder: Excluder2D, data_limit_decider, bg_color
+):
 
     if flags["SO_thresholdShowImage"] == "foto1":
-
         foto1_data = get_foto1_data(flags, p1)
         foto1_cropped = excluder.exclude_from_frame(foto1_data)
 
-        return StaticBackground2D(background_frame=foto1_cropped, data_limit_decider=data_limit_decider)
+        return StaticBackground2D(
+            background_frame=foto1_cropped,
+            data_limit_decider=data_limit_decider,
+        )
 
     elif flags["SO_thresholdShowImage"] == "bgColor":
+        revised_frame_size = excluder.revise_frame_size(
+            (p1.metadata.format_x, p1.metadata.format_y)
+        )
 
-        revised_frame_size = excluder.revise_frame_size((p1.metadata.format_x, p1.metadata.format_y))
-
-        return BlankBackground(background_size=revised_frame_size, bg_color=bg_color)
+        return BlankBackground(
+            background_size=revised_frame_size, bg_color=bg_color
+        )
 
     else:
         raise NotImplementedError
-
-
-
-

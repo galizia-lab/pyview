@@ -1,16 +1,23 @@
-from .io import read_tif_2Dor3D
-import matplotlib.pyplot as plt
 import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
+
+from view.python_core.io import read_tif_2Dor3D
 
 
 def get_foto1_data(flags, p1):
 
-    foto1_filename = flags.get_existing_filename_in_coor(p1.metadata.ex_name, ".morpho.tif")
+    foto1_filename = flags.get_existing_filename_in_coor(
+        p1.metadata.ex_name, ".morpho.tif"
+    )
     if foto1_filename is not None:
         foto1_data, _ = read_tif_2Dor3D(foto1_filename).astype(np.int32)
     else:
-        logging.getLogger("VIEW").warning(f"Could not find {foto1_filename}. Using frame averaged data instead")
+        logging.getLogger("VIEW").warning(
+            "Could not find file. Using frame averaged data instead",
+            extra={"file": foto1_filename},
+        )
         foto1_data = p1.foto1
 
     return foto1_data

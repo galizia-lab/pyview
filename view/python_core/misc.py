@@ -66,8 +66,10 @@ def interpret_string_as_boolean(str_value):
     elif str_value in ("False", "FALSE", "false", "0"):
         return False
     else:
-        raise ValueError(f"Could not interpret '{str_value}' as a boolean. Valid values are: "
-                         f"TRUE, True, true, 1, FALSE, False, false, 0")
+        raise ValueError(
+            f"Could not interpret '{str_value}' as a boolean. Valid values are: "
+            f"TRUE, True, true, 1, FALSE, False, false, 0"
+        )
 
 
 def get_system_temp_dir():
@@ -81,5 +83,3 @@ def get_system_temp_dir():
         system_tempdir = tempfile.gettempdir()
         tempfile.tempdir = current_tempdir
         return system_tempdir
-
-

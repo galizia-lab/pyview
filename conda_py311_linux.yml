@@ -1,0 +1,27 @@
+name: view_py311
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - pyqt6
+  - qtpy
+  - pip
+  - scipy
+  - scikit-image
+  - numpy>=2
+  - jinja2
+  - seaborn
+  - bokeh
+  - xlrd
+  - pyqtgraph
+  - whoosh
+  - openpyxl
+  - jupyter
+  - appdirs
+  # only available on conda-forge
+  - moviepy<2
+  - libstdcxx-ng
+  # ensure consistent BLAS/LAPACK stack
+  - blas=*=openblas
+

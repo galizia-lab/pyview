@@ -1,10 +1,10 @@
 import numpy as np
-from view.python_core.misc import class_mixer
+
 from view.python_core.flags import FlagsManager
+from view.python_core.misc import class_mixer
 
 
-class CalculatorDefault(object):
-
+class CalculatorDefault:
     def __init__(self):
 
         super().__init__()
@@ -16,12 +16,16 @@ class CalculatorDefault(object):
     def get_min(self, data):
 
         subsetted_data = self.subsetter(data)
-        return self.min(subsetted_data)
+        return float(self.min(subsetted_data))
+        # in case subsetter returns a masked array, self.min(subsettted_data) could be a MaskedConstant
+        # converting to float
 
     def get_max(self, data):
 
         subsetted_data = self.subsetter(data)
-        return self.max(subsetted_data)
+        return float(self.max(subsetted_data))
+        # in case subsetter returns a masked array, self.min(subsettted_data) could be a MaskedConstant
+        # converting to float
 
     def min(self, data):
 
@@ -37,7 +41,6 @@ class CalculatorDefault(object):
 
 
 class CalculatorFixedMin(CalculatorDefault):
-
     def __init__(self, SO_MV_scalemin, **kwargs):
 
         super().__init__(**kwargs)
@@ -49,7 +52,6 @@ class CalculatorFixedMin(CalculatorDefault):
 
 
 class CalculatorFixedMax(CalculatorDefault):
-
     def __init__(self, SO_MV_scalemax, **kwargs):
 
         super().__init__(**kwargs)
@@ -61,7 +63,6 @@ class CalculatorFixedMax(CalculatorDefault):
 
 
 class CalculatorNormalMax(CalculatorDefault):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -71,7 +72,6 @@ class CalculatorNormalMax(CalculatorDefault):
 
 
 class CalculatorNormalMin(CalculatorDefault):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -80,29 +80,28 @@ class CalculatorNormalMin(CalculatorDefault):
 
 
 class CalculatorPercentileMax(CalculatorDefault):
-
     def __init__(self, percentile_value_from_top, **kwargs):
         super().__init__(**kwargs)
         self.percentile_value = percentile_value_from_top
 
     def max(self, data):
         # method was set to 'nearest' because of numpy bug: https://github.com/numpy/numpy/issues/21524
-        return np.percentile(data, 100 - self.percentile_value, method='nearest')
+        return np.percentile(
+            data, 100 - self.percentile_value, method="nearest"
+        )
 
 
 class CalculatorPercentileMin(CalculatorDefault):
-
     def __init__(self, percentile_value_from_bottom, **kwargs):
         super().__init__(**kwargs)
         self.percentile_value = percentile_value_from_bottom
 
     def min(self, data):
         # method was set to 'nearest' because of numpy bug: https://github.com/numpy/numpy/issues/21524
-        return np.percentile(data, self.percentile_value, method='nearest')
+        return np.percentile(data, self.percentile_value, method="nearest")
 
 
 class SquareSubsetter2D(CalculatorDefault):
-
     def __init__(self, fractional_margin, **kwargs):
 
         super().__init__(**kwargs)
@@ -112,11 +111,13 @@ class SquareSubsetter2D(CalculatorDefault):
 
         xborder = int(data.shape[0] * self.fractional_margin)
         yborder = int(data.shape[1] * self.fractional_margin)
-        return data[xborder: data.shape[0] - xborder, yborder: data.shape[1] - yborder]
+        return data[
+            xborder : data.shape[0] - xborder,
+            yborder : data.shape[1] - yborder,
+        ]
 
 
 class SquareSubsetter3D(CalculatorDefault):
-
     def __init__(self, fractional_margin, **kwargs):
 
         super().__init__(**kwargs)
@@ -126,11 +127,14 @@ class SquareSubsetter3D(CalculatorDefault):
 
         xborder = int(data.shape[0] * self.fractional_margin)
         yborder = int(data.shape[1] * self.fractional_margin)
-        return data[xborder: data.shape[0] - xborder, yborder: data.shape[1] - yborder, :]
+        return data[
+            xborder : data.shape[0] - xborder,
+            yborder : data.shape[1] - yborder,
+            :,
+        ]
 
 
 class AreaSubsetter2D(CalculatorDefault):
-
     def __init__(self, frame_mask, **kwargs):
 
         super().__init__(**kwargs)
@@ -142,7 +146,6 @@ class AreaSubsetter2D(CalculatorDefault):
 
 
 class AreaSubsetter3D(CalculatorDefault):
-
     def __init__(self, frame_mask, **kwargs):
 
         super().__init__(**kwargs)
@@ -160,41 +163,52 @@ def get_data_limit_decider_3D(flags: FlagsManager, frame_mask):
 
     if flags["mv_percentileScale"] == 1:
         min_class, max_class = CalculatorPercentileMin, CalculatorPercentileMax
-        min_kwargs, max_kwargs = [{"percentile_value_from_bottom": flags["mv_percentileValue"]},
-                                  {"percentile_value_from_top": flags["mv_percentileValue"]}]
+        min_kwargs, max_kwargs = [
+            {"percentile_value_from_bottom": flags["mv_percentileValue"]},
+            {"percentile_value_from_top": flags["mv_percentileValue"]},
+        ]
     else:
         min_class, max_class = CalculatorNormalMin, CalculatorNormalMax
         min_kwargs, max_kwargs = [{}, {}]
 
     if min_max_decider in [0, 1]:
-
         mixed_class = class_mixer(CalculatorFixedMin, CalculatorFixedMax)
-        return mixed_class(SO_MV_scalemin=flags["SO_MV_scalemin"], SO_MV_scalemax=flags["SO_MV_scalemax"])
+        return mixed_class(
+            SO_MV_scalemin=flags["SO_MV_scalemin"],
+            SO_MV_scalemax=flags["SO_MV_scalemax"],
+        )
 
     elif min_max_decider == 2:
-
         mixed_class = class_mixer(min_class, max_class)
         return mixed_class(**min_kwargs, **max_kwargs)
 
     elif min_max_decider == 3:
-
         mixed_class = class_mixer(SquareSubsetter3D, min_class, max_class)
-        return mixed_class(fractional_margin=flags["mv_indiScale3factor"], **min_kwargs, **max_kwargs)
+        return mixed_class(
+            fractional_margin=flags["mv_indiScale3factor"],
+            **min_kwargs,
+            **max_kwargs,
+        )
 
     elif min_max_decider == 4:
-
         mixed_class = class_mixer(CalculatorFixedMin, max_class)
-        return mixed_class(SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs)
+        return mixed_class(
+            SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs
+        )
 
     elif min_max_decider == 5:
-
         mixed_class = class_mixer(AreaSubsetter3D, min_class, max_class)
         return mixed_class(frame_mask=frame_mask, **min_kwargs, **max_kwargs)
 
     elif min_max_decider == 6:
-
-        mixed_class = class_mixer(AreaSubsetter3D, CalculatorFixedMin, max_class)
-        return mixed_class(frame_mask=frame_mask, SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs)
+        mixed_class = class_mixer(
+            AreaSubsetter3D, CalculatorFixedMin, max_class
+        )
+        return mixed_class(
+            frame_mask=frame_mask,
+            SO_MV_scalemin=flags["SO_MV_scalemin"],
+            **max_kwargs,
+        )
 
     else:
         raise NotImplementedError
@@ -206,41 +220,52 @@ def get_data_limit_decider_2D(flags: FlagsManager, frame_mask):
 
     if flags["SO_percentileScale"] == 1:
         min_class, max_class = CalculatorPercentileMin, CalculatorPercentileMax
-        min_kwargs, max_kwargs = [{"percentile_value_from_bottom": flags["SO_percentileValue"]},
-                                  {"percentile_value_from_top": flags["SO_percentileValue"]}]
+        min_kwargs, max_kwargs = [
+            {"percentile_value_from_bottom": flags["SO_percentileValue"]},
+            {"percentile_value_from_top": flags["SO_percentileValue"]},
+        ]
     else:
         min_class, max_class = CalculatorNormalMin, CalculatorNormalMax
         min_kwargs, max_kwargs = [{}, {}]
 
     if min_max_decider in [0, 1]:
-
         mixed_class = class_mixer(CalculatorFixedMin, CalculatorFixedMax)
-        return mixed_class(SO_MV_scalemin=flags["SO_MV_scalemin"], SO_MV_scalemax=flags["SO_MV_scalemax"])
+        return mixed_class(
+            SO_MV_scalemin=flags["SO_MV_scalemin"],
+            SO_MV_scalemax=flags["SO_MV_scalemax"],
+        )
 
     elif min_max_decider == 2:
-
         mixed_class = class_mixer(min_class, max_class)
         return mixed_class(**min_kwargs, **max_kwargs)
 
     elif min_max_decider == 3:
-
         mixed_class = class_mixer(SquareSubsetter2D, min_class, max_class)
-        return mixed_class(fractional_margin=flags["SO_indiScale3factor"], **min_kwargs, **max_kwargs)
+        return mixed_class(
+            fractional_margin=flags["SO_indiScale3factor"],
+            **min_kwargs,
+            **max_kwargs,
+        )
 
     elif min_max_decider == 4:
-
         mixed_class = class_mixer(CalculatorFixedMin, max_class)
-        return mixed_class(SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs)
+        return mixed_class(
+            SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs
+        )
 
     elif min_max_decider == 5:
-
         mixed_class = class_mixer(AreaSubsetter2D, min_class, max_class)
         return mixed_class(frame_mask=frame_mask, **min_kwargs, **max_kwargs)
 
     elif min_max_decider == 6:
-
-        mixed_class = class_mixer(AreaSubsetter2D, CalculatorFixedMin, max_class)
-        return mixed_class(frame_mask=frame_mask, SO_MV_scalemin=flags["SO_MV_scalemin"], **max_kwargs)
+        mixed_class = class_mixer(
+            AreaSubsetter2D, CalculatorFixedMin, max_class
+        )
+        return mixed_class(
+            frame_mask=frame_mask,
+            SO_MV_scalemin=flags["SO_MV_scalemin"],
+            **max_kwargs,
+        )
 
     else:
         raise NotImplementedError

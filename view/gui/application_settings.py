@@ -1,5 +1,6 @@
-from PyQt5.QtCore import QCoreApplication, QSettings
-from ..python_core.appdirs import get_app_name_organization_domain
+from qtpy.QtCore import QCoreApplication, QSettings
+
+from view.python_core.appdirs import get_app_name_organization_domain
 
 
 def initialize_app_settings():
@@ -18,5 +19,3 @@ def get_view_qsettings_manager():
     """
     name, org, domain = get_app_name_organization_domain()
     return QSettings(org, name)
-
-

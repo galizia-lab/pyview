@@ -4,6 +4,7 @@ from view.python_core.flags import FlagsManager
 from collections import OrderedDict
 import pandas as pd
 import logging
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
 
@@ -135,6 +136,10 @@ overwrite_old_values = ["Line", "PxSzX", "PxSzY", "Age", "Sex", "Prefer",
 # ______________________________________________________________________________________________________________________
 
 if __name__ == "__main__":
+
+    np.set_printoptions(legacy="1.25") # numpy 2.0.0 includes type info. 
+    # This forces old style print
+    
 
     # initialize a FlagsManager object with values specified above
     flags = FlagsManager()
