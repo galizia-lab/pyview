@@ -47,7 +47,7 @@ def prep_overview_for_output(
     Prepare overview image for output as TIFs or as a frame of a movie and writes into self.overview_frame_for_output
     uses overview_frame_colorized_with_frame numpy.ndarray overview: float64 X,Y,Color format with origin at bottom left
     :rtype: numpy.ndarray
-    :returns: uint8; Y,X, Color format with origin at top left
+    :returns: object of class OverviewDataForOutput
     """
 
     overview_data_for_output = OverviewDataForOutput.init_from_overview_data(
@@ -63,7 +63,7 @@ def prep_overview_for_output(
     return overview_data_for_output
 
 
-def prep_np_array_for_output(np_array):
+def prep_np_array_for_output(np_array) -> np.ndarray:
     """
     Prepare overview image for output as TIFs or as a frame of a movie
 

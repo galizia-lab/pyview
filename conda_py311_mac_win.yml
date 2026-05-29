@@ -1,14 +1,15 @@
-name: view_py310
+name: view_26
 channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python=3.10
-  - pyqt=5
+  - python=3.11
+  - pyqt6 != 6.6.1
   - qtpy
   - pip
   - scipy
   - scikit-image
+  - numpy>=2
   - jinja2
   - seaborn
   - bokeh
@@ -19,8 +20,6 @@ dependencies:
   - jupyter
   - appdirs
   # only available on conda-forge
-  - moviepy
-  - libstdcxx-ng
+  - moviepy<2
   # ensure consistent BLAS/LAPACK stack
   - blas=*=openblas
-

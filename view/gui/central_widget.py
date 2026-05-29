@@ -10,7 +10,6 @@ import pandas as pd
 import qtpy.compat
 import yaml
 from matplotlib import pyplot as plt
-from PyQt5.QtWidgets import QScrollArea
 from qtpy.QtCore import QObject, QUrl, Signal, Slot
 from qtpy.QtGui import QDesktopServices
 from qtpy.QtWidgets import (
@@ -21,6 +20,7 @@ from qtpy.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QScrollArea
 )
 
 from view.gui.application_settings import get_view_qsettings_manager

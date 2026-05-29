@@ -1,5 +1,8 @@
 import pytest
 
+from view.gui.tests.conftest import (
+    default_list_load_test_data,
+)  # propagated to tests in this folder # noqa: F401
 from view.napari_pyview import ILTISWindowNapari, NapariPyViewWidget
 
 
@@ -24,3 +27,15 @@ def napari_main_widget(
     qtbot.addWidget(napari_widget)
 
     return napari_widget
+
+
+@pytest.fixture
+def napari_main_widget_with_mock_viewer(
+    make_napari_viewer_proxy, napari_main_widget
+) -> NapariPyViewWidget:
+
+    mock_viewer = make_napari_viewer_proxy()
+
+    napari_main_widget.napari_viewer = mock_viewer
+
+    return napari_main_widget

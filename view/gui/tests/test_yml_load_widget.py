@@ -3,7 +3,7 @@
 Test file for ListLoadWidget functionality.
 """
 
-import os
+import pathlib as pl
 
 import pytest
 from pytestqt.qtbot import QtBot
@@ -16,7 +16,7 @@ from view.python_core.tests.common import get_synthetic_data_yml_path
 
 def select_yml_file_and_verify(
     list_load_widget: ListLoadWidget,
-    yml_file: str,
+    yml_path: pl.Path,
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -25,19 +25,19 @@ def select_yml_file_and_verify(
 
     Args:
         list_load_widget: ListLoadWidget instance
-        yml_file: Path to the YML file to select
+        yml_path: pathlib Path to the YML file to select
         qtbot: pytest-qt bot for simulating user interactions
         monkeypatch: pytest-qt fixture for monkey patching
     """
     # 1. Assert the YML file exists on disk
-    assert os.path.isfile(
-        yml_file
-    ), f"YML file '{yml_file}' does not exist on disk"
+    assert yml_path.exists(), f"YML file '{yml_path}' does not exist on disk"
+    assert yml_path.is_file(), f"'{yml_path}' is not a file"
 
+    yml_path_str = str(yml_path)
     # Use monkeypatch to replace qtpy.compat.getopenfilename with our test file
     monkeypatch.setattr(
         "qtpy.compat.getopenfilename",
-        lambda *args, **kwargs: (yml_file, "YML File(*.yml)"),
+        lambda *args, **kwargs: (yml_path_str, "YML File(*.yml)"),
     )
 
     # Create a signal spy to monitor the return_filename_signal
@@ -59,8 +59,8 @@ def select_yml_file_and_verify(
     # 3. Assert that the file name is shown in the combobox
     current_text = combobox.currentText()
     assert (
-        current_text == yml_file
-    ), f"Expected combobox to show '{yml_file}', but got '{current_text}'"
+        current_text == yml_path_str
+    ), f"Expected combobox to show '{yml_path_str}', but got '{current_text}'"
 
     # 4. Assert that the signal was fired with the correct file name
     # We need to capture the signal emission using QSignalSpy
@@ -74,8 +74,8 @@ def select_yml_file_and_verify(
 
     emitted_filename = signal_args[0]  # First argument is the filename
     assert (
-        emitted_filename == yml_file
-    ), f"Expected signal to emit '{yml_file}', but got '{emitted_filename}'"
+        emitted_filename == yml_path_str
+    ), f"Expected signal to emit '{yml_path_str}', but got '{emitted_filename}'"
 
 
 def test_yml_file_selection(
@@ -84,8 +84,8 @@ def test_yml_file_selection(
     monkeypatch: pytest.MonkeyPatch,
 ):
 
-    test_yml_file = str(get_synthetic_data_yml_path())
+    test_yml_path = get_synthetic_data_yml_path()
 
     select_yml_file_and_verify(
-        list_load_widget, test_yml_file, qtbot, monkeypatch
+        list_load_widget, test_yml_path, qtbot, monkeypatch
     )

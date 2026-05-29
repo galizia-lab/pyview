@@ -1,4 +1,5 @@
 import logging
+import re
 
 from view import VIEW
 
@@ -17,12 +18,12 @@ def test_custom_formatter_with_extra_entities(capsys):
     logger.debug("This is a debug message", extra=extra_context)
 
     expected_line_endings = [
-        "[VIEW] VIEW object initialized for offline use",
-        "[VIEW] Context: {'Version': '1.4.dev110+gbed3da38c.d20260219'}",
-        "[VIEW] This is an info message",
-        "[VIEW] Context: {'user_id': 123, 'session_id': 'abc456'}",
-        "[VIEW] This is a warning message",
-        "[VIEW] Context: {'user_id': 123, 'session_id': 'abc456'}",
+        r"\[VIEW\] VIEW object initialized for offline use",
+        r"\[VIEW\] Context: \{'Version': '\d+\.\d+\.dev\d+\+g[a-f0-9]+\.d\d+'\}",
+        r"\[VIEW\] This is an info message",
+        r"\[VIEW\] Context: \{'user_id': 123, 'session_id': 'abc456'\}",
+        r"\[VIEW\] This is a warning message",
+        r"\[VIEW\] Context: \{'user_id': 123, 'session_id': 'abc456'\}",
     ]
 
     captured = capsys.readouterr()
@@ -32,4 +33,8 @@ def test_custom_formatter_with_extra_entities(capsys):
     for expected_line_ending, captured_line in zip(
         expected_line_endings, captured_out_lines, strict=True
     ):
-        assert captured_line.endswith(expected_line_ending)
+        # Use regex to match the expected line ending at the end of the captured line
+        pattern = expected_line_ending + r"$"
+        assert re.search(pattern, captured_line), (
+            f"Expected line ending '{expected_line_ending}' not found at the end of '{captured_line}'"
+        )
