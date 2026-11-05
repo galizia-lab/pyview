@@ -1,14 +1,18 @@
-from gekko import GEKKO
-import pandas as pd
-import numpy as np
-
 # to counteract a bug in gekko: https://github.com/BYU-PRISM/GEKKO/issues/108
-from subprocess import TimeoutExpired
+
+import numpy as np
+import pandas as pd
+from gekko import GEKKO
 
 
-class GekkoSolver(object):
-
-    def __init__(self, state_variables, parameters, equations):
+class GekkoSolver:
+    def __init__(
+        self,
+        state_variables,
+        parameters,
+        equations,
+        max_timeout_in_seconds=600,
+    ):
 
         self.m = GEKKO(remote=False)
 
@@ -34,6 +38,9 @@ class GekkoSolver(object):
         self.equations = equations
         eval(f"self.m.Equations({equations.replace('m.', 'self.m.')})")
 
+        # set timeout to 5 minutes - by hand here. Later use .yml file
+        self.gio_max_timeout_in_seconds = max_timeout_in_seconds
+
     @classmethod
     def init_from_model(cls, model):
 
@@ -44,7 +51,7 @@ class GekkoSolver(object):
         gm = cls(
             state_variables=state_variable_inits.keys(),
             parameters=parameter_inits.keys(),
-            equations=model.get_equations()
+            equations=model.get_equations(),
         )
 
         model.extra_init_steps(gm.m)
@@ -59,7 +66,14 @@ class GekkoSolver(object):
 
         return self.m.Var(fixed_initial=True)
 
-    def solve(self, time_vec, input_vec, parameter_values, state_variable_init_dict, output_init):
+    def solve(
+        self,
+        time_vec,
+        input_vec,
+        parameter_values,
+        state_variable_init_dict,
+        output_init,
+    ):
 
         self.m.output.value = output_init[-1]
 
@@ -83,7 +97,7 @@ class GekkoSolver(object):
         self.m.options.imode = 6  # sequential dynamic simulation
 
         # set timeout to 5 minutes
-        self.m.options.max_time = 60
+        self.m.options.max_time = self.gio_max_timeout_in_seconds
 
         # solve
         try:
@@ -94,14 +108,18 @@ class GekkoSolver(object):
         except Exception as e:
             poss1 = str(e).find("@error: Solution Not Found") >= 0
             poss2 = str(e).find("Time Limit Exceeded:") >= 0
-            poss3 = str(e).find("NameError: name \'TimeoutExpired\' is not defined")
+            poss3 = str(e).find(
+                "NameError: name 'TimeoutExpired' is not defined"
+            )
             if poss1 or poss2 or poss3:
-                print(f"Encountered an error during function solving/fitting with GEKKO: {e}")
+                print(
+                    f"Encountered an error during function solving/fitting with GEKKO: {e}"
+                )
                 return None
             else:
                 raise e
 
-        sv_fit_dict = pd.Series()
+        sv_fit_dict = pd.Series(dtype="float64")
         sv_fit_dict["output"] = np.array(self.m.output)
         for sv_name, sv in self.state_variables.items():
             sv_fit_dict[sv_name] = np.array(sv.value)
@@ -110,7 +128,6 @@ class GekkoSolver(object):
 
 
 class GekkoFitter(GekkoSolver):
-
     def __init__(self, state_variables, parameters, equations):
 
         super().__init__(state_variables, parameters, equations)
@@ -124,8 +141,14 @@ class GekkoFitter(GekkoSolver):
         return "FV"
 
     def fit(
-            self, time_vec, input_vec, output_vec, state_variable_init_dict=None, parameter_lb_init_ub=None,
-            ev_type=1, dead_band=None
+        self,
+        time_vec,
+        input_vec,
+        output_vec,
+        state_variable_init_dict=None,
+        parameter_lb_init_ub=None,
+        ev_type=1,
+        dead_band=None,
     ):
 
         # output fixed, given, to be used for estimation
@@ -140,12 +163,14 @@ class GekkoFitter(GekkoSolver):
         self.m.time = time_vec
 
         # initialize parameters initial value, lower and upper bounds
-        for param_name, param_value in parameter_lb_init_ub.items():
+        for param_name, _param_value in parameter_lb_init_ub.items():
             if param_name in self.parameters:
                 temp = self.parameters[param_name]
                 temp.status = 1
                 temp.fstatus = 0
-                temp.lower, temp.value, temp.upper = parameter_lb_init_ub[param_name]
+                temp.lower, temp.value, temp.upper = parameter_lb_init_ub[
+                    param_name
+                ]
 
         # initialize state variables
         for sv_name, sv_value in state_variable_init_dict.items():
@@ -158,7 +183,7 @@ class GekkoFitter(GekkoSolver):
             self.m.options.meas_gap = dead_band
 
         # set timeout to 5 minutes
-        self.m.options.max_time = 60
+        self.m.options.max_time = self.gio_max_timeout_in_seconds
 
         try:
             self.m.solve(disp=False)
@@ -166,16 +191,20 @@ class GekkoFitter(GekkoSolver):
             print(fnfe)
             return None
         except Exception as e:
-            poss1 = str(e).find("@error: Solution Not Found") >= 0
-            poss2 = str(e).find("Time Limit Exceeded:") >= 0
-            poss3 = str(e).find("name 'TimeoutExpired' is not defined") >= 0
+            error_string_lower = str(e).lower()
+            poss1 = error_string_lower.find("@error: solution not found") >= 0
+            poss2 = error_string_lower.find("time limit exceeded:") >= 0
+            poss3 = (
+                error_string_lower.find("name 'timeoutexpired' is not defined")
+                >= 0
+            )
             if poss1 or poss2 or poss3:
                 print(e)
                 return None
             else:
                 raise e
 
-        sv_fit_dict = pd.Series()
+        sv_fit_dict = pd.Series(dtype="float64")
         sv_fit_dict["output"] = np.array(self.m.output)
         for sv_name, sv in self.state_variables.items():
             sv_fit_dict[sv_name] = np.array(sv.value)
@@ -186,8 +215,7 @@ class GekkoFitter(GekkoSolver):
         return sv_fit_dict
 
 
-class ModelOneComp(object):
-
+class ModelOneComp:
     def __init__(self):
 
         super().__init__()
@@ -200,7 +228,7 @@ class ModelOneComp(object):
     def get_equations(self):
 
         return """
-                [ 
+                [
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
                     m.output == m.F
@@ -213,14 +241,13 @@ class ModelOneComp(object):
     def get_parameter_inits(self, sampling_period):
 
         return {
-                "kF": np.array([0.01, 20, 200]) * sampling_period,
-                "kAF": np.array([1e-3, 1, 200]) * sampling_period,
-                "kA": np.array([0.01, 1, 200]) * sampling_period,
-                }
+            "kF": np.array([0.01, 20, 200]) * sampling_period,
+            "kAF": np.array([1e-3, 1, 200]) * sampling_period,
+            "kA": np.array([0.01, 1, 200]) * sampling_period,
+        }
 
 
 class ModelTwoCompNoDelay(ModelOneComp):
-
     def __init__(self, param_inits=None, params_fixed=None):
 
         super().__init__()
@@ -230,11 +257,12 @@ class ModelTwoCompNoDelay(ModelOneComp):
 
         def f(m):
             pass
+
         self.extra_init_steps = f
 
     def get_equations(self):
         return """
-                [ 
+                [
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
                     m.S.dt() == - m.S / m.kS - m.kAS * m.A,
@@ -253,12 +281,13 @@ class ModelTwoCompNoDelay(ModelOneComp):
         temp.update(
             {
                 "kS": np.array([1, 100, 200]) * sampling_period,
-                "kAS": np.array([-200, 1, 200]) * sampling_period
-            })
+                "kAS": np.array([-200, 1, 200]) * sampling_period,
+            }
+        )
         if self.param_inits is not None:
             for k, v in self.param_inits.items():
                 if k in temp:
-                    temp[k][1] = v    # use specified value as starting point
+                    temp[k][1] = v  # use specified value as starting point
 
         if self.params_fixed is not None:
             for k, v in self.params_fixed.items():
@@ -269,7 +298,6 @@ class ModelTwoCompNoDelay(ModelOneComp):
 
 
 class ModelTwoComp(ModelTwoCompNoDelay):
-
     def __init__(self, delay, param_inits=None, params_fixed=None):
 
         super().__init__(param_inits=param_inits, params_fixed=params_fixed)
@@ -283,7 +311,7 @@ class ModelTwoComp(ModelTwoCompNoDelay):
 
     def get_equations(self):
         return """
-                [ 
+                [
                     m.A.dt() == - m.A / m.kA + m.input,
                     m.F.dt() == - m.F / m.kF + m.kAF * m.A,
                     m.S.dt() == - m.S / m.kS - m.kAS * m.A_delayed,
@@ -298,7 +326,9 @@ class ModelTwoComp(ModelTwoCompNoDelay):
         return temp
 
 
-def fit_compare_models(time_vec, output_vec, model2consider, input_vec=None, dead_band=None):
+def fit_compare_models(
+    time_vec, output_vec, model2consider, input_vec=None, dead_band=None
+):
     """
     Fits output_vec and time_vec to the multiple models and returns the paramters of the best model fit
     based on AIC. Loosely based on
@@ -321,17 +351,21 @@ def fit_compare_models(time_vec, output_vec, model2consider, input_vec=None, dea
     gm = GekkoFitter.init_from_model(model=model2consider)
 
     state_variable_inits = model2consider.get_state_variable_inits()
-    parameter_inits = model2consider.get_parameter_inits(sampling_period=sampling_period)
+    parameter_inits = model2consider.get_parameter_inits(
+        sampling_period=sampling_period
+    )
 
     fit_params = gm.fit(
-        time_vec=time_vec.copy(), input_vec=input_vec.copy(), output_vec=output_vec.copy(),
+        time_vec=time_vec.copy(),
+        input_vec=input_vec.copy(),
+        output_vec=output_vec.copy(),
         state_variable_init_dict=state_variable_inits,
         parameter_lb_init_ub=parameter_inits,
-        ev_type=2, dead_band=dead_band
+        ev_type=2,
+        dead_band=dead_band,
     )
 
     if fit_params is not None:
-
         # residual sum of squares
         rss = np.power(output_vec - fit_params["output"], 2).sum()
 

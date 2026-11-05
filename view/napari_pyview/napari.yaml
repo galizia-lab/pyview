@@ -1,0 +1,15 @@
+name: view
+display_name: pyView
+
+visibility: public
+
+contributions:
+  commands:
+    - id: view.loader
+      python_name: view.napari_pyview:NapariPyViewWidget
+      title: pyView
+  widgets:
+
+    - command: view.loader
+      display_name: pyView
+

@@ -1,7 +1,8 @@
-from scipy.io.idl import readsav
-from .io import read_tif_2Dor3D
-from scipy.ndimage.morphology import binary_erosion
 import numpy as np
+from scipy.io import readsav
+from scipy.ndimage import binary_erosion
+
+from view.python_core.io import read_tif_2Dor3D
 
 
 def get_area(flags):
@@ -28,19 +29,16 @@ def frame_mask2perim(frame_mask):
 def read_area_file(fle):
 
     if fle.endswith(".Area"):
-
         return AreaMaskIO.read_mask_from_file(fle)
 
     elif fle.endswith(".area.tif"):
-
         return TIFMaskIO.read_mask_from_file(fle)
 
     else:
         raise NotImplementedError
 
 
-class BaseMaskIO(object):
-
+class BaseMaskIO:
     def __init__(self):
 
         super().__init__()
@@ -57,7 +55,6 @@ class BaseMaskIO(object):
 
 
 class AreaMaskIO(BaseMaskIO):
-
     def __init__(self):
 
         super().__init__()
@@ -93,7 +90,6 @@ class AreaMaskIO(BaseMaskIO):
 
         return mask_uint8_XY_y_flipped
 
-
     @classmethod
     def write_mask_to_file(cls, frame_data, file):
 
@@ -101,7 +97,6 @@ class AreaMaskIO(BaseMaskIO):
 
 
 class TIFMaskIO(BaseMaskIO):
-
     def __init__(self):
 
         super().__init__()
@@ -125,13 +120,15 @@ def get_area_for_p1(frame_size, flags):
 
     try:
         area = get_area(flags)
-    except FileNotFoundError as fnfe:
+    except FileNotFoundError:
         area = np.ones(frame_size, dtype=bool)
 
     return area
 
 
-def get_area_for_bleach_correction(area_mask, LE_BleachCutBorder, LE_BleachExcludeArea):
+def get_area_for_bleach_correction(
+    area_mask, LE_BleachCutBorder, LE_BleachExcludeArea
+):
 
     if LE_BleachExcludeArea:
         mask_frame = area_mask
@@ -140,9 +137,9 @@ def get_area_for_bleach_correction(area_mask, LE_BleachCutBorder, LE_BleachExclu
         mask_frame = np.zeros(frame_size, dtype=bool)
         x_to_cut = round(frame_size[0] * LE_BleachCutBorder / 100)
         y_to_cut = round(frame_size[1] * LE_BleachCutBorder / 100)
-        mask_frame[x_to_cut: frame_size[0] - x_to_cut, y_to_cut: frame_size[1] - y_to_cut] = True
+        mask_frame[
+            x_to_cut : frame_size[0] - x_to_cut,
+            y_to_cut : frame_size[1] - y_to_cut,
+        ] = True
 
     return mask_frame
-
-
-

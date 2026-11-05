@@ -10,7 +10,9 @@ def find_latest_file_matching_pattern(pattern, folder):
 
     for child in folder_path.iterdir():
 
-        pattern_matches = re.fullmatch(pattern, child.name, flags=re.I) is not None
+        pattern_matches = (
+            re.fullmatch(pattern, child.name, flags=re.I) is not None
+        )
 
         if child.is_file() and pattern_matches:
 
@@ -19,10 +21,7 @@ def find_latest_file_matching_pattern(pattern, folder):
     if len(modification_time_filename_dict) == 0:
         return None
     else:
-        mtimes_sorted = sorted(modification_time_filename_dict.keys(), reverse=True)
+        mtimes_sorted = sorted(
+            modification_time_filename_dict.keys(), reverse=True
+        )
         return modification_time_filename_dict[mtimes_sorted[0]]
-
-
-
-
-

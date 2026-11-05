@@ -1,23 +1,23 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu May 31 17:34:29 2018
 
 @author: Giovanni Galizia
 """
 
-import pandas as pd
-import scipy  as sp
-from scipy import ndimage
-import numpy  as np
-import matplotlib.pyplot as plt
+import logging
 import os
+import pathlib as pl
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scipy as sp
+import tifffile
+from scipy import ndimage
+
+from view.python_core.io import read_tif_2Dor3D
 from view.python_core.p1_class.filters import apply_filter
 from view.python_core.paths import get_existing_raw_data_filename
-from view.python_core.io import read_tif_2Dor3D
-import tifffile
-import pathlib as pl
-import logging
 
 
 def load_pst(filename):
@@ -27,19 +27,19 @@ def load_pst(filename):
     # filename can have an extension (e.g. .pst), or not
     # reading stack size from inf
     #inf_path = os.path.splitext(filename)[0] + '.inf'
-    #this does not work for /data/030725bR.pst\\dbb10F, remove extension by hand, 
+    #this does not work for /data/030725bR.pst\\dbb10F, remove extension by hand,
     #assuming it is exactly 3 elements
     if filename[-4] == '.':
         filename = filename[:-4] #reomove extension
     meta = {}
-    with open(filename+'.inf','r') as fh:
+    with open(filename+'.inf') as fh:
     #    fh.next()
         for line in fh.readlines():
             try:
                 k,v = line.strip().split('=')
                 meta[k] = v
             except:
-                pass  
+                pass
     # reading stack from pst
     shape = sp.int32((meta['Width'],meta['Height'],meta['Frames']))
 
@@ -175,8 +175,8 @@ def load_VIEW_tif(flag, p1):
 
     try:
         p1.raw1 = read_tif_2Dor3D(filename)
-    except Exception as e:
-        raise IOError(f"Error reading {filename}")
+    except Exception:
+        raise OSError(f"Error reading {filename}")
 
     # saving the complete filename of raw data for reference
     p1["full_raw_data_path"] = filename
@@ -459,7 +459,7 @@ def create_raw_data666(p1_metadata, peaksignal):
     '''
 
     print('ViewLoadData/LoadRaw666: generating test data with many fixed settings!')
-    
+
     addRightBand = False
     #right band has fixed value squares, no noise, no change over time.
     addLeftBand = False
@@ -483,14 +483,14 @@ def create_raw_data666(p1_metadata, peaksignal):
     darknoise = True
     darknoise_mean = 100  # mean of background values in the chip
     darknoise_amplitude = 20  # max amplitude of background chip noise
-    
-    # subtract the constant parts from the light level, 
+
+    # subtract the constant parts from the light level,
     # because in the experiment we set the light to the sum of them all
-    brain_lightlevel = lightlevel - darknoise_mean - noBleach_lightlevel# 
+    brain_lightlevel = lightlevel - darknoise_mean - noBleach_lightlevel#
     # I assume chip noise to be random over time
     #
     xSize, ySize, tSize = 172, 130, 80  # 120, 99, 80
-    rampwidth = 10  # width of the ramp, 3 left, 2 right, i.e. 
+    rampwidth = 10  # width of the ramp, 3 left, 2 right, i.e.
     # usable range therefore is, in x, 30-152, center is 92
     stepsize = 13  # must be a divisor of ySze
 
@@ -573,16 +573,16 @@ def create_raw_data666(p1_metadata, peaksignal):
 
 # functions to create circular regions, and apply time courses to them
     # def create_circular_mask(h, w, center=None, radius=None):
-    # # from 
+    # # from
     # # https://stackoverflow.com/questions/44865023/how-can-i-create-a-circular-mask-for-a-numpy-array
     #     if center is None: # use the middle of the image
     #         center = (int(w/2), int(h/2))
     #     if radius is None: # use the smallest distance between the center and image walls
     #         radius = min(center[0], center[1], w-center[0], h-center[1])
-    
+
     #     Y, X = np.ogrid[:h, :w]
     #     dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
-    
+
     #     mask = dist_from_center <= radius
     #     return mask
     def create_circular_mask(x, y, glomerulus):
@@ -590,9 +590,9 @@ def create_raw_data666(p1_metadata, peaksignal):
         # x from left to right, y from bottom to top
         Y, X = np.ogrid[:x, :y]
         # why x/y are inverted in the glomerulus coordinates (rows/columns instead of x/y) evades me
-        dist_from_center = np.sqrt((X - glomerulus[1])**2 + (Y-glomerulus[0])**2)    
+        dist_from_center = np.sqrt((X - glomerulus[1])**2 + (Y-glomerulus[0])**2)
         mask = dist_from_center <= glomerulus[2]
-        return mask # this is a boolean 2D array. 
+        return mask # this is a boolean 2D array.
 
     def applytimecourse_mask(matrix, mask, oneline):
         '''
@@ -616,9 +616,9 @@ def create_raw_data666(p1_metadata, peaksignal):
     # with average light level as visible to the experimenter
     # therefore subtract darknoise_mean from lightlevel (has been done avoe)
     stillimage = np.full((xSize, ySize), brain_lightlevel, dtype='float64')
-    
+
     # create a bit of a photo:.
-    # background is darker 
+    # background is darker
     stillimage[:, :] = brain_lightlevel * 0.7
     # large circle in the middle (antennal lobe) is average
     circlesize = min(xSize//2, ySize//2)
@@ -656,10 +656,10 @@ def create_raw_data666(p1_metadata, peaksignal):
         oneline = np.linspace(0, 2 * lightlevel, ySize // 2).reshape(1, ySize // 2)
         stillimage[2 * rampwidth:np.int(2.5 * rampwidth),
                    ySize // 4 : ySize // 4 + ySize // 2] = oneline  # third half band, going up
-        stillimage[np.int(2.5 * rampwidth):3 * rampwidth, 
+        stillimage[np.int(2.5 * rampwidth):3 * rampwidth,
                    ySize // 4:ySize // 4 + ySize // 2] = np.flip(oneline)  # fourth half band, going down
 
-   
+
 
     # check result while debugging
     # plt.imshow(stillimage[:,:].T, origin='lower')
@@ -782,7 +782,7 @@ def create_raw_data666(p1_metadata, peaksignal):
         # shift image by image
         for i in range(tSize):
             raw666[3*rampwidth:xSize - 2*rampwidth,:,i] = ndimage.shift(
-                raw666[3*rampwidth:xSize - 2*rampwidth,:,i], (x_movement[i], y_movement[i]), 
+                raw666[3*rampwidth:xSize - 2*rampwidth,:,i], (x_movement[i], y_movement[i]),
                 mode='nearest')
 
     if darknoise:
@@ -797,8 +797,8 @@ def create_raw_data666(p1_metadata, peaksignal):
     # add background fluorescence level that is not affected by any of the above manipulations
     # simulating fluorescence that is not from the reporter
     # and that is not affected by bleaching
-    raw666 += noBleach_lightlevel 
-    
+    raw666 += noBleach_lightlevel
+
     # now add movement. Smooth to mimic vertical movement
         # smoooth some frames, to mimit out of focus movement
     # smoothOutOfFocus = 5
@@ -808,7 +808,7 @@ def create_raw_data666(p1_metadata, peaksignal):
         raw666[3 * rampwidth:xSize - 2 * rampwidth, :, smoothOutOfFocus_frames] = sp.ndimage.gaussian_filter(
             raw666[3 * rampwidth:xSize - 2 * rampwidth, :, smoothOutOfFocus_frames], sigma=[scatterlight, scatterlight, 0])
 
-    
+
     if badpixels: ##move to after movement creation
         # bad pixels are fixed in space - therefore equal for third dimension
         noise = np.random.rand(xSize, ySize) > badpixels_clip  # values in [0-1]
@@ -825,7 +825,7 @@ def create_raw_data666(p1_metadata, peaksignal):
         stepfunction = stepfunction + darknoise_mean
         stepfunction = stepfunction.reshape(1, ySize, 1)
         raw666[-rampwidth:, :, :] = stepfunction  # set to uniform background level
-    
+
         # create a step function with stepsize steps
         stepfunction = np.repeat(np.arange(stepsize), ySize / stepsize) - stepsize // 2  # negative and positive signals
         # calibrate to peaksignal max both ways
@@ -859,46 +859,46 @@ def create_raw_data666(p1_metadata, peaksignal):
 
 def MovementCorrection(MatrixIN, flag):
 #;input: a 3-dim-matrix MatrixIN
-#;output: another matrix, with each frame shifted in x and y so that the movements are corrected 
+#;output: another matrix, with each frame shifted in x and y so that the movements are corrected
 #;this output has been removed - program should crash when called in old mode
-#;output: shiftArray contains how much each frame was shifted 
-#;options 
+#;output: shiftArray contains how much each frame was shifted
+#;options
     def old_RollIt(frames, shiftArray, neighbourSearch, MatrixIN, matrixOUT, correlation, maxShiftX, maxShiftY):
-        # uses shiftArray, matrix etc. 
+        # uses shiftArray, matrix etc.
         # does not work yet (26.7.2018)
-        bestXshift = shiftArray[0,frames] 
-        bestYshift = shiftArray[1,frames] 
-#		;take values from previous shift 
-        for sx in range( (-1)*neighbourSearch, neighbourSearch+1): 
-            for sy in range( (-1)*neighbourSearch, neighbourSearch+1): 
-                shift1x = shiftArray[0,frames] + sx 
-                shift1y = shiftArray[1,frames] + sy 
-                if (shift1x > maxShiftX) : shift1x =  maxShiftX 
-                if (shift1y > maxShiftY) : shift1y =  maxShiftY 
-                if (shift1x < -maxShiftX): shift1x = -maxShiftX 
-                if (shift1y < -maxShiftY): shift1y = -maxShiftY 
+        bestXshift = shiftArray[0,frames]
+        bestYshift = shiftArray[1,frames]
+#		;take values from previous shift
+        for sx in range( (-1)*neighbourSearch, neighbourSearch+1):
+            for sy in range( (-1)*neighbourSearch, neighbourSearch+1):
+                shift1x = shiftArray[0,frames] + sx
+                shift1y = shiftArray[1,frames] + sy
+                if (shift1x > maxShiftX) : shift1x =  maxShiftX
+                if (shift1y > maxShiftY) : shift1y =  maxShiftY
+                if (shift1x < -maxShiftX): shift1x = -maxShiftX
+                if (shift1y < -maxShiftY): shift1y = -maxShiftY
 
-                result = np.corrcoef(MatrixIN[ (maxShiftX+shift1x):(maxShiftX+smallMsizeX+shift1x), 
+                result = np.corrcoef(MatrixIN[ (maxShiftX+shift1x):(maxShiftX+smallMsizeX+shift1x),
                                                (maxShiftY+shift1y):(maxShiftY+smallMsizeY+shift1y),
                                                frames].flatten(),
                                      MatrixIN[ (maxShiftX):(maxShiftX+smallMsizeX),
                                                (maxShiftY):(maxShiftY+smallMsizeY),
-                                               compareFrame].flatten())    
-#    		result = correlate(matrixIN(maxShiftX+shift1x:(maxShiftX+smallMsizeX+shift1x-1),maxShiftY+shift1y:(maxShiftY+smallMsizeY+shift1Y-1),frames),    $ 
-#                               matrixIN(maxShiftX:(maxShiftX+smallMsizeX-1),MaxShiftY:(MaxShiftY+smallMsizeY-1),compareFrame) ) 
+                                               compareFrame].flatten())
+#    		result = correlate(matrixIN(maxShiftX+shift1x:(maxShiftX+smallMsizeX+shift1x-1),maxShiftY+shift1y:(maxShiftY+smallMsizeY+shift1Y-1),frames),    $
+#                               matrixIN(maxShiftX:(maxShiftX+smallMsizeX-1),MaxShiftY:(MaxShiftY+smallMsizeY-1),compareFrame) )
 #
-                if (result[1][0] > correlation): # THEN begin ; found a better shift 
-                    bestXshift = shift1x 
-                    bestYshift = shift1y 
-                    correlation= result[1][0] 
-        if (bestXshift > maxShiftX):  print('*****Movementcorrection: shiftX exceeds positive limit!') 
-        if (bestXshift < -maxShiftX): print('*****Movementcorrection: shiftX exceeds negative limit!') 
-        if (bestYshift > maxShiftY):  print('*****Movementcorrection: shiftY exceeds positive limit!') 
-        if (bestYshift < -maxShiftY): print('*****Movementcorrection: shiftY exceeds negative limit!') 
-        shiftArray[0,frames] = bestXshift 
-        shiftArray[1,frames] = bestYshift 
-        shiftArray[2,frames] = int(correlation*10) 
-# the IDL program shifted by the negative amount??        
+                if (result[1][0] > correlation): # THEN begin ; found a better shift
+                    bestXshift = shift1x
+                    bestYshift = shift1y
+                    correlation= result[1][0]
+        if (bestXshift > maxShiftX):  print('*****Movementcorrection: shiftX exceeds positive limit!')
+        if (bestXshift < -maxShiftX): print('*****Movementcorrection: shiftX exceeds negative limit!')
+        if (bestYshift > maxShiftY):  print('*****Movementcorrection: shiftY exceeds positive limit!')
+        if (bestYshift < -maxShiftY): print('*****Movementcorrection: shiftY exceeds negative limit!')
+        shiftArray[0,frames] = bestXshift
+        shiftArray[1,frames] = bestYshift
+        shiftArray[2,frames] = int(correlation*10)
+# the IDL program shifted by the negative amount??
         matrixOUT[:,:,frames] = np.roll(matrixOUT[:,:,frames], bestXshift, axis=0)
         matrixOUT[:,:,frames] = np.roll(matrixOUT[:,:,frames], bestYshift, axis=1)
         return (shiftArray, matrixOUT, correlation) #Rollit within MovementCorrection
@@ -909,50 +909,50 @@ def MovementCorrection(MatrixIN, flag):
 # in IDL (old_RollIt), neighbour search meant that only few additional shifts were tested each time
         # shift matrix by all pixel values up to neighbourSearch
         correlation = 0
-        for sx in range( (-1)*neighbourSearch, neighbourSearch+1): 
-            for sy in range( (-1)*neighbourSearch, neighbourSearch+1): 
+        for sx in range( (-1)*neighbourSearch, neighbourSearch+1):
+            for sy in range( (-1)*neighbourSearch, neighbourSearch+1):
                 # for each shift, calculate correlation
                 shiftMatrix = np.roll(   MatrixIN[:,:,frames], sx, axis=0)
                 shiftMatrix = np.roll(shiftMatrix, sy, axis=1)
                 #calculate correlation, avoiding the border region
-                result = np.corrcoef(shiftMatrix[ (neighbourSearch):(-neighbourSearch), 
+                result = np.corrcoef(shiftMatrix[ (neighbourSearch):(-neighbourSearch),
                                                (neighbourSearch):(-neighbourSearch)].flatten(),
-                                     MatrixIN[ (neighbourSearch):(-neighbourSearch), 
+                                     MatrixIN[ (neighbourSearch):(-neighbourSearch),
                                                (neighbourSearch):(-neighbourSearch),
-                                               compareFrame].flatten())    
-                if (result[1][0] > correlation): # THEN begin ; found a better shift 
-                    bestXshift = sx 
-                    bestYshift = sy 
-                    correlation= result[1][0] 
-        shiftArray[0,frames] = bestXshift 
-        shiftArray[1,frames] = bestYshift 
-        shiftArray[2,frames] = int(correlation*10) 
-# the IDL program shifted by the negative amount??        
+                                               compareFrame].flatten())
+                if (result[1][0] > correlation): # THEN begin ; found a better shift
+                    bestXshift = sx
+                    bestYshift = sy
+                    correlation= result[1][0]
+        shiftArray[0,frames] = bestXshift
+        shiftArray[1,frames] = bestYshift
+        shiftArray[2,frames] = int(correlation*10)
+# the IDL program shifted by the negative amount??
         MatrixOUT[:,:,frames] = np.roll( MatrixIN[:,:,frames], bestXshift, axis=0)
         MatrixOUT[:,:,frames] = np.roll(MatrixOUT[:,:,frames], bestYshift, axis=1)
         return (shiftArray, MatrixOUT) #Rollit within MovementCorrection
 
     # local settings for MovementCorrection
-    maxShift     = 0.10  #;proportion of maximal shift allowed 
+    maxShift     = 0.10  #;proportion of maximal shift allowed
     compareFrame = 5     #;which frame to take as standard view (i.e. not moved)
-    plotShift    = True  #; plot the shift result 
-    logFile      = True  #; 
-    # logFileName  = flag.STG_OdorReportPath +flag.STG_ReportTag +'_Shift.log' 
-#				; if set to 0 then all possible movements are checked 
+    plotShift    = True  #; plot the shift result
+    logFile      = True  #;
+    # logFileName  = flag.STG_OdorReportPath +flag.STG_ReportTag +'_Shift.log'
+#				; if set to 0 then all possible movements are checked
     (sizeX, sizeY, sizeZ) = MatrixIN.shape
-    neighbourSearch = min([int(sizeX * maxShift),int(sizeY * maxShift)]) 
-#;define ShiftArray which contains all shift information 
-    shiftArray = np.zeros((3, sizeZ), dtype=int) #;dim0:shiftX,dim1:shiftY, dim3:corr*100 
-#;define outputmatrix 
-    MatrixOUT = MatrixIN.copy() 
- #	;up from compareframe 
-    for frames  in range(compareFrame+1, sizeZ): 
+    neighbourSearch = min([int(sizeX * maxShift),int(sizeY * maxShift)])
+#;define ShiftArray which contains all shift information
+    shiftArray = np.zeros((3, sizeZ), dtype=int) #;dim0:shiftX,dim1:shiftY, dim3:corr*100
+#;define outputmatrix
+    MatrixOUT = MatrixIN.copy()
+ #	;up from compareframe
+    for frames  in range(compareFrame+1, sizeZ):
         (shiftArray, MatrixOUT) = RollIt(frames, compareFrame, neighbourSearch, MatrixIN, MatrixOUT, shiftArray)
-#	;down from compareframe 
-    for frames  in range(compareFrame-1, -1, -1): 
+#	;down from compareframe
+    for frames  in range(compareFrame-1, -1, -1):
         (shiftArray, MatrixOUT) = RollIt(frames, compareFrame, neighbourSearch, MatrixIN, MatrixOUT, shiftArray)
 #
-#;suboptimal approach: go through all possibel shifts 
+#;suboptimal approach: go through all possibel shifts
 # implemented differently from IDL now, by increasing neighbourSearch to very high values
 ######## done movement correction
     if plotShift:
@@ -962,22 +962,22 @@ def MovementCorrection(MatrixIN, flag):
         # red dashes, blue squares and green triangles
         plt.plot(t, shiftArray[0,:], 'r--', t, shiftArray[1,:], 'b--', t, shiftArray[2,:], 'g^')
         plt.show()
-#	window, 0 
-#	;loadCT, 39 
-#	range = max([maxshiftX,maxshiftY]) 
-#	plot, shiftArray(0,*), yrange=[(-1)*range,range],color=140 
-#	oplot, shiftarray(1,*), color=254 
-#	oplot, shiftarray(2,*), color=255 
-    if logFile: 
+#	window, 0
+#	;loadCT, 39
+#	range = max([maxshiftX,maxshiftY])
+#	plot, shiftArray(0,*), yrange=[(-1)*range,range],color=140
+#	oplot, shiftarray(1,*), color=254
+#	oplot, shiftarray(2,*), color=255
+    if logFile:
         print('ViewLoadData.MovementCorrection: logFile not implemented - still to do')
         #no need for log file, shifts are written in other program
-#	openW, 10, logFileName,  /APPEND 
-#	printF, 10, string(9b)+string(9b)+'Followes report shift for measurement ',p1.ex_name,'*',p1.experiment 
+#	openW, 10, logFileName,  /APPEND
+#	printF, 10, string(9b)+string(9b)+'Followes report shift for measurement ',p1.ex_name,'*',p1.experiment
 #	for i=0,sizeZ-1 do begin #
 #		printF, 10, strtrim(string(shiftArray(0,i)),2),+string(9b)+strtrim(string(shiftArray(1,i)),2) #
-#	endFOR 
-#	printF, 10, string(9b)+string(9b)+'****************end of************** ',p1.ex_name 
-#	close, 10 
+#	endFOR
+#	printF, 10, string(9b)+string(9b)+'****************end of************** ',p1.ex_name
+#	close, 10
     return (MatrixOUT, shiftArray) #MovementCorrection
 
 def ReadWriteMovementValues(flagWrite, MovementList, p1, flag):
@@ -1016,9 +1016,9 @@ def ReadWriteMovementValues(flagWrite, MovementList, p1, flag):
 #;movementList = intarr(3,p1.frames,p1.odors+1); x/y/quality, frames, data(odor/wavelength)
             # because in IDL there were, generally, two odors, the first fictive, the second not
             # in most moveLists there will be 6 lines, with identical values in the first 3  and secont 3
-            # or with 0 in the first 3 lines. 
+            # or with 0 in the first 3 lines.
             # therefore, here in Phython I take the LAST 3 lines
-            # this way, in the future, I can write 3 lines only. 
+            # this way, in the future, I can write 3 lines only.
             # will go wrong if several odors are used (e.g. separate movementlist in Fura? CHECK)
             MovementList = moveList_df.values # report matrix only
     else: #write file
@@ -1034,7 +1034,7 @@ def ReadWriteMovementValues(flagWrite, MovementList, p1, flag):
             # load previous data
             old_move  = pd.read_csv(MoveFile, sep='\t', header=None)
             out_move  = pd.concat([old_move,out_move]) #add this one to the existing list
-        # now write the new movementList to file. 
+        # now write the new movementList to file.
         # use dataframe format for my lazyness  -  np.savetxt would be leaner
         # do not add header line (also IDL did not do that any more)
         out_move.to_csv(MoveFile, sep='\t', header=False, index=False)
@@ -1075,7 +1075,7 @@ def MovementCorrectionMaster(p1, flag):
 # Problem here: odors is abolished in this Python setting, but for FURA I don't have a solution yet
 # the thing is: I cannot do a movement correction separately for the two wavelengths, without alignem them,
 # because they might move astray.
-# For new data, movement correction should use new tools anyway. 
+# For new data, movement correction should use new tools anyway.
 #
 #
 #	;go through raw data, do movement correction, for each 'odorset' separatedly (e.g. also for the two wavelengths in FURA)

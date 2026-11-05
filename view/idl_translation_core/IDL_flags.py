@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Mon May 28 16:48:33 2018
 
@@ -6,8 +5,10 @@ Created on Mon May 28 16:48:33 2018
 """
 
 # all flags from IDL now as lists
-import pandas as pd
 import os
+
+import pandas as pd
+
 
 def IDL_default_flags(STG_MotherOfAllFolders=''):
     # this version taken from master_jacob_sorted.pro
@@ -25,10 +26,10 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 # and the Movie flags also
 # however - all commented out. Only free those that are being used
 # in order to keep track of the new code
-    
+
     if STG_MotherOfAllFolders == '':
         STG_MotherOfAllFolders = os.getcwd()
-    
+
     IDL_flag     = pd.Series({
 ## system flags, many not necessary for the python version
             "VIEW_batchmode": 1, # choice between interactive mode and VIEW_batchmode
@@ -68,7 +69,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 ##
 ##	,how to make movement correction based on .moveList file. (used in ViewLoadData\MovementCorrectionMaster.pro)
             "CSM_Movement": 0,
-##	,set to 0: no movement correction (BUT shifts from .lst file are USED!)
+##	,set to 0: no movement correction (BUT shifts from view.lst file are USED!)
 ##	,set to 1: on the spot movement correction
 ##	,set to 2: as 1, but calculated movements are saved in the moveList file
 ##	,set to 3: movement values are read from the moveList file
@@ -212,7 +213,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 ##
             "CTV_scalebar"			: 1		, #some output options allow to print out the color scalebar (SingleOverviews.pro)
             "RM_fotook"				: 0		, #Overlay other information to overview output, (SingleOverviews.pro)
-##										, 1: puts squares in the coordinate positions (from .coor file)
+##										, 1: puts squares in the coordinate positions (from view.coor file)
 ##										, 5: shows the perimeter of the .area file
 #            "RM_differentViews"	: 0		,# Change view, e.g. mirror flip right ALs   (SingleOverviews.pro)
             "RM_unsharpmask"		: False		, #Post-hoc filter on false-color images     (SingleOverviews.pro)
@@ -225,7 +226,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 #            "RM_PrintAscii"		: 0		,#
 #            "RM_PrintLine"			: 1		,#
             "RM_ROItrace"			: 0		,# to select area file in exportglomeruli
-            "RM_nextposition"    : [0,0], #position of a frame in output canvas 
+            "RM_nextposition"    : [0,0], #position of a frame in output canvas
 ##
 ##
 ##	,flags for filters
@@ -267,7 +268,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 ##	, folder for the all OUTPUT files
             "STG_OdorReportFile": 'XYZ',
 ##	, can be used for any text
-#            "STG_Missing"		  : '999', 
+#            "STG_Missing"		  : '999',
 ##
 ##
 ##,************************************
@@ -311,7 +312,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
             "mv_correctStimulusOnset"	: 0 	,# value to be added to stimulus onset (in frames)
             "mv_displayTime"			: True		,# time in ss:ms as figures
             "mv_minimumBrightness"	: 0		,# creates a mask that depends on the brightnes of the foto
-            "mv_suppressMilliseconds" : True,  
+            "mv_suppressMilliseconds" : True,
 ##
 ##
 ##		,these flags are for interactive use in view (fasttraces)
@@ -362,9 +363,9 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
             })
 
 # here: change STG paths to add "mother of all directories" to it
-    
 
-#test 
+
+#test
     return IDL_flag
 
 
@@ -372,7 +373,7 @@ def IDL_default_flags(STG_MotherOfAllFolders=''):
 #########################################################
 ########## Main starts here
 #########################################################
-    
+
 #define flag structure
 IDL_flag = IDL_default_flags('') # can also be called with empty brackets()
 

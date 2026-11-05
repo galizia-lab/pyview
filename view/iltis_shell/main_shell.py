@@ -1,23 +1,29 @@
+import contextlib
 import copy
-from iltis.Main import Main as ILTISMain
-from iltis.io.IOtools import save_tstack
-from iltis.Objects.Data_Object import Data_Object, Metadata_Object
-from iltis.Widgets.Options_Control_Widget import SingleValueWidget
-from iltis.Objects.ROIs_Object import myPolyLineROI, myCircleROI
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QLabel, QMessageBox
-import numpy as np
-import pandas as pd
-from .save_area_file_dialog import SaveAreaFileDialog, SaveCircleROIsFileDialog, SaveAllROIsFileDialog
-from .orphan_functions import convert_iltisROI2VIEWROI
-from view.python_core.rois.roi_io import ILTISTextROIFileIO
 import logging
 import pathlib as pl
 
+import numpy as np
+import pandas as pd
+from iltis.io.IOtools import save_tstack
+from iltis.Main import Main as ILTISMain
+from iltis.Objects.Data_Object import Data_Object, Metadata_Object
+from iltis.Objects.ROIs_Object import myCircleROI, myPolyLineROI
+from iltis.Widgets.Options_Control_Widget import SingleValueWidget
+from qtpy.QtCore import Slot
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import QLabel, QMessageBox
+
+from view.iltis_shell.orphan_functions import convert_iltisROI2VIEWROI
+from view.iltis_shell.save_area_file_dialog import (
+    SaveAllROIsFileDialog,
+    SaveAreaFileDialog,
+    SaveCircleROIsFileDialog,
+)
+from view.python_core.rois.roi_io import ILTISTextROIFileIO
+
 
 class ILTISMainShell(ILTISMain):
-
     def __init__(self, verbose=False):
 
         super().__init__(verbose)
@@ -29,32 +35,54 @@ class ILTISMainShell(ILTISMain):
 
         view_menu = menu_bar.addMenu("&VIEW-Related")
 
-        self.import_action_quick = view_menu.addAction("Quickly import all data from VIEW")
+        self.import_action_quick = view_menu.addAction(
+            "Quickly import all data from VIEW"
+        )
 
-        self.import_action = view_menu.addAction("Selectively import data from VIEW")
+        self.import_action = view_menu.addAction(
+            "Selectively import data from VIEW"
+        )
 
-        self.save_cirle_rois_action = view_menu.addAction("Save circle ROIS as .roi for VIEW")
-        self.save_cirle_rois_action.triggered.connect(self.spawn_save_circle_rois_dialog)
+        self.save_cirle_rois_action = view_menu.addAction(
+            "Save circle ROIS as .roi for VIEW"
+        )
+        self.save_cirle_rois_action.triggered.connect(
+            self.spawn_save_circle_rois_dialog
+        )
         self.save_cirle_rois_action.setEnabled(False)
 
-        self.save_rois_action = view_menu.addAction("Save all ROI types as .roi for VIEW")
-        self.save_rois_action.triggered.connect(self.spawn_save_all_rois_dialog)
+        self.save_rois_action = view_menu.addAction(
+            "Save all ROI types as .roi for VIEW"
+        )
+        self.save_rois_action.triggered.connect(
+            self.spawn_save_all_rois_dialog
+        )
         self.save_rois_action.setEnabled(False)
 
-        self.save_area_action = view_menu.addAction("Save Polygon ROIs as AREA for VIEW")
+        self.save_area_action = view_menu.addAction(
+            "Save Polygon ROIs as AREA for VIEW"
+        )
         self.save_area_action.triggered.connect(self.spawn_save_area_dialog)
         self.save_area_action.setEnabled(False)
 
-        self.quick_save_area_action = view_menu.addAction("Quick save AREA for VIEW (using selected data and ROIs)")
+        self.quick_save_area_action = view_menu.addAction(
+            "Quick save AREA for VIEW (using selected data and ROIs)"
+        )
         self.quick_save_area_action.triggered.connect(self.quick_save_area)
         self.quick_save_area_action.setEnabled(False)
+
+        self.clear_data_menu = menu_bar.addMenu("&Clearing Data")
+        self.clear_all_data_action = self.clear_data_menu.addAction(
+            "Clear all data and reset"
+        )
+        self.clear_all_data_action.triggered.connect(self.reset)
 
         self.dialogs = []
 
         self.metadata = None
 
     # this is used to reset ILTIs from VIEW if required
-    @pyqtSlot(name="reset")
+    @Slot(name="reset")
     def reset(self, restore_options=True):
 
         # save some options for restoration
@@ -63,9 +91,12 @@ class ILTISMainShell(ILTISMain):
         roi_options_to_save = ["view", "ROI", "export"]
 
         try:
-            roi_options = {x: copy.copy(getattr(self.Options, x)) for x in roi_options_to_save}
+            roi_options = {
+                x: copy.copy(getattr(self.Options, x))
+                for x in roi_options_to_save
+            }
         # if the Options object is initialized but default options have not yet been loaded
-        except AttributeError as ae:
+        except AttributeError:
             roi_options = {}
 
         # clear ILTIS data and history
@@ -77,10 +108,10 @@ class ILTISMainShell(ILTISMain):
             # restore options; placed here because (1) load_default_options() uses Data.nFrames and Metadata.paths
             # (2) since load_default_options() need to be called before initing Option_Control (see below)
             [setattr(self.Options, k, v) for k, v in roi_options.items()]
-            try:
-                self.MainWindow.roi_type_widget.layout().itemAt(1).widget().set_value(roi_options["ROI"]["type"])
-            except KeyError as ke:
-                pass
+            with contextlib.suppress(KeyError):
+                self.MainWindow.roi_type_widget.layout().itemAt(
+                    1
+                ).widget().set_value(roi_options["ROI"]["type"])
 
         # parts of iltis.Objects.IO_Object.IO_Object.load_data
 
@@ -102,8 +133,19 @@ class ILTISMainShell(ILTISMain):
 
         return roi_options
 
-    @pyqtSlot(list, list, pd.DataFrame, int, tuple, tuple, int, name="import data")
-    def import_data(self, raw_data_list, signal_list, metadata, n_frames, stim_onset, stim_offset, default_radius):
+    @Slot(
+        list, list, pd.DataFrame, int, tuple, tuple, int, name="import data"
+    )
+    def import_data(
+        self,
+        raw_data_list,
+        signal_list,
+        metadata,
+        n_frames,
+        stim_onset,
+        stim_offset,
+        default_radius,
+    ):
         """
         Writes raw data, (df/f) signal data and trials names into the data structures iltis.
         In principle replicates iltis.Objects.IO_Object.IO_Object.init_data for writing raw data
@@ -127,14 +169,21 @@ class ILTISMainShell(ILTISMain):
         assert all(type(x) is np.ndarray for x in signal_list)
         assert all(len(x.shape) == 3 for x in signal_list)
 
-        for raw_data, sig_data in zip(raw_data_list[1:], signal_list[1:]):
-
-            if not (raw_data.shape == raw_data_list[0].shape == sig_data.shape == signal_list[0].shape):
+        for raw_data, sig_data in zip(
+            raw_data_list[1:], signal_list[1:], strict=True
+        ):
+            if not (
+                raw_data.shape
+                == raw_data_list[0].shape
+                == sig_data.shape
+                == signal_list[0].shape
+            ):
                 QMessageBox.critical(
-                    self.MainWindow, "Error importing data",
+                    self.MainWindow,
+                    "Error importing data",
                     "Data being imported have different sizes (X, Y and/or Z). Please have a look at the columns"
                     "'No. of pixels along X', 'No. of pixels along Y' and 'No. of frames' of the table shown "
-                    "when choosing data for import"
+                    "when choosing data for import",
                 )
                 return
 
@@ -148,7 +197,9 @@ class ILTISMainShell(ILTISMain):
 
         # set raw data,
         # view.idl_translation_core.ViewLoadData.load_pst
-        self.Data.raw = np.concatenate([x[:, :, :, np.newaxis] for x in raw_data_list], axis=3)
+        self.Data.raw = np.concatenate(
+            [x[:, :, :, np.newaxis] for x in raw_data_list], axis=3
+        )
 
         # dFF needs to be a float to avoid problems with pyqtgraph, see Issue 56 of VIEW
         self.Data.dFF = np.zeros_like(self.Data.raw, dtype="float32")
@@ -162,23 +213,31 @@ class ILTISMainShell(ILTISMain):
         self.Data.nFrames = n_frames
 
         # instead of file names, set trial labels directly
-        self.Data.Metadata.trial_labels = metadata["Label to use"].values.tolist()
+        self.Data.Metadata.trial_labels = metadata[
+            "Label to use"
+        ].values.tolist()
 
         # restore options; placed here because (1) load_default_options() uses Data.nFrames and Metadata.paths
         # (2) since load_default_options() need to be called before initing Option_Control (see below)
         self.Options.load_default_options()
-        [setattr(self.Options, k, v) for k, v in old_roi_options.items() if len(v)]
+        [
+            setattr(self.Options, k, v)
+            for k, v in old_roi_options.items()
+            if len(v)
+        ]
         try:
-            getattr(self.Options, "ROI")["diameter"] = 2 * default_radius + 1
-            self.MainWindow.roi_type_widget.layout().itemAt(1).widget().set_value(old_roi_options["ROI"]["type"])
-        except KeyError as ke:
+            self.Options.ROI["diameter"] = 2 * default_radius + 1
+            self.MainWindow.roi_type_widget.layout().itemAt(
+                1
+            ).widget().set_value(old_roi_options["ROI"]["type"])
+        except KeyError:
             pass
 
         # set cwd to IDLOutput
         random_metadata = metadata.iloc[0]
         op_dir_first_dataset = random_metadata["STG_OdorReportPath"]
         self.cwd = op_dir_first_dataset
-        self.Options.general['cwd'] = op_dir_first_dataset
+        self.Options.general["cwd"] = op_dir_first_dataset
 
         # set data_path and roi_path
         self.data_path = random_metadata["STG_Datapath"]
@@ -197,17 +256,19 @@ class ILTISMainShell(ILTISMain):
             x[np.isnan(x)] = np.nanmin(x)
 
         # set dFF
-        self.Data.dFF = np.concatenate([x[:, :, :, np.newaxis] for x in signal_list], axis=3)
+        self.Data.dFF = np.concatenate(
+            [x[:, :, :, np.newaxis] for x in signal_list], axis=3
+        )
         self.Options.flags["dFF_was_calc"] = True
 
         # - for all display triggers, whatever the state, set it to True and toggle it.
         self.MainWindow.ToolBar.setEnabled(True)
         # -- list of tuples to store flag name and trigger
         flag_action_names = [
-            ('show_dFF', 'toggledFFAction'),
-            ('use_global_levels', 'toggleGlobalLevels'),
-            ('show_avg', 'toggleAvgAction'),
-            ('show_monochrome', 'toggleMonochromeAction')
+            ("show_dFF", "toggledFFAction"),
+            ("use_global_levels", "toggleGlobalLevels"),
+            ("show_avg", "toggleAvgAction"),
+            ("show_monochrome", "toggleMonochromeAction"),
         ]
 
         for flag_name, action_name in flag_action_names:
@@ -225,16 +286,24 @@ class ILTISMainShell(ILTISMain):
         # add a warning about signal calculation in ILTIS/transfer from VIEW
         qfont = QFont()
         qfont.setBold(True)
-        qlabel = QLabel("Warning: The following options will only be used when data is loaded using Open->load data.\n"
-                        "They are not used when data is imported from VIEW using VIEW-Related->Import data from VIEW.\n"
-                        "In this case, deltaF/F is not calculated in ILTIS, but initialized with the signal data "
-                        "calculated in VIEW.")
+        qlabel = QLabel(
+            "Warning: The following options will only be used when data is loaded using Open->load data.\n"
+            "They are not used when data is imported from VIEW using VIEW-Related->Import data from VIEW.\n"
+            "In this case, deltaF/F is not calculated in ILTIS, but initialized with the signal data "
+            "calculated in VIEW."
+        )
         qlabel.setFont(qfont)
-        fake_field = SingleValueWidget(parent=self.MainWindow.Options_Control, dict_name="preprocessing",
-                                       param_name="fake", dtype='S')
+        fake_field = SingleValueWidget(
+            parent=self.MainWindow.Options_Control,
+            dict_name="preprocessing",
+            param_name="fake",
+            dtype="S",
+        )
         fake_field.setText("Please take care!")
         fake_field.setReadOnly(True)
-        self.MainWindow.Options_Control.widget(1).layout().insertRow(1, qlabel, fake_field)
+        self.MainWindow.Options_Control.widget(1).layout().insertRow(
+            1, qlabel, fake_field
+        )
 
         # enable other VIEW-related actions
         self.save_area_action.setEnabled(True)
@@ -256,7 +325,11 @@ class ILTISMainShell(ILTISMain):
         if len(stim_onset) != len(stim_offset) or len(stim_onset) == 0:
             return
         else:
-            stim_onset_offsets = [x for x in zip(stim_onset, stim_offset) if x[0] is not None and x[1] is not None]
+            stim_onset_offsets = [
+                x
+                for x in zip(stim_onset, stim_offset, strict=True)
+                if x[0] is not None and x[1] is not None
+            ]
             stim_times = np.array(stim_onset_offsets, dtype=float)
             self.Options.preprocessing["nStimuli"] = len(stim_onset_offsets)
             self.Options.preprocessing["stimuli"] = stim_times
@@ -279,57 +352,83 @@ class ILTISMainShell(ILTISMain):
     def get_selected_data_labels(self):
 
         data_selector = self.MainWindow.Front_Control_Panel.Data_Selector
-        selected_data_labels = [data_selector.item(x.row(), 0).text()
-                                for x in data_selector.selectionModel().selectedRows()]
+        selected_data_labels = [
+            data_selector.item(x.row(), 0).text()
+            for x in data_selector.selectionModel().selectedRows()
+        ]
         return selected_data_labels
 
-    @pyqtSlot(name="save circle roi_labels for VIEW")
+    @Slot(name="save circle roi_labels for VIEW")
     def spawn_save_circle_rois_dialog(self):
 
-        circle_roi_labels, circle_roi_labels_selected = self.get_roi_and_selected_by_type([myCircleROI])
+        circle_roi_labels, circle_roi_labels_selected = (
+            self.get_roi_and_selected_by_type([myCircleROI])
+        )
         selected_data_labels = self.get_selected_data_labels()
-        save_circle_rois_dialog = SaveCircleROIsFileDialog(metadata=self.metadata, data_selected=selected_data_labels,
-                                                           circle_roi_labels=circle_roi_labels,
-                                                           circle_rois_selected=circle_roi_labels_selected)
-        save_circle_rois_dialog.return_choices_signal.connect(self.save_coors_for_VIEW)
+        save_circle_rois_dialog = SaveCircleROIsFileDialog(
+            metadata=self.metadata,
+            data_selected=selected_data_labels,
+            circle_roi_labels=circle_roi_labels,
+            circle_rois_selected=circle_roi_labels_selected,
+        )
+        save_circle_rois_dialog.return_choices_signal.connect(
+            self.save_coors_for_VIEW
+        )
         self.dialogs.append(save_circle_rois_dialog)
         save_circle_rois_dialog.show()
 
-    @pyqtSlot(name="save roi_labels for VIEW")
+    @Slot(name="save roi_labels for VIEW")
     def spawn_save_all_rois_dialog(self):
 
-        roi_labels, roi_labels_selected = self.get_roi_and_selected_by_type([myCircleROI, myPolyLineROI])
+        roi_labels, roi_labels_selected = self.get_roi_and_selected_by_type(
+            [myCircleROI, myPolyLineROI]
+        )
         selected_data_labels = self.get_selected_data_labels()
-        save_all_rois_dialog = SaveAllROIsFileDialog(metadata=self.metadata, data_selected=selected_data_labels,
-                                                     roi_labels=roi_labels,
-                                                     roi_labels_selected=roi_labels_selected)
-        save_all_rois_dialog.return_choices_signal.connect(self.save_coors_for_VIEW)
+        save_all_rois_dialog = SaveAllROIsFileDialog(
+            metadata=self.metadata,
+            data_selected=selected_data_labels,
+            roi_labels=roi_labels,
+            roi_labels_selected=roi_labels_selected,
+        )
+        save_all_rois_dialog.return_choices_signal.connect(
+            self.save_coors_for_VIEW
+        )
         self.dialogs.append(save_all_rois_dialog)
         save_all_rois_dialog.show()
 
-    @pyqtSlot(name="save area for VIEW")
+    @Slot(name="save area for VIEW")
     def spawn_save_area_dialog(self):
 
-        poly_roi_labels, poly_roi_labels_selected = self.get_roi_and_selected_by_type([myPolyLineROI])
+        poly_roi_labels, poly_roi_labels_selected = (
+            self.get_roi_and_selected_by_type([myPolyLineROI])
+        )
 
         selected_data_labels = self.get_selected_data_labels()
-        save_area_dialog = SaveAreaFileDialog(metadata=self.metadata, data_selected=selected_data_labels,
-                                              poly_roi_labels=poly_roi_labels,
-                                              poly_rois_selected=poly_roi_labels_selected)
+        save_area_dialog = SaveAreaFileDialog(
+            metadata=self.metadata,
+            data_selected=selected_data_labels,
+            poly_roi_labels=poly_roi_labels,
+            poly_rois_selected=poly_roi_labels_selected,
+        )
         save_area_dialog.return_choices_signal.connect(self.save_area_for_VIEW)
         self.dialogs.append(save_area_dialog)
         save_area_dialog.show()
 
-    @pyqtSlot(list, str, name="save area for VIEW")
+    @Slot(list, str, name="save area for VIEW")
     def save_area_for_VIEW(self, roi_labels, filename):
 
         self.write_status("[working] Writing AREA file for VIEW")
 
-        extraction_mask = np.zeros((self.Data.raw.shape[0],
-                                    self.Data.raw.shape[1],
-                                    len(roi_labels)), dtype='bool')
+        extraction_mask = np.zeros(
+            (self.Data.raw.shape[0], self.Data.raw.shape[1], len(roi_labels)),
+            dtype="bool",
+        )
 
-        rois_chosen = [x for x in self.ROIs.ROI_list if x.label in roi_labels and type(x) == myPolyLineROI]
+        rois_chosen = [
+            x
+            for x in self.ROIs.ROI_list
+            if x.label in roi_labels and isinstance(x, myPolyLineROI)
+        ]
         roi_data = []
         for i, ROI in enumerate(rois_chosen):
             if ROI.label in roi_labels:
@@ -341,11 +440,15 @@ class ILTISMainShell(ILTISMain):
         ILTISTextROIFileIO.write(f"{filename}.roi", roi_data)
         save_tstack(extraction_mask, filename)
 
-        QMessageBox.information(self.MainWindow, "AREA File saved!", f"to\n{filename}\nusing ROIs {roi_labels}")
+        QMessageBox.information(
+            self.MainWindow,
+            "AREA File saved!",
+            f"to\n{filename}\nusing ROIs {roi_labels}",
+        )
 
         self.write_status("[success] Writing AREA file for VIEW")
 
-    @pyqtSlot(list, str, name="save COORs for VIEW")
+    @Slot(list, str, name="save COORs for VIEW")
     def save_coors_for_VIEW(self, roi_labels, filename):
 
         self.write_status("[working] Writing COORs file for VIEW")
@@ -359,40 +462,49 @@ class ILTISMainShell(ILTISMain):
 
         ILTISTextROIFileIO.write(filename, roi_datas)
 
-        QMessageBox.information(self.MainWindow, "Coor File saved!", f"to\n{filename}\nusing ROIs {roi_labels}")
+        QMessageBox.information(
+            self.MainWindow,
+            "Coor File saved!",
+            f"to\n{filename}\nusing ROIs {roi_labels}",
+        )
 
         self.write_status("[success] Writing COORs file for VIEW")
 
-    @pyqtSlot(name="quick save area")
+    @Slot(name="quick save area")
     def quick_save_area(self):
 
         self.write_status("[working] Writing COORs file for VIEW")
 
         selected_data_labels = self.get_selected_data_labels()
 
-        mask = self.metadata["Label to use"].apply(lambda x: x in selected_data_labels)
+        mask = self.metadata["Label to use"].apply(
+            lambda x: x in selected_data_labels
+        )
         metadata_selected_data = self.metadata.loc[mask, :]
-        animals_deduplicated = metadata_selected_data['STG_ReportTag'].unique()
+        animals_deduplicated = metadata_selected_data["STG_ReportTag"].unique()
         if animals_deduplicated.shape[0] == 1:
-
             current_metadata_row = metadata_selected_data.iloc[0]
-            filename = \
-                str(pl.Path(current_metadata_row["STG_OdorAreaPath"]) / f"{animals_deduplicated[0]}.area.tif")
+            filename = str(
+                pl.Path(current_metadata_row["STG_OdorAreaPath"])
+                / f"{animals_deduplicated[0]}.area.tif"
+            )
 
             _, selected_roi_labels = self.get_roi_and_selected_by_type()
 
             if len(selected_roi_labels) == 0:
                 QMessageBox.critical(
-                    self.MainWindow, "No ROIs selected!",
-                    "Please select one or more ROIs on the right column and try again!"
+                    self.MainWindow,
+                    "No ROIs selected!",
+                    "Please select one or more ROIs on the right column and try again!",
                 )
 
-            self.save_area_for_VIEW(roi_labels=selected_roi_labels, filename=filename)
-
-        else:
-
-            QMessageBox.critical(
-                self.MainWindow, "No data selected!",
-                "Please select one imaging data on the right column and try again!"
+            self.save_area_for_VIEW(
+                roi_labels=selected_roi_labels, filename=filename
             )
 
+        else:
+            QMessageBox.critical(
+                self.MainWindow,
+                "No data selected!",
+                "Please select one imaging data on the right column and try again!",
+            )

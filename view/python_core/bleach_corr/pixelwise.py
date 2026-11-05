@@ -1,10 +1,10 @@
-import numpy as np
-from view.idl_translation_core.bleach_correction import fitlogdecay, model_func
-from itertools import product
-import multiprocessing as mp
 import logging
+import multiprocessing as mp
 import platform
 
+import numpy as np
+
+from view.idl_translation_core.bleach_correction import fitlogdecay
 
 shared_arr_g = None
 patch_size_g = None
@@ -53,8 +53,9 @@ def numpy2raw_array(ndarray):
 
 def bleach_correct_pixelwise(movie: np.ndarray, weights, area, ncpu: int):
 
-    assert movie.shape[:2] == area.shape, f"Area file specified has dimensions {area.shape} that does not match with" \
-                                          f"data dimensions {movie.shape}"
+    assert (
+        movie.shape[:2] == area.shape
+    ), f"Area file specified has dimensions {area.shape} that does not match with data dimensions {movie.shape}"
 
     pixel_inds = [ind for ind, val in np.ndenumerate(area) if val]
 
@@ -65,27 +66,32 @@ def bleach_correct_pixelwise(movie: np.ndarray, weights, area, ncpu: int):
     weights_g = weights
 
     if ncpu > 1:
-
-        assert platform.system() != "Windows", \
-            "Pixelwise bleach correction currently does not work on Windows due to parallization issues. Sorry!"
+        assert (
+            platform.system() != "Windows"
+        ), "Pixelwise bleach correction currently does not work on Windows due to parallization issues. Sorry!"
 
         # apply bleach correction to each patch in parallel
         with mp.Pool(processes=ncpu) as p:  # use all cores
-            op_params_list = p.map(bleach_correct_pixelwise_worker, pixel_inds, chunksize=100)
+            op_params_list = p.map(
+                bleach_correct_pixelwise_worker, pixel_inds, chunksize=100
+            )
     elif ncpu == 1:
-
         # apply bleach correction to each patch without parallelization
         op_params_list = []
         for pixel_ind_nr, pixel_ind in enumerate(pixel_inds):
-            logging.getLogger("VIEW").debug(f"Doing pixel {pixel_ind_nr + 1}/{len(pixel_inds)}")
+            logging.getLogger("VIEW").debug(
+                f"Doing pixel {pixel_ind_nr + 1}/{len(pixel_inds)}"  # noqa: G004
+            )
             op_params = bleach_correct_pixelwise_worker(pixel_ind)
             op_params_list.append(op_params)
     else:
-        raise ValueError(f"Paramater ncpu has to be 1 or more ({ncpu} specified)")
+        raise ValueError(
+            f"Paramater ncpu has to be 1 or more ({ncpu} specified)"
+        )
 
     array2return = shared_to_numpy(shared_arr_g, copy=True)
 
-    return array2return, {k: v for k, v in zip(pixel_inds, op_params_list)}
+    return array2return, dict(zip(pixel_inds, op_params_list, strict=True))
 
 
 def bleach_correct_pixelwise_worker(pixel_index: tuple):
@@ -96,12 +102,16 @@ def bleach_correct_pixelwise_worker(pixel_index: tuple):
     curve = movie[pixel_index[0], pixel_index[1], :]
 
     # apply bleach correction to curve and return the parameters A, K and C
-    fitted_curve, (A, K, C) = fitlogdecay(lineIn=curve, weights=weights_g, showresults=False)
+    fitted_curve, (A, K, C) = fitlogdecay(
+        lineIn=curve, weights=weights_g, showresults=False
+    )
 
     # sometimes A and/or K can be NAN, then don't bleach correct
     # adding the mean of the fitted curve ensures the average intensity value of every pixel
     # is not affected by the bleach correction applied
     if not np.isnan(A) and not np.isnan(K):
-        movie[pixel_index[0], pixel_index[1], :] = curve - fitted_curve + fitted_curve.mean()
+        movie[pixel_index[0], pixel_index[1], :] = (
+            curve - fitted_curve + fitted_curve.mean()
+        )
 
     return A, K, C

@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Oct 12 08:56:46 2018
 
 @author: galizia
 """
 
-import numpy as np
-#import FID_names as FID_names
-
-from time import time
 from datetime import timedelta
+
+#import FID_names as FID_names
+from time import time
+
 #import datetime
 #import numpy as np
 #import pandas as pd
@@ -18,6 +17,8 @@ from datetime import timedelta
 #from ggplot import *
 # import struct
 import matplotlib.pyplot as plt
+import numpy as np
+
 #from matplotlib.backends.backend_pdf import PdfPages
 from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage

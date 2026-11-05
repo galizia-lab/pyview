@@ -1,5 +1,5 @@
-import typing
 import re
+import typing
 
 
 def dedupilicate(value: str, existing_values: typing.Iterable[str]):
@@ -18,7 +18,7 @@ def dedupilicate(value: str, existing_values: typing.Iterable[str]):
         if value == existing_label:
             reccurances.append(1)
 
-        re_match = re.match(f"{value}\((.*)\)", existing_label)
+        re_match = re.match(rf"{value}\((.*)\)", existing_label)
         if re_match:
             current_reccurance = int(re_match.group(1))
             reccurances.append(current_reccurance + 1)

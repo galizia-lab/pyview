@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class LinearNormalizer(object):
+class LinearNormalizer:
 
     def __init__(self, vmin, vmax):
 
@@ -19,7 +19,9 @@ class LinearNormalizer(object):
 
         data_clipped = np.clip(data, self.vmin, self.vmax)
 
-        return self.scale_with_revised_limits_to01(data_clipped, self.vmin, self.vmax)
+        return self.scale_with_revised_limits_to01(
+            data_clipped, self.vmin, self.vmax
+        )
 
     def get_data_limits(self):
         """
@@ -34,7 +36,9 @@ class LinearNormalizerAcross0(LinearNormalizer):
 
     def __init__(self, vmin, vmax):
 
-        assert (vmin < 0) & (vmax > 0), "LinearScaleAcross0 only works when vmin < 0 and vmax > 0"
+        assert (vmin < 0) & (
+            vmax > 0
+        ), "LinearScaleAcross0 only works when vmin < 0 and vmax > 0"
 
         super().__init__(vmin, vmax)
 
@@ -47,15 +51,31 @@ class BilinearNormalizerCentering0(LinearNormalizerAcross0):
 
     def scale_with_revised_limits_to01(self, data_clipped, vmin2use, vmax2use):
 
-        data_negative_masked_out = np.ma.MaskedArray(data=data_clipped, mask=data_clipped < 0, fill_value=0)
-        data_positive_masked_out = np.ma.MaskedArray(data=data_clipped, mask=data_clipped >= 0, fill_value=0)
+        data_negative_masked_out = np.ma.MaskedArray(
+            data=data_clipped, mask=data_clipped < 0, fill_value=0
+        )
+        data_positive_masked_out = np.ma.MaskedArray(
+            data=data_clipped, mask=data_clipped >= 0, fill_value=0
+        )
 
-        data_negative_masked_out_scaled \
-            = 0.5 + 0.5 * super().scale_with_revised_limits_to01(data_negative_masked_out, 0, vmax2use)
-        data_positive_masked_out_scaled \
-            = 0.5 * super().scale_with_revised_limits_to01(data_positive_masked_out, vmin2use, 0)
+        data_negative_masked_out_scaled = (
+            0.5
+            + 0.5
+            * super().scale_with_revised_limits_to01(
+                data_negative_masked_out, 0, vmax2use
+            )
+        )
+        data_positive_masked_out_scaled = (
+            0.5
+            * super().scale_with_revised_limits_to01(
+                data_positive_masked_out, vmin2use, 0
+            )
+        )
 
-        return data_negative_masked_out_scaled.filled() + data_positive_masked_out_scaled.filled()
+        return (
+            data_negative_masked_out_scaled.filled()
+            + data_positive_masked_out_scaled.filled()
+        )
 
 
 class LinearNormalizerCentering0Symmetric(LinearNormalizerAcross0):
@@ -80,10 +100,3 @@ def get_normalizer(mv_individualScale, vmin, vmax):
         raise NotImplementedError
 
     return scaler_class(vmin=vmin, vmax=vmax)
-
-
-
-
-
-
-

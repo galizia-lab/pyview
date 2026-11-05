@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class DataLimitsWithoutMask(object):
+class DataLimitsWithoutMask:
 
     def __init__(self):
 
@@ -21,7 +21,9 @@ class DataLimitsWithMask(DataLimitsWithoutMask):
 
     def get_limits(self, data):
 
-        data_masked_inside = np.ma.MaskedArray(data, mask=self.thresholder.get_mask(data))
+        data_masked_inside = np.ma.MaskedArray(
+            data, mask=self.thresholder.get_mask(data)
+        )
         return data_masked_inside.min(), data_masked_inside.max()
 
 
@@ -34,4 +36,3 @@ def get_data_limit_decider(mv_thresholdScale, thresholder):
     elif mv_thresholdScale == "onlyShown":
 
         return DataLimitsWithMask(thresholder)
-

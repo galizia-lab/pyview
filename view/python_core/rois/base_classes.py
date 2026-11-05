@@ -1,6 +1,8 @@
 import typing
-import numpy as np
 from abc import ABC, abstractmethod
+
+import numpy as np
+
 from view.python_core.areas import frame_mask2perim
 
 
@@ -30,9 +32,10 @@ class BaseROIData(ABC):
         :param frame_size: two member iterable of ints. Output mask will have this shape
         :return: numpy.ndarray
         """
-        pass
 
-    def get_weighted_mask(self, frame_size: typing.Iterable[int]) -> np.ndarray:
+    def get_weighted_mask(
+        self, frame_size: typing.Iterable[int]
+    ) -> np.ndarray:
         """
         Returns a float numpy array whose pixels indicate the extent to which a pixel belongs to the
         ROI. Pixel values add up to 1.
@@ -43,7 +46,9 @@ class BaseROIData(ABC):
         float_mask = self.get_boolean_mask(frame_size).astype(float)
         return float_mask / np.nansum(float_mask)
 
-    def get_weighted_mask_considering_area(self, area_mask: np.ndarray) -> np.ndarray:
+    def get_weighted_mask_considering_area(
+        self, area_mask: np.ndarray
+    ) -> np.ndarray:
         """
         Returns a numpy.ndarray similar to `get_weighted_mask`, but with values of pixels with `area_mask` is False
         set to 0. The returned ndarray adds up to 1 as well.
@@ -55,7 +60,9 @@ class BaseROIData(ABC):
         weighted_mask[~area_mask] = 0
         return weighted_mask / np.nansum(weighted_mask)
 
-    def get_perimeter_mask(self, frame_size: typing.Iterable[int]) -> typing.Tuple[np.ndarray, np.ndarray]:
+    def get_perimeter_mask(
+        self, frame_size: typing.Iterable[int]
+    ) -> typing.Tuple[np.ndarray, np.ndarray]:
         """
         Returns a boolean numpy array with pixels on the the perimeter of the ROI set to True and all else to False.
         :param frame_size: two member iterable of ints. Output mask will have this shape
@@ -64,16 +71,21 @@ class BaseROIData(ABC):
         boolean_mask = self.get_boolean_mask(frame_size)
         return frame_mask2perim(boolean_mask), boolean_mask
 
-    def get_boolean_mask_without_perimeter(self, frame_size: typing.Iterable[int]) -> np.ndarray:
+    def get_boolean_mask_without_perimeter(
+        self, frame_size: typing.Iterable[int]
+    ) -> np.ndarray:
         """
         Returns a boolean numpy array with all pixels belonging to the ROI and not on it's perimeter set to True
         and False otherwise
         :param frame_size: two member iterable of ints. Output mask will have this shape
         :return: numpy.ndarray
         """
-        perimeter_mask, boolean_mask = self.get_perimeter_mask(frame_size=frame_size)
+        perimeter_mask, boolean_mask = self.get_perimeter_mask(
+            frame_size=frame_size
+        )
 
-        mask_without_perimeter = np.logical_and(boolean_mask, np.logical_not(perimeter_mask))
+        mask_without_perimeter = np.logical_and(
+            boolean_mask, np.logical_not(perimeter_mask)
+        )
 
         return mask_without_perimeter
-

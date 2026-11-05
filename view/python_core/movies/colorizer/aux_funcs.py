@@ -1,9 +1,15 @@
-import numpy as np
 import re
 
+import numpy as np
 
-def apply_colormaps_based_on_mask(mask, data_for_inside_mask, data_for_outside_mask,
-                                  colormap_inside_mask, colormap_outside_mask):
+
+def apply_colormaps_based_on_mask(
+    mask,
+    data_for_inside_mask,
+    data_for_outside_mask,
+    colormap_inside_mask,
+    colormap_outside_mask,
+):
     """
     Returns the combination of applying two colormaps to two datasets on two mutually exclusive sets of pixels
     as follows. Applies <colormap_inside_mask> to <data_for_inside_mask> for pixels where <thresh_mask> is True and applies
@@ -15,19 +21,20 @@ def apply_colormaps_based_on_mask(mask, data_for_inside_mask, data_for_outside_m
     :param colormap_outside_mask: matplotlib colormap
     :return: numpy.ndarray, having the same shape as thresh_mask
     """
-    assert data_for_inside_mask.shape == data_for_outside_mask.shape, f"data_within_mask and data_outside_mask " \
-                                                                      f"must have " \
-                                                              f"the same shape. Given: {data_for_inside_mask.shape} " \
-                                                              f"and {data_for_outside_mask.shape}"
+    assert (
+        data_for_inside_mask.shape == data_for_outside_mask.shape
+    ), f"data_within_mask and data_outside_mask must havethe same shape. Given: {data_for_inside_mask.shape} and {data_for_outside_mask.shape}"
 
-    assert mask.shape == data_for_inside_mask.shape, f"The shape of given thresh_mask ({mask.shape}) " \
-                                                        f"does not match shape of data given " \
-                                                        f"({data_for_inside_mask.shape})"
+    assert (
+        mask.shape == data_for_inside_mask.shape
+    ), f"The shape of given thresh_mask ({mask.shape}) does not match shape of data given ({data_for_inside_mask.shape})"
 
     data_colorized = np.empty(list(data_for_inside_mask.shape) + [4])
 
     data_colorized[mask, :] = colormap_inside_mask(data_for_inside_mask[mask])
-    data_colorized[~mask, :] = colormap_outside_mask(data_for_outside_mask[~mask])
+    data_colorized[~mask, :] = colormap_outside_mask(
+        data_for_outside_mask[~mask]
+    )
 
     return data_colorized
     #
@@ -59,16 +66,12 @@ def resolve_thresholdOnValue(data, mv_thresholdOnValue):
     :return: float
     """
 
-    assert re.fullmatch(r"[ra][\-\.0-9]+", mv_thresholdOnValue) is not None, f"{mv_thresholdOnValue} is not a valid" \
-                                                                          f"threshold indicator. Valid formats are " \
-                                                                          f"'rxxx' for relative threshold and 'ayyy' " \
-                                                                          f" for absolute threshold where 'xxx' and" \
-                                                                          f"'yyy' represent numbers. " \
-                                                                          f"E.g.: a123.123, r0.4 and r-0.12533"
+    assert (
+        re.fullmatch(r"[ra][\-\.0-9]+", mv_thresholdOnValue) is not None
+    ), f"{mv_thresholdOnValue} is not a validthreshold indicator. Valid formats are 'rxxx' for relative threshold and 'ayyy'  for absolute threshold where 'xxx' and'yyy' represent numbers. E.g.: a123.123, r0.4 and r-0.12533"
 
     threshold_value = float(mv_thresholdOnValue[1:])
     if mv_thresholdOnValue.startswith("r"):
-
         thres_pc = np.clip(threshold_value, 0, 100)
         data_min, data_max = data.min(), data.max()
 
@@ -81,6 +84,3 @@ def resolve_thresholdOnValue(data, mv_thresholdOnValue):
         raise ValueError()
 
     return threshold
-
-
-

@@ -1,13 +1,17 @@
-from PyQt5.QtWidgets import QVBoxLayout, QMessageBox, QWidget, QPushButton
-from .file_selector_combobox import get_file_selector_combobox_using_settings
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
-from ..python_core.p1_class import Default_P1_Getter, get_empty_p1
-from view.python_core.flags import FlagsManager
 import pathlib as pl
-import traceback
 import sys
-from abc import abstractmethod
 import tempfile
+import traceback
+from abc import abstractmethod
+
+from qtpy.QtCore import QObject, Signal, Slot
+from qtpy.QtWidgets import QMessageBox, QPushButton, QVBoxLayout, QWidget
+
+from view.gui.file_selector_combobox import (
+    get_file_selector_combobox_using_settings,
+)
+from view.python_core.flags import FlagsManager
+from view.python_core.p1_class import Default_P1_Getter, get_empty_p1
 
 
 # modified version of solution from https://stackoverflow.com/questions/9374063/remove-all-items-from-a-layout
@@ -23,92 +27,114 @@ def clear_layout(layout):
 
 
 class DirectDataLoader(QWidget):
-
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+    data_loaded_signal = Signal(
+        dict, FlagsManager, name="Data loaded fixed connection"
+    )
 
     def __init__(self, parent, default_LE_loadExp=3):
 
         super().__init__(parent=parent)
-        vbox = QVBoxLayout(self)
+        self.vbox = QVBoxLayout(self)
         self.refresh_layout(default_LE_loadExp)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def refresh_layout(self, LE_loadExp):
 
         loader_interface_class = get_loader_interface_class(LE_loadExp)
-        self.loader_interface = loader_interface_class(self)
-        self.loader_interface.refresh_layout(self)
-        self.loader_interface.data_loaded_signal.connect(self.data_loaded_signal)
+        self.loader_object = loader_interface_class(self)
+        self.loader_object.refresh_layout(self)
+        self.loader_object.data_loaded_signal.connect(self.data_loaded_signal)
 
 
 def get_a_pst_combobox(parent, multiple_selection_allowed=True):
-    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=multiple_selection_allowed)
+    combobox_class = get_file_selector_combobox_using_settings(
+        multiple_selection_allowed=multiple_selection_allowed
+    )
 
-    return combobox_class(parent=parent,
-                          groupbox_title="Till Vision Raw Data File(s)",
-                          use_list_in_settings="raw data files",
-                          settings_list_value_filter=lambda x: x.endswith(".pst"),
-                          default_directory=None,
-                          file_type="PST",
-                          file_filter="PST files(*.pst)",
-                          comment=None)
+    return combobox_class(
+        parent=parent,
+        groupbox_title="Till Vision Raw Data File(s)",
+        use_list_in_settings="raw data files",
+        settings_list_value_filter=lambda x: x.endswith(".pst"),
+        default_directory=None,
+        file_type="PST",
+        file_filter="PST files(*.pst)",
+        comment=None,
+    )
 
 
 def get_an_lsm_combobox(parent):
-    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+    combobox_class = get_file_selector_combobox_using_settings(
+        multiple_selection_allowed=True
+    )
 
-    return combobox_class(parent=parent,
-                          groupbox_title="Zeiss Raw Data File(s)",
-                          use_list_in_settings="raw data files",
-                          settings_list_value_filter=lambda x: x.endswith(".lsm"),
-                          default_directory=None,
-                          file_type="LSM",
-                          file_filter="LSM files(*.lsm)",
-                          comment=None)
+    return combobox_class(
+        parent=parent,
+        groupbox_title="Zeiss Raw Data File(s)",
+        use_list_in_settings="raw data files",
+        settings_list_value_filter=lambda x: x.endswith(".lsm"),
+        default_directory=None,
+        file_type="LSM",
+        file_filter="LSM files(*.lsm)",
+        comment=None,
+    )
 
 
 def get_a_lif_combobox(parent):
-    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+    combobox_class = get_file_selector_combobox_using_settings(
+        multiple_selection_allowed=True
+    )
 
-    return combobox_class(parent=parent,
-                          groupbox_title="Leica .lif Data File(s)",
-                          use_list_in_settings="raw data files",
-                          settings_list_value_filter=lambda x: x.endswith(".lif"),
-                          default_directory=None,
-                          file_type="Lif",
-                          file_filter="Llif files(*.lif)",
-                          comment=None)
+    return combobox_class(
+        parent=parent,
+        groupbox_title="Leica .lif Data File(s)",
+        use_list_in_settings="raw data files",
+        settings_list_value_filter=lambda x: x.endswith(".lif"),
+        default_directory=None,
+        file_type="Lif",
+        file_filter="Llif files(*.lif)",
+        comment=None,
+    )
 
 
 def get_an_Inga_combobox(parent):
-    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+    combobox_class = get_file_selector_combobox_using_settings(
+        multiple_selection_allowed=True
+    )
 
-    return combobox_class(parent=parent,
-                          groupbox_title="Inga  .txt Data File(s)",
-                          use_list_in_settings="txt info files",
-                          settings_list_value_filter=lambda x: x.endswith(".txt"),
-                          default_directory=None,
-                          file_type="txt",
-                          file_filter="txt info files(*.txt)",
-                          comment=None)
+    return combobox_class(
+        parent=parent,
+        groupbox_title="Inga  .txt Data File(s)",
+        use_list_in_settings="txt info files",
+        settings_list_value_filter=lambda x: x.endswith(".txt"),
+        default_directory=None,
+        file_type="txt",
+        file_filter="txt info files(*.txt)",
+        comment=None,
+    )
 
 
 def get_a_tiff_combobox(parent):
-    combobox_class = get_file_selector_combobox_using_settings(multiple_selection_allowed=True)
+    combobox_class = get_file_selector_combobox_using_settings(
+        multiple_selection_allowed=True
+    )
 
-    return combobox_class(parent=parent,
-                          groupbox_title="VIEW-tif File(s)",
-                          use_list_in_settings="raw data files",
-                          settings_list_value_filter=lambda x: x.endswith(".tif") or x.endswith(".tiff"),
-                          default_directory=None,
-                          file_type="TIF",
-                          file_filter="TIF files(*.tif *.tiff)",
-                          comment=None)
+    return combobox_class(
+        parent=parent,
+        groupbox_title="VIEW-tif File(s)",
+        use_list_in_settings="raw data files",
+        settings_list_value_filter=lambda x: x.endswith((".tif", ".tiff")),
+        default_directory=None,
+        file_type="TIF",
+        file_filter="TIF files(*.tif *.tiff)",
+        comment=None,
+    )
 
 
-class BaseLoaderInterface(QObject):
-
-    data_loaded_signal = pyqtSignal(dict, FlagsManager)
+class BaseLoaderWidget(QObject):
+    data_loaded_signal = Signal(
+        dict, FlagsManager, name="Data loaded dynamic connection"
+    )
 
     def __init__(self, parent):
 
@@ -117,18 +143,31 @@ class BaseLoaderInterface(QObject):
 
     def write_status(self, msg):
 
-        self.parent().parent().parent().parent().write_status(msg)
+        self.parent().parent().parent().parent().parent().parent().parent().write_status(
+            msg
+        )
 
-    @pyqtSlot(list)
-    @pyqtSlot(str)
+    @Slot(list)
+    @Slot(str)
     def load_list(self, filenames):
 
         filenames = self.check_revise_filenames(filenames)
-        temp_dir = pl.Path(filenames[0][0]).parent / "temp_dir_for_view_analyses"
+        temp_dir = (
+            pl.Path(filenames[0][0]).parent / "temp_dir_for_view_analyses"
+        )
         temp_dir.mkdir(exist_ok=True)
 
         if filenames is not None:
-            current_flags = self.parent().parent().parent().parent().flags.copy()
+            current_flags = (
+                self.parent()
+                .parent()
+                .parent()
+                .parent()
+                .parent()
+                .parent()
+                .parent()
+                .flags.copy()
+            )
             # by default, compound path flags are not set, so set to parent of the raw files
             for flag_name in current_flags.compound_path_flags:
                 current_flags.update_flags({flag_name: str(temp_dir)})
@@ -146,20 +185,29 @@ class BaseLoaderInterface(QObject):
 
     def check_read_data(self, flags, filenames):
 
-        p1 = get_empty_p1(LE_loadExp=flags["LE_loadExp"], odor_conc=10)  # here p1 has not data, i.e. empty
-        self.write_status(f"[working] Loading raw data directly from {filenames} using {p1.__class__.__name__}")
+        p1 = get_empty_p1(
+            LE_loadExp=flags["LE_loadExp"], odor_conc=10
+        )  # here p1 has not data, i.e. empty
+        self.write_status(
+            f"[working] Loading raw data directly from {filenames} using {p1.__class__.__name__}"
+        )
         try:
             p1.load_without_metadata(filenames=filenames, flags=flags)
-        except Exception as e:
+        except Exception:  # noqa: BLE001
             exception_formatted = traceback.format_exception(*sys.exc_info())
-            QMessageBox.critical(self.parent(), "Error reading file",
-                                 f"Please check {filenames}.\n\n"
-                                 f"Complete error message:\n"
-                                 f"\n{''.join(exception_formatted)}")
-            self.write_status(f"[failure] Loading raw data directly from {filenames}")
+            QMessageBox.critical(
+                self.parent(),
+                "Error reading file",
+                f"Please check {filenames}.\n\nComplete error message:\n\n{''.join(exception_formatted)}",
+            )
+            self.write_status(
+                f"[failure] Loading raw data directly from {filenames}"
+            )
             return None
 
-        self.write_status(f"[success] Loading raw data directly from {filenames}")
+        self.write_status(
+            f"[success] Loading raw data directly from {filenames}"
+        )
         return p1
 
     def check_revise_filenames(self, filenames):
@@ -171,11 +219,12 @@ class BaseLoaderInterface(QObject):
         pass
 
 
-class SampleData666LoaderInterface(BaseLoaderInterface):
-
+class SampleData666LoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
         super().__init__(parent)
-        self.temp_sample_dir = pl.Path(tempfile.gettempdir()) / "SampleDataPyView"
+        self.temp_sample_dir = (
+            pl.Path(tempfile.gettempdir()) / "SampleDataPyView"
+        )
         self.temp_sample_dir.mkdir(exist_ok=True)
 
     def load_list_fake(self):
@@ -184,13 +233,12 @@ class SampleData666LoaderInterface(BaseLoaderInterface):
     def refresh_layout(self, widget):
 
         clear_layout(widget.layout())
-        button = QPushButton("&Load sample Data", widget)
+        button = QPushButton("Load sample Data", widget)
         button.clicked.connect(self.load_list_fake)
         widget.layout().addWidget(button)
 
 
-class VIEWTIFFLoaderInterface(BaseLoaderInterface):
-
+class VIEWTIFFLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -204,8 +252,7 @@ class VIEWTIFFLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(view_tif_combobox)
 
 
-class TillSingleLoaderInterface(BaseLoaderInterface):
-
+class TillSingleLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -213,14 +260,15 @@ class TillSingleLoaderInterface(BaseLoaderInterface):
     def refresh_layout(self, widget):
         clear_layout(widget.layout())
 
-        pst_combobox = get_a_pst_combobox(widget, multiple_selection_allowed=True)
+        pst_combobox = get_a_pst_combobox(
+            widget, multiple_selection_allowed=True
+        )
         pst_combobox.return_filenames_signal.connect(self.load_list)
 
         widget.layout().addWidget(pst_combobox)
 
 
-class TillDualLoaderInterface(BaseLoaderInterface):
-
+class TillDualLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -229,19 +277,23 @@ class TillDualLoaderInterface(BaseLoaderInterface):
 
         clear_layout(widget.layout())
 
-        self.pst_1_combobox = get_a_pst_combobox(widget, multiple_selection_allowed=False)
+        self.pst_1_combobox = get_a_pst_combobox(
+            widget, multiple_selection_allowed=False
+        )
         # for the case when pst2 combobox is selected before pst1 combobox
         self.pst_1_combobox.return_filename_signal.connect(self.load_list)
 
         widget.layout().addWidget(self.pst_1_combobox)
 
-        self.pst_2_combobox = get_a_pst_combobox(widget, multiple_selection_allowed=False)
+        self.pst_2_combobox = get_a_pst_combobox(
+            widget, multiple_selection_allowed=False
+        )
         # for the case when pst1 combobox is selected before pst2 combobox
         self.pst_2_combobox.return_filename_signal.connect(self.load_list)
 
         widget.layout().addWidget(self.pst_2_combobox)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def check_revise_filenames(self, filenames):
 
         dbb1_filename = self.pst_1_combobox.get_current_entry()
@@ -249,14 +301,12 @@ class TillDualLoaderInterface(BaseLoaderInterface):
 
         # load data and return only if both dbb1 and dbb2 files have been selected
         if dbb1_filename is not None and dbb2_filename is not None:
-
             return [[dbb1_filename, dbb2_filename]]
         else:
             return None
 
 
-class LifSingleLoaderInterface(BaseLoaderInterface):
-
+class LifSingleLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -271,8 +321,7 @@ class LifSingleLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(lif_combobox)
 
 
-class IngaSingleLoaderInterface(BaseLoaderInterface):
-
+class IngaSingleLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -287,8 +336,7 @@ class IngaSingleLoaderInterface(BaseLoaderInterface):
         widget.layout().addWidget(inga_combobox)
 
 
-class ZeissSingleLoaderInterface(BaseLoaderInterface):
-
+class ZeissSingleLoaderWidget(BaseLoaderWidget):
     def __init__(self, parent):
 
         super().__init__(parent)
@@ -304,25 +352,22 @@ class ZeissSingleLoaderInterface(BaseLoaderInterface):
 
 
 def get_loader_interface_class(LE_loadExp):
-    if type(LE_loadExp) != int:
-        LE_loadExp = int(LE_loadExp) # in case this was a string
+    if not isinstance(LE_loadExp, int):
+        LE_loadExp = int(LE_loadExp)  # in case this was a string
 
     if LE_loadExp == 3:
-        return TillSingleLoaderInterface
+        return TillSingleLoaderWidget
     elif LE_loadExp == 4:
-        return TillDualLoaderInterface
+        return TillDualLoaderWidget
     elif LE_loadExp == 20:
-        return ZeissSingleLoaderInterface
+        return ZeissSingleLoaderWidget
     elif LE_loadExp == 21:
-        return LifSingleLoaderInterface
+        return LifSingleLoaderWidget
     elif LE_loadExp == 32:
-        return IngaSingleLoaderInterface
-    elif LE_loadExp == 33:
-        return VIEWTIFFLoaderInterface
-    elif LE_loadExp == 35:
-        return VIEWTIFFLoaderInterface
+        return IngaSingleLoaderWidget
+    elif LE_loadExp == 33 or LE_loadExp == 35:
+        return VIEWTIFFLoaderWidget
     elif LE_loadExp in (665, 667, 676):
-        return SampleData666LoaderInterface
+        return SampleData666LoaderWidget
     else:
         raise NotImplementedError
-

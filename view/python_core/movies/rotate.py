@@ -1,9 +1,9 @@
 import numpy as np
-from scipy import ndimage as spimage
+
 from view.python_core.misc import class_mixer
 
 
-class BaseTransform(object):
+class BaseTransform:
 
     def __init__(self):
 
@@ -117,8 +117,6 @@ def get_frame_rotator(rotate, reverse):
         return BaseTransform()
     else:
         return class_mixer(*classes2mix)()
-
-
 
 
 # def rotate_IDL(frame_data, direction):

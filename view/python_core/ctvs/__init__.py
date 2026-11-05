@@ -1,17 +1,25 @@
+import contextlib
 import inspect
-import math
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
-from view.python_core.ctvs.chunk_ctv_funcs_from_fidor import ctv_for_FIDOR_chunks_with_minmax_indices
+from view.python_core.ctvs.chunk_ctv_funcs_from_fidor import (
+    ctv_for_FIDOR_chunks_with_minmax_indices,
+)
 
 
 def ctv_dummy(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times,
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     dummy CTV to specify function call signature
     :param time_trace: iterable of numbers
@@ -30,10 +38,16 @@ def ctv_dummy(
 
 
 def ctv_0(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times,
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     alias for ctv_303, retained for backward compatibility
     :param time_trace: iterable of numbers
@@ -50,18 +64,29 @@ def ctv_0(
     """
 
     return ctv_303(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times,
-        flags, p1
+        time_trace,
+        sampling_period,
+        first_frame,
+        last_frame,
+        stimulus_number,
+        stim_on_times,
+        stim_off_times,
+        flags,
+        p1,
     )
 
 
 def ctv_22(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times,
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     (mean of 3 frames around <last_frame>) – (mean of 3 frames around <first_frame>)
     :param time_trace: iterable of numbers
@@ -80,23 +105,30 @@ def ctv_22(
     first_frame_index = first_frame
     last_frame_index = last_frame
 
-    assert 1 <= last_frame_index <= len(time_trace) - 2, f"Error calculating CTV 22: lastframe={last_frame} " \
-                                                         f"is invalid for data with {len(time_trace)} frames. " \
-                                                         f"Need three frames around lastframe."
-    assert 1 <= first_frame_index <= len(time_trace) - 2, f"Error calculating CTV 22: firstframe={first_frame} " \
-                                                          f"is invalid for data with {len(time_trace)} frames. " \
-                                                          f"Need three frames around firstframe."
-    ctv_value = np.mean(time_trace[last_frame_index - 1: last_frame_index + 2]) \
-                - np.mean(time_trace[first_frame_index - 1: first_frame_index + 2])
+    assert (
+        1 <= last_frame_index <= len(time_trace) - 2
+    ), f"Error calculating CTV 22: lastframe={last_frame} is invalid for data with {len(time_trace)} frames. Need three frames around lastframe."
+    assert (
+        1 <= first_frame_index <= len(time_trace) - 2
+    ), f"Error calculating CTV 22: firstframe={first_frame} is invalid for data with {len(time_trace)} frames. Need three frames around firstframe."
+    ctv_value = np.mean(
+        time_trace[last_frame_index - 1 : last_frame_index + 2]
+    ) - np.mean(time_trace[first_frame_index - 1 : first_frame_index + 2])
 
     return [ctv_value]
 
 
 def ctv_222(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     (mean of 4 frames starting at <last_frame>) – (mean of 4 frames starting at <first_frame>)
     :param time_trace: iterable of numbers
@@ -115,23 +147,30 @@ def ctv_222(
     first_frame_index = first_frame
     last_frame_index = last_frame
 
-    assert 0 <= last_frame_index <= len(time_trace) - 4, f"Error calculating CTV 222: lastframe={last_frame} " \
-                                                         f"is invalid for data with {len(time_trace)} frames. " \
-                                                         f"Need three frames around lastframe."
-    assert 0 <= first_frame_index <= len(time_trace) - 4, f"Error calculating CTV 22: firstframe={first_frame} " \
-                                                          f"is invalid for data with {len(time_trace)} frames. " \
-                                                          f"Need three frames around firstframe."
-    ctv_value = np.mean(time_trace[last_frame_index: last_frame_index + 4]) - \
-                    np.mean(time_trace[first_frame_index: first_frame_index + 4])
+    assert (
+        0 <= last_frame_index <= len(time_trace) - 4
+    ), f"Error calculating CTV 222: lastframe={last_frame} is invalid for data with {len(time_trace)} frames. Need three frames around lastframe."
+    assert (
+        0 <= first_frame_index <= len(time_trace) - 4
+    ), f"Error calculating CTV 22: firstframe={first_frame} is invalid for data with {len(time_trace)} frames. Need three frames around firstframe."
+    ctv_value = np.mean(
+        time_trace[last_frame_index : last_frame_index + 4]
+    ) - np.mean(time_trace[first_frame_index : first_frame_index + 4])
 
     return [ctv_value]
 
 
 def ctv_35(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     A - B where A=(three-frame-average around the maximum responses in an interval of 3 seconds after stimulus onset),
     B=(mean of 3 frames that preceed the onset of stimulus by LE_PrestimEndBackground frames)
@@ -148,37 +187,65 @@ def ctv_35(
     :return: one member, float
     """
 
-    stim_on_frame_ind = int(stim_on_times[stimulus_number] / sampling_period) + 1
-    frame_ind_after_3s_stim_onset = int((stim_on_times[stimulus_number] + 3000) / sampling_period) + 1
+    stim_on_frame_ind = (
+        int(stim_on_times[stimulus_number] / sampling_period) + 1
+    )
+    frame_ind_after_3s_stim_onset = (
+        int((stim_on_times[stimulus_number] + 3000) / sampling_period) + 1
+    )
 
     # reset to end of trace if stimulus onset is less than 3 seconds before the end of trace
-    frame_ind_after_3s_stim_onset = min(frame_ind_after_3s_stim_onset, len(time_trace) - 1)
+    frame_ind_after_3s_stim_onset = min(
+        frame_ind_after_3s_stim_onset, len(time_trace) - 1
+    )
 
-    argmax_in_3s_after_stim_onset \
-        = np.argmax(time_trace[stim_on_frame_ind: frame_ind_after_3s_stim_onset + 1]) + stim_on_frame_ind
+    argmax_in_3s_after_stim_onset = (
+        np.argmax(
+            time_trace[stim_on_frame_ind : frame_ind_after_3s_stim_onset + 1]
+        )
+        + stim_on_frame_ind
+    )
 
     # make sure there are three frames around <argmax_in_3s_after_stim1_onset>. This will only happen if the
     # <argmax_in_3s_after_stim1_onset> happens to be the first or last frame
     argmax_in_3s_after_stim_onset = max(1, argmax_in_3s_after_stim_onset)
-    argmax_in_3s_after_stim_onset = min(len(time_trace) - 2, argmax_in_3s_after_stim_onset)
+    argmax_in_3s_after_stim_onset = min(
+        len(time_trace) - 2, argmax_in_3s_after_stim_onset
+    )
 
-    A = np.mean(time_trace[argmax_in_3s_after_stim_onset - 1: argmax_in_3s_after_stim_onset + 2])
+    A = np.mean(
+        time_trace[
+            argmax_in_3s_after_stim_onset
+            - 1 : argmax_in_3s_after_stim_onset
+            + 2
+        ]
+    )
 
     # make sure there are three frames around <stim1_on_frame_ind2use>. This will only happen if the
     # <stim1_on_frame_ind> happens to be the first or last frame
-    stim_on_frame_ind2use = \
-        min(max(1, stim_on_frame_ind - flags["LE_PrestimEndBackground"]), len(time_trace) - 2)
+    stim_on_frame_ind2use = min(
+        max(1, stim_on_frame_ind - flags["LE_PrestimEndBackground"]),
+        len(time_trace) - 2,
+    )
 
-    B = np.mean(time_trace[stim_on_frame_ind2use - 1: stim_on_frame_ind2use + 2])
+    B = np.mean(
+        time_trace[stim_on_frame_ind2use - 1 : stim_on_frame_ind2use + 2]
+    )
 
     return [A - B]
 
 
 def ctv_22and35(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times,
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     feature 1: ctv_22; feature 2: ctv_35
     :param time_trace: iterable of numbers
@@ -196,23 +263,41 @@ def ctv_22and35(
 
     return [
         ctv_22(
-            time_trace, sampling_period,
-            first_frame, last_frame,
-            stimulus_number, stim_on_times, stim_off_times,
-            flags, p1)[0],
+            time_trace,
+            sampling_period,
+            first_frame,
+            last_frame,
+            stimulus_number,
+            stim_on_times,
+            stim_off_times,
+            flags,
+            p1,
+        )[0],
         ctv_35(
-            time_trace, sampling_period,
-            first_frame, last_frame,
-            stimulus_number, stim_on_times, stim_off_times,
-            flags, p1)[0]
-        ]
+            time_trace,
+            sampling_period,
+            first_frame,
+            last_frame,
+            stimulus_number,
+            stim_on_times,
+            stim_off_times,
+            flags,
+            p1,
+        )[0],
+    ]
 
 
 def ctv_300(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     (definition taken forward from VIEW-IDL) mean of all frames, useful for simulated photographs
     :param time_trace: iterable of numbers
@@ -231,10 +316,16 @@ def ctv_300(
 
 
 def ctv_301(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     (definition taken forward from VIEW-IDL) mean of frames 5 to 10, which is generally before stimulus onset.
     Useful for morphological views.
@@ -250,14 +341,20 @@ def ctv_301(
     :rtype: list
     :return: one member, float
     """
-    return [np.nanmean(time_trace[4: 10])]
+    return [np.nanmean(time_trace[4:10])]
 
 
 def ctv_302(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     mean of frames from <first_frame> to <last_frame> (both inclusive).
     One possible use: calculate morphological image by specifying manually the range of frames to average.
@@ -276,20 +373,28 @@ def ctv_302(
     first_frame_index = first_frame
     last_frame_index = last_frame + 1
 
-    assert 0 <= last_frame_index <= len(time_trace) - 1, f"Error calculating CTV 302: lastframe={last_frame} " \
-                                                         f"is invalid for data with {len(time_trace)} frames. "
+    assert (
+        0 <= last_frame_index <= len(time_trace) - 1
+    ), f"Error calculating CTV 302: lastframe={last_frame} is invalid for data with {len(time_trace)} frames. "
 
-    assert 0 <= first_frame_index <= len(time_trace) - 1, f"Error calculating CTV 302: firstframe={first_frame} " \
-                                                          f"is invalid for data with {len(time_trace)} frames. "
+    assert (
+        0 <= first_frame_index <= len(time_trace) - 1
+    ), f"Error calculating CTV 302: firstframe={first_frame} is invalid for data with {len(time_trace)} frames. "
 
-    return [np.nanmean(time_trace[first_frame_index: last_frame_index + 1])]
+    return [np.nanmean(time_trace[first_frame_index : last_frame_index + 1])]
 
 
 def ctv_303(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     Average of background frames, calculated using stimulus onset and the flags LE_StartBackground and
     LE_PrestimEndBackground. Can be useful to visualize and compare baseline values of signals.
@@ -306,15 +411,29 @@ def ctv_303(
     :return: one member, float
     """
 
-    return [np.nanmean(time_trace[
-                       p1.metadata.background_frames[0]: p1.metadata.background_frames[1] + 1])]
+    return [
+        np.nanmean(
+            time_trace[
+                p1.metadata.background_frames[
+                    0
+                ] : p1.metadata.background_frames[1]
+                + 1
+            ]
+        )
+    ]
 
 
 def ctv_330(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     median of all frames
     :param time_trace: iterable of numbers
@@ -333,10 +452,16 @@ def ctv_330(
 
 
 def ctv_331(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     median of frames 5 to 10, which is generally before stimulus onset.
     Useful for morphological views.
@@ -352,14 +477,20 @@ def ctv_331(
     :rtype: list
     :return: one member, float
     """
-    return [np.nanmedian(time_trace[4: 10])]
+    return [np.nanmedian(time_trace[4:10])]
 
 
 def ctv_332(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     median of frames from <first_frame> to <last_frame> (both inclusive).
     One possible use: calculate morphological image by specifying manually the range of frames to average.
@@ -378,19 +509,29 @@ def ctv_332(
     first_frame_index = first_frame
     last_frame_index = last_frame + 1
 
-    assert 0 <= last_frame_index <= len(time_trace) - 1, f"Error calculating CTV 302: lastframe={last_frame} " \
-                                                         f"is invalid for data with {len(time_trace)} frames. "
+    assert 0 <= last_frame_index <= len(time_trace) - 1, (
+        f"Error calculating CTV 302: lastframe={last_frame} "
+        f"is invalid for data with {len(time_trace)} frames. "
+    )
 
-    assert 0 <= first_frame_index <= len(time_trace) - 1, f"Error calculating CTV 302: firstframe={first_frame} " \
-                                                          f"is invalid for data with {len(time_trace)} frames. "
-    return [np.nanmedian(time_trace[first_frame_index: last_frame_index + 1])]
+    assert 0 <= first_frame_index <= len(time_trace) - 1, (
+        f"Error calculating CTV 302: firstframe={first_frame} "
+        f"is invalid for data with {len(time_trace)} frames. "
+    )
+    return [np.nanmedian(time_trace[first_frame_index : last_frame_index + 1])]
 
 
 def ctv_333(
-        time_trace, sampling_period,
-        first_frame, last_frame,
-        stimulus_number, stim_on_times, stim_off_times, 
-        flags, p1):
+    time_trace,
+    sampling_period,
+    first_frame,
+    last_frame,
+    stimulus_number,
+    stim_on_times,
+    stim_off_times,
+    flags,
+    p1,
+):
     """
     Median of background frames, calculated using stimulus onset and the flags LE_StartBackground and
     LE_PrestimEndBackground. Can be useful to visualize and compare baseline values of signals.
@@ -407,15 +548,30 @@ def ctv_333(
     :return: one member, float
     """
 
-    return [np.nanmedian(time_trace[
-                       p1.metadata.background_frames[0]: p1.metadata.background_frames[1] + 1])]
+    return [
+        np.nanmedian(
+            time_trace[
+                p1.metadata.background_frames[
+                    0
+                ] : p1.metadata.background_frames[1]
+                + 1
+            ]
+        )
+    ]
 
 
 def ctv_chunk_magnitude_basic(
-        time_trace, sampling_period=None,
-        first_frame=None, last_frame=None,
-        stimulus_number=None, stim_on_times=None, stim_off_times=None,
-        flags=None, p1=None):
+    time_trace,
+    sampling_period=None,
+    first_frame=None,
+    last_frame=None,
+    stimulus_number=None,
+    stim_on_times=None,
+    stim_off_times=None,
+    stim_frame=None,
+    flags=None,
+    p1=None,
+):
     """
 
     :param time_trace: iterable of numbers
@@ -434,19 +590,27 @@ def ctv_chunk_magnitude_basic(
     peak_ind, int, index corresponding to the value used as peak
     """
 
-    return ctv_for_FIDOR_chunks_with_minmax_indices(time_trace)
+    return ctv_for_FIDOR_chunks_with_minmax_indices(time_trace, stim_frame)
 
 
 def get_custom_ctv_method(file, function_name):
-    
-    with open(file, 'r') as fh:
+
+    with open(file) as fh:
         import scipy
-        exec(compile(fh.read(), "<string>", "exec"), {"np": np, "scipy": scipy}, locals())
+
+        exec(
+            compile(fh.read(), "<string>", "exec"),
+            {"np": np, "scipy": scipy},
+            locals(),
+        )
         ctv_method = locals()[function_name]
 
-    assert callable(ctv_method), f"The function '{function_name}' in {file} is not a function."
-    assert inspect.signature(ctv_method) == inspect.signature(ctv_dummy), \
-        f"The function '{function_name}' in {file} has an incorrect signature to be a CTV method"
+    assert callable(
+        ctv_method
+    ), f"The function '{function_name}' in {file} is not a function."
+    assert inspect.signature(ctv_method) == inspect.signature(
+        ctv_dummy
+    ), f"The function '{function_name}' in {file} has an incorrect signature to be a CTV method"
 
     return ctv_method
 
@@ -461,7 +625,6 @@ def get_ctv_function(ctv_method, ctv_method_file):
             return possible_function
 
     if to_return is None and type(ctv_method) is str:
-
         return get_custom_ctv_method(ctv_method_file, ctv_method)
 
     raise NotImplementedError
@@ -471,15 +634,10 @@ def get_all_available_ctvs():
 
     available_ctvs = []
 
-    for object_name, object in globals().items():
-
-        if isinstance(object, Callable) and object_name.startswith("ctv_"):
+    for object_name, object_ in globals().items():
+        if isinstance(object_, Callable) and object_name.startswith("ctv_"):
             # to catch values like ctv_dummy
-            try:
+            with contextlib.suppress(ValueError):
                 available_ctvs += [int(object_name[4:])]
-            except ValueError as ve:
-                pass
 
     return available_ctvs
-
-

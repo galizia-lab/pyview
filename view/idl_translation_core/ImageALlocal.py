@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Sep 23 15:59:15 2018
 
@@ -12,19 +11,19 @@ import pandas as pd
 
 
 def localodortext(flags_input, p1):
-    
+
 # this function creates text chuncs that are used in VIEW
 # for example in file names, or in labels for images or windows
-    
-# this function should be user accessible - every person needs to be able to 
-# modify output names at will. 
+
+# this function should be user accessible - every person needs to be able to
+# modify output names at will.
 # could be implemented with a string in an external file
     #flags_input should be a series - if it is not, convert it
     if  isinstance(flags_input, pd.Series):
         flag = flags_input
     else:
         flag = flags_input.to_series()
-    
+
     maxTextLength = 10
 
 #    ;odorText enthält Text, der unterhalb des Bildes ist
@@ -69,7 +68,7 @@ def localodortext(flags_input, p1):
             #from p1.experiment e.g. 'dbb4f.pst' take only 'dbb4f'
             odorText = str(p1.messungszahl)+ '_' + p1.odor[0:4] +  '_' +p1.experiment.split('.')[0]
             odorText = str(p1.messungszahl)+ '_' + flag["STG_OdorReportFile"]
-            
+
 #	endIF
         if flag.VIEW_ReportMethod == 15: ## then begin ;filmausgabe mit tiername
             odorText = txt_odor + '_'+ flag.stg_reporttag +'_'+ str(p1.messungszahl) + '_' + p1.viewlabel

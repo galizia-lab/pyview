@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed May 30 10:13:47 2018
 
@@ -9,8 +8,11 @@ in C:\\Users\\Giovanni Galizia\\Documents\\Code\\ShareWinXP\\WindowsExchange\\ID
 """
 
 #from view.idl_translation_core
-import View_gr_reports as View_gr_reports, IDL_flags as IDL_flags
 from sys import platform
+
+import IDL_flags as IDL_flags
+import View_gr_reports as View_gr_reports
+
 #show images inline:
 #%matplotlib inline
 #show images in extra window
@@ -23,7 +25,7 @@ def Set_my_flags(flag):
     flag.CSM_Movement = 0 # 2 for movement correction on the spot - is slow!
     flag.VIEW_batchmode    = 1 # fo
     flag.LE_CalcMethod = 3950
-    
+
     flag.VIEW_ReportMethod = 10
     flag.SO_Method    = 10
     flag.SO_individualScale= 3
@@ -38,13 +40,13 @@ def Set_my_flags(flag):
     return flag
 
 
-def ChooseFileFolder():  
+def ChooseFileFolder():
     import tkinter as tk
     from tkinter.filedialog import askopenfilenames
 
     # Choose raw files
     root = tk.Tk()
-    root.withdraw() # so that windows closes after file chosen 
+    root.withdraw() # so that windows closes after file chosen
     root.attributes('-topmost', True)
     # the mac system does not accept filetypes, therefore ask for system
     if platform == 'darwin':

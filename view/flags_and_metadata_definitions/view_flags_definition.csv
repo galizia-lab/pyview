@@ -28,6 +28,7 @@ LE_DefaultBackgroundRange,CalcSignals,specifies the default range of frame for b
 LE_PrestimEndBackground,CalcSignals,"integer, indicating the number of frames to exclude before stimulus onset when calculating background. Default: 2. background is calculated from LE_StartBackground to StimulusOn – LE_PrestimEndBackground - 1",,int,2,,
 LE_StartBackground,CalcSignals,"integer, indicating the number of frames to exclude from the beginning of a measurement when calculating background F for deltaF/F;set to -1 not to subtract background in data calculation, to frame for background start. Default: 4",,int,4,,
 LE_StimulusBasedBackground,CalcSignals,"bool, specifies whether stimulus info must be used to calculate background frames",,bool,True,,
+LE_AddMSTrace,CalcSignals,"bool, specifies whether to add MS trace",,bool,False,,
 VIEW_CorrSignals,Xtra,set to access corrected buffer,,bool,0,,
 VIEW_InitCorr,Xtra,For corrected data (e.g. “subtract air”).,,int,0,,
 GDM_chunkPostStim,Output,Only used when the flag 'gdm_outputType' is 'chunks_only'. Indicates the number of seconds between stimulus offset and chunk end,,float,0,,

@@ -1,10 +1,19 @@
-from PIL import ImageDraw, ImageFont, Image
+from collections.abc import Sequence
+
 import numpy as np
-from typing import Sequence
+from PIL import Image, ImageDraw, ImageFont
 
 
-def add_string(image, position, font_size: int, text, fill_color_for_pil: str, font_file,
-               horizontal_alignment="left", vertical_alignment="top"):
+def add_string(
+    image,
+    position,
+    font_size: int,
+    text,
+    fill_color_for_pil: str,
+    font_file,
+    horizontal_alignment="left",
+    vertical_alignment="top",
+):
     """
     Add a string to a PIL image
     :param PIL.Image image: PIL Image
@@ -13,15 +22,24 @@ def add_string(image, position, font_size: int, text, fill_color_for_pil: str, f
     :param str fill_color_for_pil: PIL color to fill text
     :param str font_file: absolute path of a font file on disk
     """
-    assert horizontal_alignment in ["left", "center", "right"], "unknown setting for horizontal alignment"
-    assert vertical_alignment in ["top", "center", "bottom"], "unknown setting for vertical alignment"
+    assert horizontal_alignment in [
+        "left",
+        "center",
+        "right",
+    ], "unknown setting for horizontal alignment"
+    assert vertical_alignment in [
+        "top",
+        "center",
+        "bottom",
+    ], "unknown setting for vertical alignment"
 
     image_draw_obj = ImageDraw.Draw(image)
 
     corrected_font_size = 8 * round(font_size / 8)
 
     font = ImageFont.truetype(font=font_file, size=corrected_font_size)
-    text_width, text_height = font.getsize(text)
+    left, top, right, bottom = font.getbbox(text)
+    text_width, text_height = right - left, bottom - top
 
     x_pos, y_pos = position
     if horizontal_alignment == "right":
@@ -34,7 +52,9 @@ def add_string(image, position, font_size: int, text, fill_color_for_pil: str, f
     elif vertical_alignment == "center":
         y_pos -= int(text_height / 2)
 
-    image_draw_obj.text((x_pos, y_pos), text, fill=fill_color_for_pil, font=font)
+    image_draw_obj.text(
+        (x_pos, y_pos), text, fill=fill_color_for_pil, font=font
+    )
 
     return image
 
@@ -69,7 +89,7 @@ def pil_image_to_numpy(image_PIL):
     """
 
     # convert frame back to numpy.ndarray, float in range [0, 1]
-    frame_data = np.array(np.array(image_PIL) / 255, dtype=np.float)
+    frame_data = np.array(np.array(image_PIL) / 255, dtype=float)
 
     # swap the axes as PIL return YX
     frame_dataXY = frame_data.swapaxes(0, 1)
@@ -95,4 +115,3 @@ def draw_lines(image_PIL: Image, point_sequence: Sequence, color_for_PIL: str):
     image_PIL.putalpha(alpha)
 
     return image_PIL
-

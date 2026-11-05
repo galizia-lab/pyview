@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage as spimage
 
 
-class SpatialNoFilter(object):
+class SpatialNoFilter:
 
     def __init__(self):
 
@@ -53,4 +53,3 @@ def get_spatial_processor(filter_space_flag, filter_space_size):
     else:
 
         return SpatialNoFilter()
-

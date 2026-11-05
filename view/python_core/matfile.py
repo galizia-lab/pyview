@@ -1,15 +1,19 @@
-from scipy.io import savemat
-from view.python_core.get_internal_files import get_gdm_doc_df
-from view.python_core.p1_class import P1SingleWavelengthTIF
-from view.python_core.flags import FlagsManager
-from view.python_core.gdm_generation.glomeruli_managers import get_gdm_row_boiler_plate_sans_glo
 import numpy as np
+from scipy.io import savemat
+
+# from view.python_core.gdm_generation.glomeruli_managers import get_gdm_row_boiler_plate_sans_glo
+from view.python_core.gdm_generation import (
+    get_glodatamix_row_boiler_plate as get_gdm_row_boiler_plate,
+)
+from view.python_core.get_internal_files import get_gdm_doc_df
 
 
 def export_processed_data_as_mat_file(view_object, analyze_values_to_use):
 
     # initialize measus to use
-    measus = view_object.get_measus_for_current_animal(analyze_values_to_use=analyze_values_to_use)
+    measus = view_object.get_measus_for_current_animal(
+        analyze_values_to_use=analyze_values_to_use
+    )
 
     metadatas = []
     response_frames = []
@@ -24,10 +28,14 @@ def export_processed_data_as_mat_file(view_object, analyze_values_to_use):
         view_object.calculate_signals()
 
         # accumulate metadata
-        metadatas.append(get_gdm_row_boiler_plate_sans_glo(flags=view_object.flags, p1=view_object.p1))
+        # metadatas.append(get_gdm_row_boiler_plate_sans_glo(flags=view_object.flags, p1=view_object.p1))
+        # nov. 2025: sans_glo above replaced with standard version to include glomerulus info
+        metadatas.append(get_gdm_row_boiler_plate(p1=view_object.p1))
 
         # accumulate CTV overview
-        response_frames.append(view_object.generate_ctv_response_frame_for_current_measurement())
+        response_frames.append(
+            view_object.generate_ctv_response_frame_for_current_measurement()
+        )
 
         # accumulate signal
         signal_movies.append(view_object.p1.sig1)
@@ -40,23 +48,27 @@ def export_processed_data_as_mat_file(view_object, analyze_values_to_use):
         doc_string_cell_array = create_mat_file_doc_string(
             columns=metadatas[0].keys(),
             extra_doc=[
-                "response frame as a 2D array. Format XY. "
-                "Pixel value indicates response strength as indicated by CTV flags",
-                "movie of calcium estimate (ratio or dff) as a 3D array. Format XYT"
-            ])
+                "response frame as a 2D array. Format XY. Pixel value indicates response strength as indicated by CTV flags",
+                "movie of calcium estimate (ratio or dff) as a 3D array. Format XYT",
+            ],
+        )
 
-        doc_string = "Variable 'area_mask': 2D logical array, with pixels to be excluded set to False. " \
-                     "Will be NaN if an area mask (.AREA file) was not created for this animal\n\n" \
-                     "Variable 'GDM': 2D cell array of metadata and data. Column are described below:\n\n" \
-                     + doc_string_cell_array
+        doc_string = (
+            "Variable 'area_mask': 2D logical array, with pixels to be excluded set to False. Will be NaN if an area mask (.AREA file) was not created for this animal\n\nVariable 'GDM': 2D cell array of metadata and data. Column are described below:\n\n"
+            + doc_string_cell_array
+        )
 
-        for measu_ind, measu in enumerate(measus):
+        for measu_ind, _measu in enumerate(measus):
             for ind, metadata_val in enumerate(metadatas[measu_ind].values):
                 cell_array[measu_ind, ind] = metadata_val
 
             # flip Y axis as it is output format that is more common
-            cell_array[measu_ind, n_metadata] = np.flip(response_frames[measu_ind], axis=1)
-            cell_array[measu_ind, n_metadata + 1] = np.flip(signal_movies[measu_ind], axis=1)
+            cell_array[measu_ind, n_metadata] = np.flip(
+                response_frames[measu_ind], axis=1
+            )
+            cell_array[measu_ind, n_metadata + 1] = np.flip(
+                signal_movies[measu_ind], axis=1
+            )
     else:
         doc_string = "This file contains no data!"
         cell_array = np.array([])
@@ -71,9 +83,10 @@ def export_processed_data_as_mat_file(view_object, analyze_values_to_use):
         mdict={
             "doc_string": doc_string,
             "GDM": cell_array,
-            "area_mask": area_mask
+            "area_mask": area_mask,
         },
-        do_compression=True)
+        do_compression=True,
+    )
 
 
 def create_mat_file_doc_string(columns, extra_doc):
@@ -86,6 +99,11 @@ def create_mat_file_doc_string(columns, extra_doc):
 
     gdm_doc_df = get_gdm_doc_df().set_index("Column name")
     doc_str = "\n".join(
-        f"Column {ind + 1}: {gdm_doc_df.loc[col_name, 'Description']}" for ind, col_name in enumerate(columns))
-    doc_str += "\n" + "\n".join(f"Column {len(columns) + ind + 1}: {val}" for ind, val in enumerate(extra_doc))
+        f"Column {ind + 1}: {gdm_doc_df.loc[col_name, 'Description']}"
+        for ind, col_name in enumerate(columns)
+    )
+    doc_str += "\n" + "\n".join(
+        f"Column {len(columns) + ind + 1}: {val}"
+        for ind, val in enumerate(extra_doc)
+    )
     return doc_str

@@ -1,57 +1,81 @@
+import contextlib
+import gc
 import logging
 import pathlib as pl
 import shutil
 import sys
 import tempfile
 import time
+from importlib import metadata
 
-from pkg_resources import get_distribution
-from .flags import FlagsManager
-from view.python_core.gdm_generation import get_roi_gdm_traces_dict, get_gdm_file
-from .measurement_list import MeasurementList
-from .measurement_list.importers import get_setup_extension
-from .movies import export_movie
-from .overviews import generate_overview_image, generate_overview_image_for_output
-from .overviews.ctv_handlers import get_ctv_handler
-from .p1_class import get_empty_p1, get_p1
-from .rois.roi_io import get_roi_io_class
-import gc
+from view.python_core.flags import FlagsManager
+from view.python_core.gdm_generation import (
+    get_gdm_file,
+    get_roi_gdm_traces_dict,
+)
+from view.python_core.logging_helper import CustomFormatter
+from view.python_core.measurement_list import MeasurementList
+from view.python_core.measurement_list.importers import get_setup_extension
+from view.python_core.movies import export_movie
+from view.python_core.overviews import (
+    OverviewData,
+    OverviewDataForOutput,
+    generate_overview_image,
+    generate_overview_image_for_output,
+)
+from view.python_core.overviews.ctv_handlers import get_ctv_handler
+from view.python_core.p1_class import P1SingleWavelengthAbstract, get_empty_p1
+from view.python_core.rois.roi_io import get_roi_io_class
 
 
-class VIEW(object):
-
+class VIEW:
     def __init__(self, flags=None, terminal_output_verbose=True):
         """
         Initializes a VIEW object with default flags
         """
         self.flags = FlagsManager()
         if flags is not None:
-            self.flags.update_flags({"STG_MotherOfAllFolders": flags["STG_MotherOfAllFolders"]})
-            self.flags.update_flags({k: v for k, v in flags.items() if k not in ["STG_MotherOfAllFolders"]})
+            self.flags.update_flags(
+                {"STG_MotherOfAllFolders": flags["STG_MotherOfAllFolders"]}
+            )
+            self.flags.update_flags(
+                {
+                    k: v
+                    for k, v in flags.items()
+                    if k not in ["STG_MotherOfAllFolders"]
+                }
+            )
 
         self.flags.update_flags({"VIEW_batchmode": True})
-        self.measurement_list = None
-        self.p1 = None
+        self.measurement_list: MeasurementList | None = None
+        self.p1: P1SingleWavelengthAbstract | None = None
         self.log_file = self.setup_logging(terminal_output_verbose)
         logging.getLogger("VIEW").info(
-            f"VIEW object initialized for offline use. Version: {get_distribution('view').version}")
+            "VIEW object initialized for offline use",
+            extra={"Version": metadata.version("view")},
+        )
 
     def __del__(self):
 
-        del self.flags
-        self.delete_data()
+        # del self.flags
+        # self.delete_data()
+        self.close()
+
+    def close(self):
+        self.p1 = None
+        self.measurement_list = None
+        self.flags = None
 
     def delete_data(self):
 
-        try:
-            self.p1.__del__()
-            del self.measurement_list
-        except AttributeError as ae:
-            pass
+        with contextlib.suppress(AttributeError):
+            self.close()
 
         self.p1 = None
         self.measurement_list = None
-        gc.collect()
+        print("gc before delete:", gc, type(gc))
+        gc.collect()  # chat says not to use gc but seems necessary to avoid memory leaks
+        print("gc after delete:", gc, type(gc))
 
     def setup_logging(self, terminal_output_verbose):
 
@@ -60,12 +84,14 @@ class VIEW(object):
         my_logger.setLevel(level=logging.INFO)
 
         if not my_logger.hasHandlers():
-
             temp_dir = tempfile.gettempdir()
             view_log_dir_path = pl.Path(temp_dir) / "VIEW_logs"
             view_log_dir_path.mkdir(exist_ok=True)
-            log_file_path = view_log_dir_path / f"VIEW_started_at_{time.strftime('%Y-%m-%d-%H-%M-%S')}.log"
-            formatter = logging.Formatter("%(asctime)s [VIEW] [%(levelname)-5.5s] %(message)s")
+            log_file_path = (
+                view_log_dir_path
+                / f"VIEW_started_at_{time.strftime('%Y-%m-%d-%H-%M-%S')}.log"
+            )
+            formatter = CustomFormatter(program_name="VIEW")
 
             file_handler = logging.FileHandler(log_file_path)
             file_handler.setLevel(level=logging.INFO)
@@ -81,8 +107,11 @@ class VIEW(object):
             log_file = str(log_file_path)
 
         else:
-
-            file_handler = [x for x in my_logger.handlers if isinstance(x, logging.FileHandler)][0]
+            file_handler = [
+                x
+                for x in my_logger.handlers
+                if isinstance(x, logging.FileHandler)
+            ][0]
             log_file = file_handler.baseFilename
 
         return log_file
@@ -111,18 +140,18 @@ class VIEW(object):
         :param animal: string, name/tag of the animal
         """
 
-        self.flags.update_flags({
-            "STG_ReportTag": animal
-        })
+        self.flags.update_flags({"STG_ReportTag": animal})
 
         lst_file = self.flags.get_existing_lst_file()
 
         if lst_file is None:
-            raise FileNotFoundError(f"Could not find a list file for animal={animal} "
-                                    f"in {self.flags['STG_OdorInfoPath']}")
+            raise FileNotFoundError(
+                f"Could not find a list file for animal={animal} in {self.flags['STG_OdorInfoPath']}"
+            )
 
         self.measurement_list = MeasurementList.create_from_lst_file(
-            lst_fle=lst_file, LE_loadExp=self.flags["LE_loadExp"])
+            lst_fle=lst_file, LE_loadExp=self.flags["LE_loadExp"]
+        )
 
     def initialize_animal_from_list_file(self, list_file):
         """
@@ -132,16 +161,21 @@ class VIEW(object):
         """
 
         self.measurement_list = MeasurementList.create_from_lst_file(
-            lst_fle=list_file, LE_loadExp=self.flags["LE_loadExp"])
+            lst_fle=list_file, LE_loadExp=self.flags["LE_loadExp"]
+        )
 
-        assert self.measurement_list.animal_name is not None, "Something went wrong!"
-        self.flags.update_flags({"STG_ReportTag": self.measurement_list.animal_name})
+        assert (
+            self.measurement_list.animal_name is not None
+        ), "Something went wrong!"
+        self.flags.update_flags(
+            {"STG_ReportTag": self.measurement_list.animal_name}
+        )
 
     def get_current_animal(self):
 
         self.check_if_animal_is_initialized()
 
-        return self.flags['STG_ReportTag']
+        return self.flags["STG_ReportTag"]
 
     def check_if_animal_is_initialized(self):
         """
@@ -149,12 +183,18 @@ class VIEW(object):
         """
 
         if self.measurement_list is not None:
-            measurement_list_name = pl.Path(self.measurement_list.last_measurement_list_fle).name
-            if measurement_list_name.startswith(f"{self.flags['STG_ReportTag']}."):
+            measurement_list_name = pl.Path(
+                self.measurement_list.last_measurement_list_fle
+            ).name
+            if measurement_list_name.startswith(
+                f"{self.flags['STG_ReportTag']}."
+            ):
                 return  # all good
 
-        raise ValueError("No animal initialized, "
-                         "please initialize first VIEW with an animal using the method 'initialize_animal'")
+        raise ValueError(
+            "No animal initialized, "
+            "please initialize first VIEW with an animal using the method 'initialize_animal'"
+        )
 
     def get_measus_for_current_animal(self, analyze_values_to_use=None):
         """
@@ -165,7 +205,9 @@ class VIEW(object):
         """
 
         self.check_if_animal_is_initialized()
-        return self.measurement_list.get_measus(analyze_values_accepted=analyze_values_to_use)
+        return self.measurement_list.get_measus(
+            analyze_values_accepted=analyze_values_to_use
+        )
 
     def get_measu_label_for_current_animal(self, measu):
         """
@@ -175,7 +217,9 @@ class VIEW(object):
         """
 
         self.check_if_animal_is_initialized()
-        return self.flags.get_measurement_label(measurement_row=self.measurement_list.get_row_by_measu(measu))
+        return self.flags.get_measurement_label(
+            measurement_row=self.measurement_list.get_row_by_measu(measu)
+        )
 
     def load_measurement_data_from_current_animal(self, measu):
         """
@@ -188,7 +232,14 @@ class VIEW(object):
 
         self.flags.update_flags({"STG_Measu": measu})
 
-        measu_label, self.p1 = self.measurement_list.load_data(flags=self.flags, measu=measu)
+        logging.getLogger("VIEW").info(
+            "Loading data",
+            extra={"Animal": self.get_current_animal(), "Measu": measu},
+        )
+
+        measu_label, self.p1 = self.measurement_list.load_data(
+            flags=self.flags, measu=measu
+        )
 
         return measu_label
 
@@ -202,7 +253,9 @@ class VIEW(object):
         if self.p1 is not None:
             self.p1.calculate_signals(self.flags)
         else:
-            raise ValueError("No raw data has been loaded. Load some raw data and try calculating signals again!")
+            raise ValueError(
+                "No raw data has been loaded. Load some raw data and try calculating signals again!"
+            )
 
     def load_measurement_data(self, animal, measu):
         """
@@ -214,13 +267,21 @@ class VIEW(object):
 
         # self.measurement_list can be not None only if an animal had been initialized and
         # when an animal has been initialized, flag 'STG_ReportTag' gets set
-        if not(self.measurement_list is not None and self.flags["STG_ReportTag"] == animal):
+        if not (
+            self.measurement_list is not None
+            and self.flags["STG_ReportTag"] == animal
+        ):
             self.initialize_animal(animal)
 
         return self.load_measurement_data_from_current_animal(measu)
 
     def load_measurement_data_without_list_file(
-            self, raw_data_files, sampling_rate, LE_loadExp, animal='unspecified_animal'):
+        self,
+        raw_data_files,
+        sampling_rate,
+        LE_loadExp,
+        animal="unspecified_animal",
+    ):
         """
         Load data into VIEW directly from raw data files without needing measurement list files
         :param sequence raw_data_files: list of raw data files. Must be compatible with the flag `LE_loadExp`
@@ -234,9 +295,13 @@ class VIEW(object):
         self.p1 = get_empty_p1(LE_loadExp=self.flags["LE_loadExp"])
 
         # needed for looking if a usable area file exists
-        self.flags.update_flags({'STG_ReportTag': animal})
+        self.flags.update_flags({"STG_ReportTag": animal})
 
-        self.p1.load_without_metadata(filenames=raw_data_files, flags=self.flags, sampling_rate=sampling_rate)
+        self.p1.load_without_metadata(
+            filenames=raw_data_files,
+            flags=self.flags,
+            sampling_rate=sampling_rate,
+        )
 
     def export_movie_for_current_measurement(self):
         """
@@ -244,19 +309,21 @@ class VIEW(object):
         :return: str, path of the movie output file written or output directory for when mv_exportFormat='single_tif'
         """
 
-        if self.p1.sig1 is None:
-            self.calculate_signals()
-
         movie_dir_path = pl.Path(self.flags.get_op_movie_dir())
         movie_dir_path.mkdir(parents=True, exist_ok=True)
-        measurement_row = self.measurement_list.get_row_by_measu(self.flags["STG_Measu"])
+        measurement_row = self.measurement_list.get_row_by_measu(
+            self.flags["STG_Measu"]
+        )
         user_spec_label = self.flags.get_measurement_label(measurement_row)
         op_filepath_stem = str(movie_dir_path / user_spec_label)
 
         if self.p1.sig1 is None:
             self.calculate_signals()
-        return export_movie(flags=self.flags, p1=self.p1,
-                            full_filename_without_extension=op_filepath_stem)
+        return export_movie(
+            flags=self.flags,
+            p1=self.p1,
+            full_filename_without_extension=op_filepath_stem,
+        )
 
     def get_roi_info_for_current_animal(self):
         """
@@ -266,7 +333,9 @@ class VIEW(object):
         roi_file: str, file from which ROI information was taken
         """
 
-        roi_data_dict, roi_file = get_roi_io_class(self.flags["RM_ROITrace"]).read(flags=self.flags)
+        roi_data_dict, roi_file = get_roi_io_class(
+            self.flags["RM_ROITrace"]
+        ).read(flags=self.flags)
 
         return roi_data_dict, roi_file
 
@@ -281,12 +350,14 @@ class VIEW(object):
         gdm_file: view.python_core.gdm_generation.gdm_data_classes.GDMFile object
         """
 
-        roi_label_gdm_traces_dict, roi_data_dict = self.get_roi_gdm_traces_dict(roi_data_dict)
+        roi_label_gdm_traces_dict, roi_data_dict = (
+            self.get_roi_gdm_traces_dict(roi_data_dict)
+        )
 
         gdm_file = get_gdm_file(p1=self.p1, flags=self.flags)
 
         return gdm_file, roi_data_dict
-    
+
     def get_roi_gdm_traces_dict(self, roi_data_dict=None):
         """
         Returns a dictionary of roi labels and corresponding time traces as numpy arrays.
@@ -301,10 +372,15 @@ class VIEW(object):
             self.calculate_signals()
 
         if roi_data_dict is None:
-            roi_data_dict, roi_file = get_roi_io_class(self.flags["RM_ROITrace"]).read(
-                flags=self.flags, measurement_label=self.p1.metadata.ex_name)
-        
-        roi_label_gdm_traces_dict = get_roi_gdm_traces_dict(p1=self.p1, flags=self.flags, roi_data_dict=roi_data_dict)
+            roi_data_dict, roi_file = get_roi_io_class(
+                self.flags["RM_ROITrace"]
+            ).read(
+                flags=self.flags, measurement_label=self.p1.metadata.ex_name
+            )
+
+        roi_label_gdm_traces_dict = get_roi_gdm_traces_dict(
+            p1=self.p1, flags=self.flags, roi_data_dict=roi_data_dict
+        )
 
         return roi_label_gdm_traces_dict, roi_data_dict
 
@@ -321,7 +397,7 @@ class VIEW(object):
 
         return ctv_handler.apply(self.p1.sig1)
 
-    def generate_overview_for_current_measurement(self):
+    def generate_overview_for_current_measurement(self) -> OverviewData:
         """
         Generate an overview of the measurement data currently loaded based on current flags and returns it
         :return: overview_frame, data_limits, overview_generator_used
@@ -334,7 +410,9 @@ class VIEW(object):
             self.calculate_signals()
         return generate_overview_image(flags=self.flags, p1=self.p1)
 
-    def generate_overview_for_output_for_current_measurement(self):
+    def generate_overview_for_output_for_current_measurement(
+        self,
+    ) -> OverviewDataForOutput:
         """
         Generates overview frame and transforms it so that it can be readily used either for plt.imshow or for
         saving with tifffile.imsave
@@ -358,7 +436,10 @@ class VIEW(object):
             file_path = pl.Path(file)
             target_filename = f"{file_path.stem}_last_used{file_path.suffix}"
             target_file = pl.Path(target_directory) / target_filename
-            logging.getLogger("VIEW").info(f"Backing up {file} to {target_file}")
+            logging.getLogger("VIEW").info(
+                "Backing up file",
+                extra={"old file": file, "backing up to": target_file},
+            )
             shutil.copy(file, str(target_file))
 
     def backup_script_flags_configs_for_GDMs(self, files):
@@ -405,9 +486,13 @@ class VIEW(object):
 
     def get_measu_label(self, measu):
 
-        return self.flags.get_measurement_label(measurement_row=self.measurement_list.get_row_by_measu(measu))
+        return self.flags.get_measurement_label(
+            measurement_row=self.measurement_list.get_row_by_measu(measu)
+        )
 
-    def backup_script_flags_configs_for_processed_data_output(self, files, format_name):
+    def backup_script_flags_configs_for_processed_data_output(
+        self, files, format_name
+    ):
         """
         Copies all files in <files> to the output folder for processed data for format in `format_name`.
         :param files: list of strings, each pointing to a file on the file system

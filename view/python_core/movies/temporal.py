@@ -1,7 +1,7 @@
 from scipy import ndimage as spimage
 
 
-class TemporalNoFilter(object):
+class TemporalNoFilter:
 
     def __init__(self):
 
@@ -21,7 +21,9 @@ class TemporalGaussianFilter(TemporalNoFilter):
 
     def filter(self, data):
 
-        return spimage.gaussian_filter1d(data, sigma=self.Signal_FilterSpaceSize, axis=-1)
+        return spimage.gaussian_filter1d(
+            data, sigma=self.Signal_FilterSpaceSize, axis=-1
+        )
 
 
 def get_temporal_processor(filter_time_flag, filter_time_size):
@@ -33,4 +35,3 @@ def get_temporal_processor(filter_time_flag, filter_time_size):
     else:
 
         return TemporalNoFilter()
-

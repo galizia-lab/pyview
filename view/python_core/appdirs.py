@@ -1,4 +1,5 @@
 import appdirs
+
 # https://github.com/ActiveState/appdirs
 
 
@@ -9,8 +10,7 @@ def get_app_log_dir():
     """
 
     name, org, domain = get_app_name_organization_domain()
-    return appdirs.user_log_dir(appname=name,
-                                appauthor=org)
+    return appdirs.user_log_dir(appname=name, appauthor=org)
 
 
 def get_app_usr_data_dir():
@@ -20,8 +20,7 @@ def get_app_usr_data_dir():
     """
 
     name, org, domain = get_app_name_organization_domain()
-    return appdirs.user_data_dir(appname=name,
-                                 appauthor=org)
+    return appdirs.user_data_dir(appname=name, appauthor=org)
 
 
 def get_app_name_organization_domain():
