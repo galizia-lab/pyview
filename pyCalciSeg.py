@@ -4,6 +4,12 @@ Based on Jannick Günzel's CalciSeg
 Finding maxima is good,
 but voronoi segmentation is not ideal for glomeruli. 
 
+Pipeline: 
+- create a 3D Tiff stack of the signal movies of all measurements of an animal (or a subset of measurements, e.g. those with analyze=1 or -1)
+- set parameters for segmentation (thresholds, etc.) in pyview/calciseg/CS_config.py
+- then run this file, select 3D Tiff from input dialog.
+
+
 - todo
 add local correlation-based segmentation option
 add ICA-based segmentation option
